@@ -1,1979 +1,1141 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Control de Tareas</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <style>
-    .sidebar-link { @apply flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-150; }
-    .sidebar-link:hover { @apply bg-blue-700 text-white; }
-    .sidebar-link.active { @apply bg-blue-800 text-white; }
-    .card { @apply bg-white rounded-2xl shadow p-6; }
-    .btn-primary { @apply bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-lg transition; }
-    .btn-danger  { @apply bg-red-500 hover:bg-red-600 text-white font-semibold px-3 py-1 rounded-lg transition text-sm; }
-    .btn-success { @apply bg-green-600 hover:bg-green-700 text-white font-semibold px-4 py-2 rounded-lg transition; }
-    .btn-gray    { @apply bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold px-4 py-2 rounded-lg transition; }
-    .input-field { @apply w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400; }
-    .badge-green  { @apply inline-block bg-green-100 text-green-700 text-xs font-semibold px-2 py-0.5 rounded-full; }
-    .badge-red    { @apply inline-block bg-red-100 text-red-700 text-xs font-semibold px-2 py-0.5 rounded-full; }
-    .badge-yellow { @apply inline-block bg-yellow-100 text-yellow-700 text-xs font-semibold px-2 py-0.5 rounded-full; }
-    .badge-blue   { @apply inline-block bg-blue-100 text-blue-700 text-xs font-semibold px-2 py-0.5 rounded-full; }
-    [x-cloak] { display: none !important; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro de Tareas</title>
+    <link rel="icon" href="data:,">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
-<body class="bg-gray-100 min-h-screen font-sans">
+<body class="bg-slate-100 min-h-screen">
 
-<!-- ==================== LOGIN ==================== -->
-<div id="loginPage" class="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-900 to-blue-600">
-  <div class="bg-white rounded-2xl shadow-2xl p-10 w-full max-w-sm">
-    <div class="text-center mb-8">
-      <div class="text-5xl mb-3">🏭</div>
-      <h1 class="text-2xl font-bold text-blue-900">Control de Tareas</h1>
-      <p class="text-gray-500 text-sm mt-1">Sistema de gestión logística</p>
+<!-- ==================== PANTALLA DE LOGIN ==================== -->
+<div id="pantalla-login" class="flex items-center justify-center min-h-screen px-4">
+    <div class="bg-white shadow-xl rounded-2xl p-10 w-full max-w-sm text-center">
+        <h1 class="text-3xl font-bold text-slate-800 mb-1">Registro de Tareas</h1>
+        <p class="text-sm text-slate-500 mb-8">Identifícate para continuar</p>
+        <div class="bg-blue-50 border-2 border-dashed border-blue-300 rounded-xl p-4 mb-4">
+            <label class="block text-sm font-semibold text-blue-900 mb-2">Escanea tu código o escríbelo:</label>
+            <input type="text" id="login-codigo" class="w-full px-4 py-3 text-center text-xl font-bold border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white" placeholder="Código de usuario..." autocomplete="off" />
+        </div>
+        <div class="mb-6">
+            <label class="block text-sm font-medium text-slate-700 mb-1">PIN:</label>
+            <input type="password" id="login-pin" class="w-full px-4 py-3 text-center text-2xl tracking-widest border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="••••" maxlength="6" />
+        </div>
+        <button onclick="hacerLogin()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl text-xl transition duration-200">Entrar</button>
+        <div id="login-error" class="mt-4 p-3 rounded-lg text-sm bg-rose-100 text-rose-800 hidden"></div>
     </div>
-    <div class="space-y-4">
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Código de operario</label>
-        <input id="loginCodigo" type="text" placeholder="Ej: OP01"
-          class="input-field uppercase" onkeydown="if(event.key==='Enter') doLogin()"/>
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">PIN</label>
-        <input id="loginPin" type="password" placeholder="••••"
-          class="input-field" onkeydown="if(event.key==='Enter') doLogin()"/>
-      </div>
-      <button onclick="doLogin()" class="btn-primary w-full mt-2 py-3 text-base">
-        Entrar
-      </button>
-      <p id="loginError" class="text-red-500 text-sm text-center hidden">
-        Código o PIN incorrecto
-      </p>
-    </div>
-  </div>
 </div>
 
-<!-- ==================== APP PRINCIPAL ==================== -->
-<div id="appPage" class="hidden flex min-h-screen">
-
-  <!-- SIDEBAR -->
-  <aside class="w-64 bg-blue-900 text-white flex flex-col min-h-screen fixed top-0 left-0 z-20">
-    <div class="px-6 py-5 border-b border-blue-700">
-      <div class="text-lg font-bold">🏭 Control Tareas</div>
-      <div class="text-xs text-blue-300 mt-1" id="sidebarUser">-</div>
+<!-- ==================== CONFIRMACIÓN GUARDADO ==================== -->
+<div id="pantalla-confirmacion" class="fixed inset-0 bg-emerald-500 hidden items-center justify-center z-50">
+    <div class="text-center text-white">
+        <div class="text-9xl mb-6">✅</div>
+        <h2 class="text-4xl font-bold mb-3">¡Guardado correctamente!</h2>
+        <p id="confirmacion-texto" class="text-xl opacity-90"></p>
+        <p class="text-lg opacity-75 mt-4">Volviendo al inicio en <span id="confirmacion-cuenta">3</span>s...</p>
     </div>
-    <nav class="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-      <!-- Operario -->
-      <div class="text-xs text-blue-400 uppercase font-semibold px-4 mb-1">Mi área</div>
-      <a href="#" class="sidebar-link" onclick="showTab('tabRegistro')">📝 Registrar tarea</a>
-      <a href="#" class="sidebar-link" onclick="showTab('tabMisRegistros')">📋 Mis registros</a>
-      <a href="#" class="sidebar-link" onclick="showTab('tabVolumen')">📦 Volumen</a>
-      <a href="#" class="sidebar-link" onclick="showTab('tabPlantillas')">🗂️ Plantillas</a>
-      <a href="#" class="sidebar-link" onclick="showTab('tabIncidencias')">⚠️ Incidencias</a>
-
-      <!-- Supervisor -->
-      <div id="navSupervisor" class="hidden">
-        <div class="text-xs text-blue-400 uppercase font-semibold px-4 mt-4 mb-1">Supervisión</div>
-        <a href="#" class="sidebar-link" onclick="showTab('tabEstadisticas')">📊 Estadísticas</a>
-        <a href="#" class="sidebar-link" onclick="showTab('tabProductividad')">🏆 Productividad</a>
-        <a href="#" class="sidebar-link" onclick="showTab('tabObjetivos')">🎯 Objetivos</a>
-        <a href="#" class="sidebar-link" onclick="showTab('tabTurnos')">🔄 Turnos</a>
-        <a href="#" class="sidebar-link" onclick="showTab('tabUsuarios')">👥 Usuarios</a>
-        <a href="#" class="sidebar-link" onclick="showTab('tabAuditoria')">🔍 Auditoría</a>
-        <a href="#" class="sidebar-link" onclick="exportarExcel()">⬇️ Exportar Excel</a>
-      </div>
-    </nav>
-    <div class="px-4 py-4 border-t border-blue-700">
-      <button onclick="logout()" class="w-full text-left text-sm text-blue-300 hover:text-white transition">
-        🚪 Cerrar sesión
-      </button>
-    </div>
-  </aside>
-
-  <!-- CONTENIDO PRINCIPAL -->
-  <main class="ml-64 flex-1 p-8 space-y-6">
-
-    <!-- ===== TAB: REGISTRAR TAREA ===== -->
-    <div id="tabRegistro" class="tab-content">
-      <h2 class="text-2xl font-bold text-blue-900 mb-6">📝 Registrar Tarea</h2>
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div class="card">
-          <h3 class="font-semibold text-gray-700 mb-4">Nueva entrada</h3>
-          <div class="space-y-3">
-            <div>
-              <label class="block text-sm font-medium text-gray-600 mb-1">Fecha</label>
-              <input id="regFecha" type="date" class="input-field"/>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-600 mb-1">Tarea</label>
-              <select id="regTarea" class="input-field" onchange="actualizarSubtareas()">
-                <option value="">-- Selecciona tarea --</option>
-                <option value="Recepción">Recepción</option>
-                <option value="Almacenamiento">Almacenamiento</option>
-                <option value="Picking">Picking</option>
-                <option value="Packing">Packing</option>
-                <option value="Expedición">Expedición</option>
-                <option value="Inventario">Inventario</option>
-                <option value="Carga">Carga</option>
-                <option value="Descarga">Descarga</option>
-                <option value="Limpieza">Limpieza</option>
-                <option value="Mantenimiento">Mantenimiento</option>
-                <option value="Formación">Formación</option>
-                <option value="Reunión">Reunión</option>
-                <option value="Otro">Otro</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-600 mb-1">Subtarea</label>
-              <input id="regSubtarea" type="text" placeholder="Opcional" class="input-field"/>
-            </div>
-            <div class="grid grid-cols-2 gap-3">
-              <div>
-                <label class="block text-sm font-medium text-gray-600 mb-1">Hora inicio</label>
-                <input id="regHoraInicio" type="time" class="input-field" onchange="calcularMinutos()"/>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-600 mb-1">Hora fin</label>
-                <input id="regHoraFin" type="time" class="input-field" onchange="calcularMinutos()"/>
-              </div>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-600 mb-1">
-                Minutos <span id="regMinutosLabel" class="text-blue-600 font-semibold"></span>
-              </label>
-              <input id="regMinutos" type="number" min="1" placeholder="O introduce minutos directamente" class="input-field"/>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-600 mb-1">Turno</label>
-              <select id="regTurno" class="input-field">
-                <option value="">-- Sin especificar --</option>
-                <option value="mañana">Mañana</option>
-                <option value="tarde">Tarde</option>
-                <option value="noche">Noche</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-600 mb-1">Notas</label>
-              <textarea id="regNotas" rows="2" placeholder="Observaciones..." class="input-field"></textarea>
-            </div>
-            <div class="flex gap-2 pt-2">
-              <button onclick="guardarRegistro()" class="btn-primary flex-1">💾 Guardar</button>
-              <button onclick="limpiarFormRegistro()" class="btn-gray">🔄 Limpiar</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Plantillas rápidas -->
-        <div class="card">
-          <h3 class="font-semibold text-gray-700 mb-4">⚡ Usar plantilla</h3>
-          <div id="plantillasRapidasList" class="space-y-2 max-h-96 overflow-y-auto">
-            <p class="text-gray-400 text-sm">No hay plantillas guardadas</p>
-          </div>
-        </div>
-      </div>
-    </div>
-    <!-- ===== TAB: MIS REGISTROS ===== -->
-    <div id="tabMisRegistros" class="tab-content hidden">
-      <h2 class="text-2xl font-bold text-blue-900 mb-6">📋 Mis Registros</h2>
-      <div class="card mb-6">
-        <div class="flex flex-wrap gap-3 items-end">
-          <div>
-            <label class="block text-sm font-medium text-gray-600 mb-1">Desde</label>
-            <input id="filtroDesde" type="date" class="input-field w-40"/>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-600 mb-1">Hasta</label>
-            <input id="filtroHasta" type="date" class="input-field w-40"/>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-600 mb-1">Tarea</label>
-            <select id="filtroTarea" class="input-field w-44">
-              <option value="">Todas</option>
-              <option value="Recepción">Recepción</option>
-              <option value="Almacenamiento">Almacenamiento</option>
-              <option value="Picking">Picking</option>
-              <option value="Packing">Packing</option>
-              <option value="Expedición">Expedición</option>
-              <option value="Inventario">Inventario</option>
-              <option value="Carga">Carga</option>
-              <option value="Descarga">Descarga</option>
-              <option value="Limpieza">Limpieza</option>
-              <option value="Mantenimiento">Mantenimiento</option>
-              <option value="Formación">Formación</option>
-              <option value="Reunión">Reunión</option>
-              <option value="Otro">Otro</option>
-            </select>
-          </div>
-          <button onclick="cargarMisRegistros()" class="btn-primary">🔍 Filtrar</button>
-          <button onclick="resetFiltros()" class="btn-gray">🔄 Reset</button>
-        </div>
-      </div>
-      <div class="card">
-        <div class="flex justify-between items-center mb-4">
-          <div id="misRegistrosResumen" class="text-sm text-gray-500"></div>
-        </div>
-        <div class="overflow-x-auto">
-          <table class="w-full text-sm">
-            <thead>
-              <tr class="bg-blue-50 text-blue-900">
-                <th class="px-3 py-2 text-left">Fecha</th>
-                <th class="px-3 py-2 text-left">Tarea</th>
-                <th class="px-3 py-2 text-left">Subtarea</th>
-                <th class="px-3 py-2 text-right">Min</th>
-                <th class="px-3 py-2 text-right">Horas</th>
-                <th class="px-3 py-2 text-left">Turno</th>
-                <th class="px-3 py-2 text-left">Notas</th>
-                <th class="px-3 py-2 text-center">Acciones</th>
-              </tr>
-            </thead>
-            <tbody id="misRegistrosBody"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- ===== TAB: VOLUMEN ===== -->
-    <div id="tabVolumen" class="tab-content hidden">
-      <h2 class="text-2xl font-bold text-blue-900 mb-6">📦 Registro de Volumen</h2>
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div class="card">
-          <h3 class="font-semibold text-gray-700 mb-4">Nuevo registro de volumen</h3>
-          <div class="space-y-3">
-            <div>
-              <label class="block text-sm font-medium text-gray-600 mb-1">Fecha</label>
-              <input id="volFecha" type="date" class="input-field"/>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-600 mb-1">Tarea</label>
-              <select id="volTarea" class="input-field">
-                <option value="">-- Selecciona --</option>
-                <option value="Recepción">Recepción</option>
-                <option value="Picking">Picking</option>
-                <option value="Packing">Packing</option>
-                <option value="Expedición">Expedición</option>
-                <option value="Inventario">Inventario</option>
-                <option value="Carga">Carga</option>
-                <option value="Descarga">Descarga</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-600 mb-1">Unidades procesadas</label>
-              <input id="volUnidades" type="number" min="0" placeholder="0" class="input-field"/>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-600 mb-1">Objetivo unidades</label>
-              <input id="volObjetivo" type="number" min="0" placeholder="0" class="input-field"/>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-600 mb-1">Turno</label>
-              <select id="volTurno" class="input-field">
-                <option value="">-- Sin especificar --</option>
-                <option value="mañana">Mañana</option>
-                <option value="tarde">Tarde</option>
-                <option value="noche">Noche</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-600 mb-1">Notas</label>
-              <textarea id="volNotas" rows="2" class="input-field"></textarea>
-            </div>
-            <button onclick="guardarVolumen()" class="btn-primary w-full">💾 Guardar volumen</button>
-          </div>
-        </div>
-        <div class="card">
-          <h3 class="font-semibold text-gray-700 mb-4">Mis volúmenes registrados</h3>
-          <div class="overflow-x-auto">
-            <table class="w-full text-sm">
-              <thead>
-                <tr class="bg-blue-50 text-blue-900">
-                  <th class="px-3 py-2 text-left">Fecha</th>
-                  <th class="px-3 py-2 text-left">Tarea</th>
-                  <th class="px-3 py-2 text-right">Uds</th>
-                  <th class="px-3 py-2 text-right">Obj</th>
-                  <th class="px-3 py-2 text-right">%</th>
-                  <th class="px-3 py-2 text-center">Acc</th>
-                </tr>
-              </thead>
-              <tbody id="volumenBody"></tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ===== TAB: PLANTILLAS ===== -->
-    <div id="tabPlantillas" class="tab-content hidden">
-      <h2 class="text-2xl font-bold text-blue-900 mb-6">🗂️ Plantillas</h2>
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div class="card">
-          <h3 class="font-semibold text-gray-700 mb-4">Crear plantilla</h3>
-          <div class="space-y-3">
-            <div>
-              <label class="block text-sm font-medium text-gray-600 mb-1">Nombre de plantilla</label>
-              <input id="plantNombre" type="text" placeholder="Ej: Picking estándar" class="input-field"/>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-600 mb-1">Tarea</label>
-              <select id="plantTarea" class="input-field">
-                <option value="">-- Selecciona --</option>
-                <option value="Recepción">Recepción</option>
-                <option value="Almacenamiento">Almacenamiento</option>
-                <option value="Picking">Picking</option>
-                <option value="Packing">Packing</option>
-                <option value="Expedición">Expedición</option>
-                <option value="Inventario">Inventario</option>
-                <option value="Carga">Carga</option>
-                <option value="Descarga">Descarga</option>
-                <option value="Limpieza">Limpieza</option>
-                <option value="Mantenimiento">Mantenimiento</option>
-                <option value="Formación">Formación</option>
-                <option value="Reunión">Reunión</option>
-                <option value="Otro">Otro</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-600 mb-1">Subtarea</label>
-              <input id="plantSubtarea" type="text" placeholder="Opcional" class="input-field"/>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-600 mb-1">Minutos predefinidos</label>
-              <input id="plantMinutos" type="number" min="1" placeholder="60" class="input-field"/>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-600 mb-1">Notas</label>
-              <textarea id="plantNotas" rows="2" class="input-field"></textarea>
-            </div>
-            <button onclick="guardarPlantilla()" class="btn-primary w-full">💾 Guardar plantilla</button>
-          </div>
-        </div>
-        <div class="card">
-          <h3 class="font-semibold text-gray-700 mb-4">Mis plantillas</h3>
-          <div id="plantillasList" class="space-y-2 max-h-96 overflow-y-auto"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ===== TAB: INCIDENCIAS ===== -->
-    <div id="tabIncidencias" class="tab-content hidden">
-      <h2 class="text-2xl font-bold text-blue-900 mb-6">⚠️ Incidencias</h2>
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div class="card">
-          <h3 class="font-semibold text-gray-700 mb-4">Registrar incidencia</h3>
-          <div class="space-y-3">
-            <div>
-              <label class="block text-sm font-medium text-gray-600 mb-1">Fecha</label>
-              <input id="incFecha" type="date" class="input-field"/>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-600 mb-1">Tipo</label>
-              <select id="incTipo" class="input-field">
-                <option value="">-- Selecciona tipo --</option>
-                <option value="Avería">Avería</option>
-                <option value="Accidente">Accidente</option>
-                <option value="Falta material">Falta material</option>
-                <option value="Error sistema">Error sistema</option>
-                <option value="Retraso proveedor">Retraso proveedor</option>
-                <option value="Problema calidad">Problema calidad</option>
-                <option value="Otro">Otro</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-600 mb-1">Descripción</label>
-              <textarea id="incDescripcion" rows="3" class="input-field" placeholder="Describe la incidencia..."></textarea>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-600 mb-1">Impacto en minutos</label>
-              <input id="incImpacto" type="number" min="0" placeholder="0" class="input-field"/>
-            </div>
-            <button onclick="guardarIncidencia()" class="btn-primary w-full">⚠️ Registrar incidencia</button>
-          </div>
-        </div>
-        <div class="card">
-          <h3 class="font-semibold text-gray-700 mb-4">Incidencias registradas</h3>
-          <div class="overflow-x-auto">
-            <table class="w-full text-sm">
-              <thead>
-                <tr class="bg-yellow-50 text-yellow-900">
-                  <th class="px-3 py-2 text-left">Fecha</th>
-                  <th class="px-3 py-2 text-left">Tipo</th>
-                  <th class="px-3 py-2 text-left">Descripción</th>
-                  <th class="px-3 py-2 text-right">Min</th>
-                  <th class="px-3 py-2 text-center">Estado</th>
-                  <th class="px-3 py-2 text-center">Acc</th>
-                </tr>
-              </thead>
-              <tbody id="incidenciasBody"></tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </div>
-    <!-- ===== TAB: ESTADÍSTICAS ===== -->
-    <div id="tabEstadisticas" class="tab-content hidden">
-      <h2 class="text-2xl font-bold text-blue-900 mb-6">📊 Estadísticas</h2>
-      <div class="card mb-6">
-        <div class="flex flex-wrap gap-3 items-end">
-          <div>
-            <label class="block text-sm font-medium text-gray-600 mb-1">Usuario</label>
-            <select id="statUsuario" class="input-field w-44">
-              <option value="">Todos</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-600 mb-1">Desde</label>
-            <input id="statDesde" type="date" class="input-field w-40"/>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-600 mb-1">Hasta</label>
-            <input id="statHasta" type="date" class="input-field w-40"/>
-          </div>
-          <button onclick="cargarEstadisticas()" class="btn-primary">📊 Cargar</button>
-          <button onclick="cargarSemanal()" class="btn-gray">Esta semana</button>
-          <button onclick="cargarMensual()" class="btn-gray">Este mes</button>
-        </div>
-      </div>
-
-      <!-- KPIs -->
-      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <div class="card text-center">
-          <div class="text-3xl font-bold text-blue-700" id="kpiHoras">0</div>
-          <div class="text-sm text-gray-500 mt-1">Total horas</div>
-        </div>
-        <div class="card text-center">
-          <div class="text-3xl font-bold text-green-600" id="kpiRegistros">0</div>
-          <div class="text-sm text-gray-500 mt-1">Registros</div>
-        </div>
-        <div class="card text-center">
-          <div class="text-3xl font-bold text-purple-600" id="kpiTareas">0</div>
-          <div class="text-sm text-gray-500 mt-1">Tareas distintas</div>
-        </div>
-        <div class="card text-center">
-          <div class="text-3xl font-bold text-orange-500" id="kpiMedia">0</div>
-          <div class="text-sm text-gray-500 mt-1">Media h/día</div>
-        </div>
-      </div>
-
-      <!-- Gráficos -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <div class="card">
-          <h3 class="font-semibold text-gray-700 mb-3">Horas por tarea</h3>
-          <canvas id="chartTarea" height="200"></canvas>
-        </div>
-        <div class="card">
-          <h3 class="font-semibold text-gray-700 mb-3">Evolución diaria</h3>
-          <canvas id="chartDia" height="200"></canvas>
-        </div>
-      </div>
-
-      <!-- Tabla por tarea -->
-      <div class="card">
-        <h3 class="font-semibold text-gray-700 mb-4">Desglose por tarea</h3>
-        <div class="overflow-x-auto">
-          <table class="w-full text-sm">
-            <thead>
-              <tr class="bg-blue-50 text-blue-900">
-                <th class="px-3 py-2 text-left">Tarea</th>
-                <th class="px-3 py-2 text-right">Minutos</th>
-                <th class="px-3 py-2 text-right">Horas</th>
-                <th class="px-3 py-2 text-right">% del total</th>
-              </tr>
-            </thead>
-            <tbody id="statTareaBody"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- ===== TAB: PRODUCTIVIDAD ===== -->
-    <div id="tabProductividad" class="tab-content hidden">
-      <h2 class="text-2xl font-bold text-blue-900 mb-6">🏆 Productividad</h2>
-      <div class="card
- mb-6">
-        <div class="flex flex-wrap gap-3 items-end">
-          <div>
-            <label class="block text-sm font-medium text-gray-600 mb-1">Desde</label>
-            <input id="prodDesde" type="date" class="input-field w-40"/>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-600 mb-1">Hasta</label>
-            <input id="prodHasta" type="date" class="input-field w-40"/>
-          </div>
-          <button onclick="cargarProductividad()" class="btn-primary">🏆 Cargar</button>
-          <button onclick="cargarProductividadSemanal()" class="btn-gray">Esta semana</button>
-          <button onclick="cargarProductividadMensual()" class="btn-gray">Este mes</button>
-        </div>
-      </div>
-      <div class="card">
-        <canvas id="chartProductividad" height="120" class="mb-6"></canvas>
-        <div class="overflow-x-auto">
-          <table class="w-full text-sm">
-            <thead>
-              <tr class="bg-blue-50 text-blue-900">
-                <th class="px-3 py-2 text-left">Código</th>
-                <th class="px-3 py-2 text-left">Nombre</th>
-                <th class="px-3 py-2 text-right">Horas</th>
-                <th class="px-3 py-2 text-right">Registros</th>
-                <th class="px-3 py-2 text-right">Unidades</th>
-                <th class="px-3 py-2 text-right">Uds/Hora</th>
-                <th class="px-3 py-2 text-right">Incidencias</th>
-              </tr>
-            </thead>
-            <tbody id="productividadBody"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- ===== TAB: OBJETIVOS ===== -->
-    <div id="tabObjetivos" class="tab-content hidden">
-      <h2 class="text-2xl font-bold text-blue-900 mb-6">🎯 Objetivos</h2>
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div class="card">
-          <h3 class="font-semibold text-gray-700 mb-4">Crear objetivo</h3>
-          <div class="space-y-3">
-            <div>
-              <label class="block text-sm font-medium text-gray-600 mb-1">Tarea</label>
-              <select id="objTarea" class="input-field">
-                <option value="">-- Selecciona --</option>
-                <option value="Recepción">Recepción</option>
-                <option value="Picking">Picking</option>
-                <option value="Packing">Packing</option>
-                <option value="Expedición">Expedición</option>
-                <option value="Inventario">Inventario</option>
-                <option value="Carga">Carga</option>
-                <option value="Descarga">Descarga</option>
-                <option value="General">General</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-600 mb-1">Métrica</label>
-              <select id="objMetrica" class="input-field">
-                <option value="horas">Horas trabajadas</option>
-                <option value="unidades">Unidades procesadas</option>
-                <option value="registros">Número de registros</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-600 mb-1">Valor objetivo</label>
-              <input id="objValor" type="number" min="0" step="0.1" class="input-field"/>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-600 mb-1">Periodo</label>
-              <select id="objPeriodo" class="input-field">
-                <option value="diario">Diario</option>
-                <option value="semanal">Semanal</option>
-                <option value="mensual">Mensual</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-600 mb-1">Usuario (opcional)</label>
-              <select id="objUsuario" class="input-field">
-                <option value="">Todos</option>
-              </select>
-            </div>
-            <div class="grid grid-cols-2 gap-3">
-              <div>
-                <label class="block text-sm font-medium text-gray-600 mb-1">Fecha inicio</label>
-                <input id="objFechaInicio" type="date" class="input-field"/>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-600 mb-1">Fecha fin</label>
-                <input id="objFechaFin" type="date" class="input-field"/>
-              </div>
-            </div>
-            <button onclick="guardarObjetivo()" class="btn-primary w-full">🎯 Guardar objetivo</button>
-          </div>
-        </div>
-        <div class="card">
-          <h3 class="font-semibold text-gray-700 mb-4">Objetivos activos</h3>
-          <div id="objetivosList" class="space-y-3 max-h-[500px] overflow-y-auto"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ===== TAB: TURNOS ===== -->
-    <div id="tabTurnos" class="tab-content hidden">
-      <h2 class="text-2xl font-bold text-blue-900 mb-6">🔄 Turnos</h2>
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div class="card">
-          <h3 class="font-semibold text-gray-700 mb-4">Asignar turno</h3>
-          <div class="space-y-3">
-            <div>
-              <label class="block text-sm font-medium text-gray-600 mb-1">Usuario</label>
-              <select id="turnoUsuario" class="input-field">
-                <option value="">-- Selecciona --</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-600 mb-1">Fecha</label>
-              <input id="turnoFecha" type="date" class="input-field"/>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-600 mb-1">Turno</label>
-              <select id="turnoTipo" class="input-field">
-                <option value="mañana">Mañana</option>
-                <option value="tarde">Tarde</option>
-                <option value="noche">Noche</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-600 mb-1">Estado</label>
-              <select id="turnoEstado" class="input-field">
-                <option value="programado">Programado</option>
-                <option value="completado">Completado</option>
-                <option value="ausente">Ausente</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-600 mb-1">Notas</label>
-              <textarea id="turnoNotas" rows="2" class="input-field"></textarea>
-            </div>
-            <button onclick="guardarTurno()" class="btn-primary w-full">🔄 Asignar turno</button>
-          </div>
-        </div>
-        <div class="card">
-          <h3 class="font-semibold text-gray-700 mb-4">Turnos asignados</h3>
-          <div class="flex gap-2 mb-3">
-            <input id="turnoFiltroFecha" type="date" class="input-field w-40"/>
-            <button onclick="cargarTurnos()" class="btn-primary">🔍 Filtrar</button>
-          </div>
-          <div class="overflow-x-auto">
-            <table class="w-full text-sm">
-              <thead>
-                <tr class="bg-blue-50 text-blue-900">
-                  <th class="px-3 py-2 text-left">Usuario</th>
-                  <th class="px-3 py-2 text-left">Fecha</th>
-                  <th class="px-3 py-2 text-left">Turno</th>
-                  <th class="px-3 py-2 text-left">Estado</th>
-                  <th class="px-3 py-2 text-center">Acc</th>
-                </tr>
-              </thead>
-              <tbody id="turnosBody"></tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ===== TAB: USUARIOS ===== -->
-    <div id="tabUsuarios" class="tab-content hidden">
-      <h2 class="text-2xl font-bold text-blue-900 mb-6">👥 Usuarios</h2>
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div class="card">
-          <h3 class="font-semibold text-gray-700 mb-4">Crear usuario</h3>
-          <div class="space-y-3">
-            <div>
-              <label class="block text-sm font-medium text-gray-600 mb-1">Código</label>
-              <input id="usCodigo" type="text" placeholder="Ej: OP02" class="input-field uppercase"/>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-600 mb-1">Nombre completo</label>
-              <input id="usNombre" type="text" placeholder="Nombre y apellidos" class="input-field"/>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-600 mb-1">PIN</label>
-              <input id="usPin" type="password" placeholder="••••" class="input-field"/>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-600 mb-1">Rol</label>
-              <select id="usRol" class="input-field">
-                <option value="operario">Operario</option>
-                <option value="supervisor">Supervisor</option>
-              </select>
-            </div>
-            <button onclick="crearUsuario()" class="btn-primary w-full">👤 Crear usuario</button>
-          </div>
-        </div>
-        <div class="card">
-          <h3 class="font-semibold text-gray-700 mb-4">Usuarios del sistema</h3>
-          <div class="overflow-x-auto">
-            <table class="w-full text-sm">
-              <thead>
-                <tr class="bg-blue-50 text-blue-900">
-                  <th class="px-3 py-2 text-left">Código</th>
-                  <th class="px-3 py-2 text-left">Nombre</th>
-                  <th class="px-3 py-2 text-left">Rol</th>
-                  <th class="px-3 py-2 text-center">Estado</th>
-                  <th class="px-3 py-2 text-center">Acc</th>
-                </tr>
-              </thead>
-              <tbody id="usuariosBody"></tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ===== TAB: AUDITORÍA ===== -->
-    <div id="tabAuditoria" class="tab-content hidden">
-      <h2 class="text-2xl font-bold text-blue-900 mb-6">🔍 Auditoría</h2>
-      <div class="card mb-6">
-        <div class="flex flex-wrap gap-3 items-end">
-          <div>
-            <label class="block text-sm font-medium text-gray-600 mb-1">Usuario</label>
-            <input id="audUsuario" type="text" placeholder="Código" class="input-field w-32"/>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-600 mb-1">Acción</label>
-            <select id="audAccion" class="input-field w-36">
-              <option value="">Todas</option>
-              <option value="CREAR">CREAR</option>
-              <option value="EDITAR">EDITAR</option>
-              <option value="ELIMINAR">ELIMINAR</option>
-              <option value="LOGIN">LOGIN</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-600 mb-1">Desde</label>
-            <input id="audDesde" type="date" class="input-field w-40"/>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-600 mb-1">Hasta</label>
-            <input id="audHasta" type="date" class="input-field w-40"/>
-          </div>
-          <button onclick="cargarAuditoria()" class="btn-primary">🔍 Filtrar</button>
-        </div>
-      </div>
-      <div class="card">
-        <div class="overflow-x-auto">
-          <table class="w-full text-sm">
-            <thead>
-              <tr class="bg-gray-50 text-gray-700">
-                <th class="px-3 py-2 text-left">Timestamp</th>
-                <th class="px-3 py-2 text-left">Usuario</th>
-                <th class="px-3 py-2 text-left">Acción</th>
-                <th class="px-3 py-2 text-left">Entidad</th>
-                <th class="px-3 py-2 text-left">Detalle</th>
-              </tr>
-            </thead>
-            <tbody id="auditoriaBody"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-  </main>
 </div>
-<script>
-const API = "";
-let currentUser = null;
-let chartTarea = null;
-let chartDia = null;
-let chartProductividad = null;
 
-// ==================== UTILIDADES ====================
-function today() {
-  return new Date().toISOString().split("T")[0];
-}
+<!-- ==================== APLICACIÓN PRINCIPAL ==================== -->
+<div id="app-principal" class="hidden">
 
-function showTab(tabId) {
-  document.querySelectorAll(".tab-content").forEach(t => t.classList.add("hidden"));
-  document.getElementById(tabId).classList.remove("hidden");
-  document.querySelectorAll(".sidebar-link").forEach(l => l.classList.remove("active"));
-  const link = document.querySelector(`[onclick="showTab('${tabId}')"]`);
-  if (link) link.classList.add("active");
-
-  // Cargar datos según tab
-  if (tabId === "tabMisRegistros")    cargarMisRegistros();
-  if (tabId === "tabVolumen")         cargarVolumen();
-  if (tabId === "tabPlantillas")      cargarPlantillas();
-  if (tabId === "tabIncidencias")     cargarIncidencias();
-  if (tabId === "tabEstadisticas")    cargarEstadisticas();
-  if (tabId === "tabProductividad")   cargarProductividad();
-  if (tabId === "tabObjetivos")       cargarObjetivos();
-  if (tabId === "tabTurnos")          cargarTurnos();
-  if (tabId === "tabUsuarios")        cargarUsuarios();
-  if (tabId === "tabAuditoria")       cargarAuditoria();
-}
-
-function notify(msg, type = "success") {
-  const colors = {
-    success: "bg-green-500",
-    error:   "bg-red-500",
-    info:    "bg-blue-500",
-    warning: "bg-yellow-500"
-  };
-  const div = document.createElement("div");
-  div.className = `fixed top-4 right-4 z-50 text-white px-5 py-3 rounded-xl shadow-lg text-sm font-medium ${colors[type] || colors.success}`;
-  div.textContent = msg;
-  document.body.appendChild(div);
-  setTimeout(() => div.remove(), 3000);
-}
-
-function formatMinutes(min) {
-  const h = Math.floor(min / 60);
-  const m = min % 60;
-  return h > 0 ? `${h}h ${m}m` : `${m}m`;
-}
-
-function calcularMinutos() {
-  const inicio = document.getElementById("regHoraInicio").value;
-  const fin    = document.getElementById("regHoraFin").value;
-  if (!inicio || !fin) return;
-  const [h1, m1] = inicio.split(":").map(Number);
-  const [h2, m2] = fin.split(":").map(Number);
-  let diff = (h2 * 60 + m2) - (h1 * 60 + m1);
-  if (diff < 0) diff += 1440;
-  document.getElementById("regMinutos").value = diff;
-  document.getElementById("regMinutosLabel").textContent = `(${formatMinutes(diff)})`;
-}
-
-function limpiarFormRegistro() {
-  ["regFecha","regHoraInicio","regHoraFin","regSubtarea","regNotas"].forEach(id => {
-    document.getElementById(id).value = "";
-  });
-  document.getElementById("regTarea").value = "";
-  document.getElementById("regTurno").value = "";
-  document.getElementById("regMinutos").value = "";
-  document.getElementById("regMinutosLabel").textContent = "";
-}
-
-function resetFiltros() {
-  ["filtroDesde","filtroHasta"].forEach(id => document.getElementById(id).value = "");
-  document.getElementById("filtroTarea").value = "";
-  cargarMisRegistros();
-}
-
-// ==================== AUTH ====================
-async function doLogin() {
-  const codigo = document.getElementById("loginCodigo").value.trim().toUpperCase();
-  const pin    = document.getElementById("loginPin").value.trim();
-  if (!codigo || !pin) { notify("Introduce código y PIN", "warning"); return; }
-
-  try {
-    const res = await fetch(`${API}/login/`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ codigo, pin })
-    });
-    if (!res.ok) {
-      document.getElementById("loginError").classList.remove("hidden");
-      return;
-    }
-    currentUser = await res.json();
-    document.getElementById("loginError").classList.add("hidden");
-    iniciarApp();
-  } catch (e) {
-    notify("Error de conexión con el servidor", "error");
-  }
-}
-
-function iniciarApp() {
-  document.getElementById("loginPage").classList.add("hidden");
-  document.getElementById("appPage").classList.remove("hidden");
-  document.getElementById("sidebarUser").textContent =
-    `${currentUser.codigo} · ${currentUser.nombre} · ${currentUser.rol}`;
-
-  // Mostrar nav supervisor
-  if (currentUser.rol === "supervisor") {
-    document.getElementById("navSupervisor").classList.remove("hidden");
-  } else {
-    document.getElementById("navSupervisor").classList.add("hidden");
-  }
-
-  // Fechas por defecto
-  document.getElementById("regFecha").value  = today();
-  document.getElementById("volFecha").value  = today();
-  document.getElementById("incFecha").value  = today();
-  document.getElementById("turnoFecha").value = today();
-  document.getElementById("objFechaInicio").value = today();
-
-  // Primer tab
-  showTab("tabRegistro");
-  cargarPlantillasRapidas();
-}
-
-function logout() {
-  currentUser = null;
-  document.getElementById("appPage").classList.add("hidden");
-  document.getElementById("loginPage").classList.remove("hidden");
-  document.getElementById("loginCodigo").value = "";
-  document.getElementById("loginPin").value = "";
-}
-
-// ==================== REGISTROS ====================
-async function guardarRegistro() {
-  const fecha   = document.getElementById("regFecha").value;
-  const tarea   = document.getElementById("regTarea").value;
-  const minutos = parseInt(document.getElementById("regMinutos").value);
-
-  if (!fecha || !tarea || !minutos || minutos < 1) {
-    notify("Fecha, tarea y minutos son obligatorios", "warning"); return;
-  }
-
-  const body = {
-    usuario_id: currentUser.id,
-    fecha, tarea,
-    subtarea:  document.getElementById("regSubtarea").value || null,
-    minutos,
-    turno:     document.getElementById("regTurno").value || null,
-    notas:     document.getElementById("regNotas").value || null
-  };
-
-  try {
-    const res = await fetch(`${API}/registros/`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body)
-    });
-    if (!res.ok) throw new Error();
-    notify("Registro guardado correctamente");
-    limpiarFormRegistro();
-    document.getElementById("regFecha").value = today();
-  } catch {
-    notify("Error al guardar el registro", "error");
-  }
-}
-
-async function cargarMisRegistros() {
-  const uid    = currentUser.rol === "supervisor"
-    ? (document.getElementById("statUsuario")?.value || "")
-    : currentUser.id;
-  const desde  = document.getElementById("filtroDesde").value;
-  const hasta  = document.getElementById("filtroHasta").value;
-  const tarea  = document.getElementById("filtroTarea").value;
-
-  let url = `${API}/registros/?usuario_id=${uid}`;
-  if (desde) url += `&fecha_inicio=${desde}`;
-  if (hasta) url += `&fecha_fin=${hasta}`;
-
-  try {
-    const res  = await fetch(url);
-    let data   = await res.json();
-    if (tarea) data = data.filter(r => r.tarea === tarea);
-
-    const tbody = document.getElementById("misRegistrosBody");
-    tbody.innerHTML = "";
-    let totalMin = 0;
-
-    data.forEach(r => {
-      totalMin += r.minutos;
-      tbody.innerHTML += `
-        <tr class="border-b hover:bg-gray-50">
-          <td class="px-3 py-2">${r.fecha}</td>
-          <td class="px-3 py-2 font-medium">${r.tarea}</td>
-          <td class="px-3 py-2 text-gray-500">${r.subtarea || "-"}</td>
-          <td class="px-3 py-2 text-right">${r.minutos}</td>
-          <td class="px-3 py-2 text-right">${(r.minutos/60).toFixed(2)}</td>
-          <td class="px-3 py-2">${r.turno || "-"}</td>
-          <td class="px-3 py-2 text-gray-500 text-xs max-w-xs truncate">${r.notas || "-"}</td>
-          <td class="px-3 py-2 text-center">
-            <button onclick="eliminarRegistro(${r.id})" class="btn-danger">🗑️</button>
-          </td>
-        </tr>`;
-    });
-
-    const resumen = document.getElementById("misRegistrosResumen");
-    resumen.textContent = `${data.length} registros · ${formatMinutes(totalMin)} totales`;
-  } catch {
-    notify("Error al cargar registros", "error");
-  }
-}
-
-async function eliminarRegistro(id) {
-  if (!confirm("¿Eliminar este registro?")) return;
-  try {
-    await fetch(`${API}/registros/${id}`, { method: "DELETE" });
-    notify("Registro eliminado");
-    cargarMisRegistros();
-  } catch {
-    notify("Error al eliminar", "error");
-  }
-}
-
-// ==================== VOLUMEN ====================
-async function guardarVolumen() {
-  const fecha    = document.getElementById("volFecha").value;
-  const tarea    = document.getElementById("volTarea").value;
-  const unidades = parseInt(document.getElementById("volUnidades").value);
-
-  if (!fecha || !tarea || isNaN(unidades)) {
-    notify("Fecha, tarea y unidades son obligatorios", "warning"); return;
-  }
-
-  const body = {
-    usuario_id:       currentUser.id,
-    fecha, tarea, unidades,
-    objetivo_unidades: parseInt(document.getElementById("volObjetivo").value) || 0,
-    turno:             document.getElementById("volTurno").value || null,
-    notas:             document.getElementById("volNotas").value || null
-  };
-
-  try {
-    const res = await fetch(`${API}/volumenes/`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body)
-    });
-    if (!res.ok) throw new Error();
-    notify("Volumen registrado");
-    ["volUnidades","volObjetivo","volNotas"].forEach(id => document.getElementById(id).value = "");
-    cargarVolumen();
-  } catch {
-    notify("Error al guardar volumen", "error");
-  }
-}
-
-async function cargarVolumen() {
-  try {
-    const res  = await fetch(`${API}/volumenes/?usuario_id=${currentUser.id}`);
-    const data = await res.json();
-    const tbody = document.getElementById("volumenBody");
-    tbody.innerHTML = "";
-    data.slice(-20).reverse().forEach(v => {
-      const pct = v.objetivo_unidades > 0
-        ? Math.round((v.unidades / v.objetivo_unidades) * 100) : null;
-      const badge = pct === null ? "-"
-        : pct >= 100 ? `<span class="badge-green">${pct}%</span>`
-        : pct >= 75  ? `<span class="badge-yellow">${pct}%</span>`
-        : `<span class="badge-red">${pct}%</span>`;
-      tbody.innerHTML += `
-        <tr class="border-b hover:bg-gray-50">
-          <td class="px-3 py-2">${v.fecha}</td>
-          <td class="px-3 py-2">${v.tarea}</td>
-          <td class="px-3 py-2 text-right font-medium">${v.unidades}</td>
-          <td class="px-3 py-2 text-right text-gray-500">${v.objetivo_unidades || "-"}</td>
-          <td class="px-3 py-2 text-right">${badge}</td>
-          <td class="px-3 py-2 text-center">
-            <button onclick="eliminarVolumen(${v.id})" class="btn-danger">🗑️</button>
-          </td>
-        </tr>`;
-    });
-  } catch {
-    notify("Error al cargar volúmenes", "error");
-  }
-}
-
-async function eliminarVolumen(id) {
-  if (!confirm("¿Eliminar este volumen?")) return;
-  try {
-    await fetch(`${API}/volumenes/${id}`, { method: "DELETE" });
-    notify("Volumen eliminado");
-    cargarVolumen();
-  } catch {
-    notify("Error al eliminar", "error");
-  }
-}
-
-// ==================== PLANTILLAS ====================
-async function guardarPlantilla() {
-  const nombre  = document.getElementById("plantNombre").value.trim();
-  const tarea   = document.getElementById("plantTarea").value;
-  const minutos = parseInt(document.getElementById("plantMinutos").value);
-
-  if (!nombre || !tarea || !minutos) {
-    notify("Nombre, tarea y minutos son obligatorios", "warning"); return;
-  }
-
-  const body = {
-    usuario_id: currentUser.id,
-    nombre, tarea,
-    subtarea: document.getElementById("plantSubtarea").value || null,
-    minutos,
-    notas:    document.getElementById("plantNotas").value || null
-  };
-
-  try {
-    const res = await fetch(`${API}/plantillas/`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body)
-    });
-    if (!res.ok) throw new Error();
-    notify("Plantilla guardada");
-    ["plantNombre","plantSubtarea","plantMinutos","plantNotas"].forEach(id =>
-      document.getElementById(id).value = "");
-    cargarPlantillas();
-    cargarPlantillasRapidas();
-  } catch {
-    notify("Error al guardar plantilla", "error");
-  }
-}
-
-async function cargarPlantillas() {
-  try {
-    const res  = await fetch(`${API}/plantillas/?usuario_id=${currentUser.id}`);
-    const data = await res.json();
-    const list = document.getElementById("plantillasList");
-    list.innerHTML = data.length === 0
-      ? `<p class="text-gray-400 text-sm">No hay plantillas</p>`
-      : data.map(p => `
-        <div class="flex items-center justify-between border rounded-lg px-3 py-2 bg-gray-50">
-          <div>
-            <div class="font-medium text-sm">${p.nombre}</div>
-            <div class="text-xs text-gray-500">${p.tarea} · ${formatMinutes(p.minutos)}</div>
-          </div>
-          <div class="flex gap-1">
-            <button onclick="usarPlantilla(${p.id})" class="btn-success text-xs px-2 py-1">Usar</button>
-            <button onclick="eliminarPlantilla(${p.id})" class="btn-danger">🗑️</button>
-          </div>
-        </div>`).join("");
-  } catch {
-    notify("Error al cargar plantillas", "error");
-  }
-}
-
-async function cargarPlantillasRapidas() {
-  try {
-    const res  = await fetch(`${API}/plantillas/?usuario_id=${currentUser.id}`);
-    const data = await res.json();
-    const list = document.getElementById("plantillasRapidasList");
-    list.innerHTML = data.length === 0
-      ? `<p class="text-gray-400 text-sm">No hay plantillas guardadas</p>`
-      : data.map(p => `
-        <div class="flex items-center justify-between border rounded-lg px-3 py-2 bg-blue-50 hover:bg-blue-100 cursor-pointer"
-             onclick="aplicarPlantilla(${p.id},'${p.tarea}','${p.subtarea||""}',${p.minutos})">
-          <div>
-            <div class="font-medium text-sm text-blue-800">${p.nombre}</div>
-            <div class="text-xs text-blue-500">${p.tarea} · ${formatMinutes(p.minutos)}</div>
-          </div>
-          <span class="text-blue-400 text-lg">→</span>
-        </div>`).join("");
-  } catch {}
-}
-
-function aplicarPlantilla(id, tarea, subtarea, minutos) {
-  document.getElementById("regTarea").value    = tarea;
-  document.getElementById("regSubtarea").value = subtarea;
-  document.getElementById("regMinutos").value  = minutos;
-  document.getElementById("regMinutosLabel").textContent = `(${formatMinutes(minutos)})`;
-  notify(`Plantilla aplicada: ${tarea}`, "info");
-}
-
-async function eliminarPlantilla(id) {
-  if (!confirm("¿Eliminar esta plantilla?")) return;
-  try {
-    await fetch(`${API}/plantillas/${id}`, { method: "DELETE" });
-    notify("Plantilla eliminada");
-    cargarPlantillas();
-    cargarPlantillasRapidas();
-  } catch {
-    notify("Error al eliminar", "error");
-  }
-}
-
-// ==================== INCIDENCIAS ====================
-async function guardarIncidencia() {
-  const fecha       = document.getElementById("incFecha").value;
-  const tipo        = document.getElementById("incTipo").value;
-  const descripcion = document.getElementById("incDescripcion").value.trim();
-
-  if (!fecha || !tipo || !descripcion) {
-    notify("Fecha, tipo y descripción son obligatorios", "warning"); return;
-  }
-
-  const body = {
-    usuario_id:      currentUser.id,
-    fecha, tipo, descripcion,
-    impacto_minutos: parseInt(document.getElementById("incImpacto").value) || 0,
-    estado:          "abierta"
-  };
-
-  try {
-    const res = await fetch(`${API}/incidencias/`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body)
-    });
-    if (!res.ok) throw new Error();
-    notify("Incidencia registrada");
-    ["incDescripcion","incImpacto"].forEach(id => document.getElementById(id).value = "");
-    document.getElementById("incTipo").value = "";
-    cargarIncidencias();
-  } catch {
-    notify("Error al registrar incidencia", "error");
-  }
-}
-
-async function cargarIncidencias() {
-  try {
-    const uid = currentUser.rol === "supervisor" ? "" : currentUser.id;
-    const url = uid ? `${API}/incidencias/?usuario_id=${uid}` : `${API}/incidencias/`;
-    const res  = await fetch(url);
-    const data = await res.json();
-    const tbody = document.getElementById("incidenciasBody");
-    tbody.innerHTML = "";
-    data.forEach(inc => {
-      const badge = inc.estado === "abierta"
-        ? `<span class="badge-red">Abierta</span>`
-        : inc.estado === "en_proceso"
-        ? `<span class="badge-yellow">En proceso</span>`
-        : `<span class="badge-green">Cerrada</span>`;
-      tbody.innerHTML += `
-        <tr class="border-b hover:bg-gray-50">
-          <td class="px-3 py-2">${inc.fecha}</td>
-          <td class="px-3 py-2 font-medium">${inc.tipo}</td>
-          <td class="px-3 py-2 text-xs text-gray-600 max-w-xs truncate">${inc.descripcion}</td>
-          <td class="px-3 py-2 text-right">${inc.impacto_minutos || 0}</td>
-          <td class="px-3 py-2 text-center">${badge}</td>
-          <td class="px-3 py-2 text-center">
-            ${currentUser.rol === "supervisor"
-              ? `<button onclick="cerrarIncidencia(${inc.id})" class="btn-success text-xs px-2 py-1">✓</button>`
-              : ""}
-            <button onclick="eliminarIncidencia(${inc.id})" class="btn-danger">🗑️</button>
-          </td>
-        </tr>`;
-    });
-  } catch {
-    notify("Error al cargar incidencias", "error");
-  }
-}
-
-async function cerrarIncidencia(id) {
-  try {
-    await fetch(`${API}/incidencias/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ estado: "cerrada" })
-    });
-    notify("Incidencia cerrada");
-    cargarIncidencias();
-  } catch {
-    notify("Error al cerrar incidencia", "error");
-  }
-}
-
-async function eliminarIncidencia(id) {
-  if (!confirm("¿Eliminar incidencia?")) return;
-  try {
-    await fetch(`${API}/incidencias/${id}`, { method: "DELETE" });
-    notify("Incidencia eliminada");
-    cargarIncidencias();
-  } catch {
-    notify("Error al eliminar", "error");
-  }
-}
-</script>
-<script>
-// ==================== ESTADÍSTICAS ====================
-function cargarSemanal() {
-  const now   = new Date();
-  const day   = now.getDay() || 7;
-  const lunes = new Date(now);
-  lunes.setDate(now.getDate() - day + 1);
-  document.getElementById("statDesde").value = lunes.toISOString().split("T")[0];
-  document.getElementById("statHasta").value = today();
-  cargarEstadisticas();
-}
-
-function cargarMensual() {
-  const now = new Date();
-  document.getElementById("statDesde").value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-01`;
-  document.getElementById("statHasta").value = today();
-  cargarEstadisticas();
-}
-
-async function cargarEstadisticas() {
-  const uid   = document.getElementById("statUsuario")?.value || "";
-  const desde = document.getElementById("statDesde").value;
-  const hasta = document.getElementById("statHasta").value;
-
-  let url = `${API}/estadisticas/?`;
-  if (uid)   url += `usuario_id=${uid}&`;
-  if (desde) url += `fecha_inicio=${desde}&`;
-  if (hasta) url += `fecha_fin=${hasta}&`;
-
-  try {
-    const res  = await fetch(url);
-    const data = await res.json();
-
-    // KPIs
-    const totalMin  = data.por_tarea?.reduce((a,t) => a + t.minutos, 0) || 0;
-    const totalRegs = data.por_tarea?.reduce((a,t) => a + t.registros, 0) || 0;
-    const diasSet   = new Set(data.por_dia?.map(d => d.fecha) || []);
-
-    document.getElementById("kpiHoras").textContent     = (totalMin/60).toFixed(1);
-    document.getElementById("kpiRegistros").textContent = totalRegs;
-    document.getElementById("kpiTareas").textContent    = data.por_tarea?.length || 0;
-    document.getElementById("kpiMedia").textContent     = diasSet.size > 0
-      ? ((totalMin/60) / diasSet.size).toFixed(1) : "0";
-
-    // Gráfico por tarea
-    const labels  = data.por_tarea?.map(t => t.tarea) || [];
-    const valores = data.por_tarea?.map(t => +(t.minutos/60).toFixed(2)) || [];
-    const colores = ["#3B82F6","#10B981","#F59E0B","#EF4444","#8B5CF6",
-                     "#EC4899","#14B8A6","#F97316","#6366F1","#84CC16"];
-
-    if (chartTarea) chartTarea.destroy();
-    const ctxT = document.getElementById("chartTarea").getContext("2d");
-    chartTarea = new Chart(ctxT, {
-      type: "doughnut",
-      data: {
-        labels,
-        datasets: [{ data: valores, backgroundColor: colores.slice(0, labels.length) }]
-      },
-      options: {
-        plugins: { legend: { position: "bottom" } },
-        responsive: true
-      }
-    });
-
-    // Gráfico evolución diaria
-    const diasLabels  = data.por_dia?.map(d => d.fecha) || [];
-    const diasValores = data.por_dia?.map(d => +(d.minutos/60).toFixed(2)) || [];
-
-    if (chartDia) chartDia.destroy();
-    const ctxD = document.getElementById("chartDia").getContext("2d");
-    chartDia = new Chart(ctxD, {
-      type: "bar",
-      data: {
-        labels: diasLabels,
-        datasets: [{
-          label: "Horas/día",
-          data: diasValores,
-          backgroundColor: "#3B82F6",
-          borderRadius: 6
-        }]
-      },
-      options: {
-        plugins: { legend: { display: false } },
-        scales: { y: { beginAtZero: true } },
-        responsive: true
-      }
-    });
-
-    // Tabla por tarea
-    const tbody = document.getElementById("statTareaBody");
-    tbody.innerHTML = "";
-    data.por_tarea?.forEach(t => {
-      const pct = totalMin > 0 ? ((t.minutos / totalMin) * 100).toFixed(1) : 0;
-      tbody.innerHTML += `
-        <tr class="border-b hover:bg-gray-50">
-          <td class="px-3 py-2 font-medium">${t.tarea}</td>
-          <td class="px-3 py-2 text-right">${t.minutos}</td>
-          <td class="px-3 py-2 text-right">${(t.minutos/60).toFixed(2)}</td>
-          <td class="px-3 py-2 text-right">
-            <div class="flex items-center justify-end gap-2">
-              <div class="w-24 bg-gray-200 rounded-full h-2">
-                <div class="bg-blue-500 h-2 rounded-full" style="width:${pct}%"></div>
-              </div>
-              <span>${pct}%</span>
-            </div>
-          </td>
-        </tr>`;
-    });
-
-    // Poblar selector de usuarios en estadísticas (supervisor)
-    if (currentUser.rol === "supervisor") poblarSelectores();
-
-  } catch {
-    notify("Error al cargar estadísticas", "error");
-  }
-}
-
-// ==================== PRODUCTIVIDAD ====================
-function cargarProductividadSemanal() {
-  const now  = new Date();
-  const day  = now.getDay() || 7;
-  const lunes = new Date(now);
-  lunes.setDate(now.getDate() - day + 1);
-  document.getElementById("prodDesde").value = lunes.toISOString().split("T")[0];
-  document.getElementById("prodHasta").value = today();
-  cargarProductividad();
-}
-
-function cargarProductividadMensual() {
-  const now = new Date();
-  document.getElementById("prodDesde").value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-01`;
-  document.getElementById("prodHasta").value = today();
-  cargarProductividad();
-}
-
-async function cargarProductividad() {
-  const desde = document.getElementById("prodDesde").value;
-  const hasta = document.getElementById("prodHasta").value;
-
-  let url = `${API}/productividad/?`;
-  if (desde) url += `fecha_inicio=${desde}&`;
-  if (hasta) url += `fecha_fin=${hasta}&`;
-
-  try {
-    const res  = await fetch(url);
-    const data = await res.json();
-    const tbody = document.getElementById("productividadBody");
-    tbody.innerHTML = "";
-
-    const nombres  = data.map(u => u.nombre || u.codigo);
-    const horas    = data.map(u => +(u.horas_totales || 0).toFixed(2));
-
-    if (chartProductividad) chartProductividad.destroy();
-    const ctx = document.getElementById("chartProductividad").getContext("2d");
-    chartProductividad = new Chart(ctx, {
-      type: "bar",
-      data: {
-        labels: nombres,
-        datasets: [{
-          label: "Horas totales",
-          data: horas,
-          backgroundColor: "#10B981",
-          borderRadius: 6
-        }]
-      },
-      options: {
-        plugins: { legend: { display: false } },
-        scales:  { y: { beginAtZero: true } },
-        responsive: true
-      }
-    });
-
-    data.forEach((u, i) => {
-      const udspH = u.horas_totales > 0
-        ? (u.unidades_totales / u.horas_totales).toFixed(1) : "-";
-      tbody.innerHTML += `
-        <tr class="border-b hover:bg-gray-50 ${i === 0 ? "bg-yellow-50" : ""}">
-          <td class="px-3 py-2 font-mono font-bold">${u.codigo}</td>
-          <td class="px-3 py-2">${u.nombre || "-"}</td>
-          <td class="px-3 py-2 text-right">${(u.horas_totales||0).toFixed(2)}</td>
-          <td class="px-3 py-2 text-right">${u.registros_totales || 0}</td>
-          <td class="px-3 py-2 text-right">${u.unidades_totales || 0}</td>
-          <td class="px-3 py-2 text-right font-semibold text-green-700">${udspH}</td>
-          <td class="px-3 py-2 text-right">${u.incidencias_totales || 0}</td>
-        </tr>`;
-    });
-  } catch {
-    notify("Error al cargar productividad", "error");
-  }
-}
-
-// ==================== OBJETIVOS ====================
-async function guardarObjetivo() {
-  const tarea  = document.getElementById("objTarea").value;
-  const valor  = parseFloat(document.getElementById("objValor").value);
-  const inicio = document.getElementById("objFechaInicio").value;
-
-  if (!tarea || isNaN(valor) || !inicio) {
-    notify("Tarea, valor y fecha inicio son obligatorios", "warning"); return;
-  }
-
-  const body = {
-    tarea,
-    metrica:      document.getElementById("objMetrica").value,
-    valor_objetivo: valor,
-    periodo:      document.getElementById("objPeriodo").value,
-    usuario_id:   document.getElementById("objUsuario").value || null,
-    fecha_inicio: inicio,
-    fecha_fin:    document.getElementById("objFechaFin").value || null
-  };
-
-  try {
-    const res = await fetch(`${API}/objetivos/`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body)
-    });
-    if (!res.ok) throw new Error();
-    notify("Objetivo guardado");
-    cargarObjetivos();
-  } catch {
-    notify("Error al guardar objetivo", "error");
-  }
-}
-
-async function cargarObjetivos() {
-  try {
-    const res  = await fetch(`${API}/objetivos/`);
-    const data = await res.json();
-    const list = document.getElementById("objetivosList");
-    list.innerHTML = data.length === 0
-      ? `<p class="text-gray-400 text-sm">No hay objetivos</p>`
-      : data.map(o => `
-        <div class="border rounded-xl p-4 bg-gray-50">
-          <div class="flex justify-between items-start mb-2">
+    <!-- Header -->
+    <div class="bg-white shadow px-6 py-3 flex justify-between items-center">
+        <div class="flex items-center gap-3">
+            <div id="header-avatar" class="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-lg"></div>
             <div>
-              <span class="font-semibold text-blue-800">${o.tarea}</span>
-              <span class="badge-blue ml-2">${o.periodo}</span>
+                <div class="font-bold text-slate-800" id="header-nombre"></div>
+                <span id="header-rol" class="text-xs px-2 py-0.5 rounded-full font-medium"></span>
             </div>
-            <button onclick="eliminarObjetivo(${o.id})" class="btn-danger">🗑️</button>
-          </div>
-          <div class="text-sm text-gray-600">
-            Métrica: <strong>${o.metrica}</strong> · 
-            Objetivo: <strong>${o.valor_objetivo}</strong>
-          </div>
-          <div class="text-xs text-gray-400 mt-1">
-            ${o.fecha_inicio} → ${o.fecha_fin || "Sin límite"}
-          </div>
-        </div>`).join("");
-  } catch {
-    notify("Error al cargar objetivos", "error");
-  }
-}
+        </div>
+        <div class="flex items-center gap-4">
+            <button onclick="descargarExcel()" id="btn-excel" class="hidden bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium py-2 px-4 rounded-lg">📊 Excel</button>
+            <button onclick="cerrarSesion()" class="text-sm text-rose-500 hover:text-rose-700 font-medium">Cerrar sesión</button>
+        </div>
+    </div>
 
-async function eliminarObjetivo(id) {
-  if (!confirm("¿Eliminar este objetivo?")) return;
-  try {
-    await fetch(`${API}/objetivos/${id}`, { method: "DELETE" });
-    notify("Objetivo eliminado");
-    cargarObjetivos();
-  } catch {
-    notify("Error al eliminar", "error");
-  }
-}
+    <!-- Pestañas -->
+    <div class="bg-white border-b px-6 flex gap-2 py-2">
+        <button onclick="mostrarPestana('registro')" id="tab-registro" class="px-4 py-2 rounded-lg font-medium text-sm bg-blue-600 text-white">📋 Registro</button>
+        <button onclick="mostrarPestana('dashboard')" id="tab-dashboard" class="px-4 py-2 rounded-lg font-medium text-sm bg-white text-slate-600 border hidden">🏠 Dashboard</button>
+        <button onclick="mostrarPestana('progreso')" id="tab-progreso" class="px-4 py-2 rounded-lg font-medium text-sm bg-white text-slate-600 border hidden">📊 Progreso</button>
+        <button onclick="mostrarPestana('edicion')" id="tab-edicion" class="px-4 py-2 rounded-lg font-medium text-sm bg-white text-slate-600 border hidden">✏️ Editar</button>
+        <button onclick="mostrarPestana('usuarios')" id="tab-usuarios" class="px-4 py-2 rounded-lg font-medium text-sm bg-white text-slate-600 border hidden">👥 Usuarios</button>
+    </div>
 
-// ==================== TURNOS ====================
-async function guardarTurno() {
-  const usuario_id = document.getElementById("turnoUsuario").value;
-  const fecha      = document.getElementById("turnoFecha").value;
-  const turno      = document.getElementById("turnoTipo").value;
+    <div class="max-w-4xl mx-auto px-4 py-6">
 
-  if (!usuario_id || !fecha || !turno) {
-    notify("Usuario, fecha y turno son obligatorios", "warning"); return;
-  }
+    <!-- PESTAÑA REGISTRO -->
+    <div id="pestana-registro">
+        <div id="tarjeta-estado" class="rounded-2xl p-5 mb-6 text-white bg-slate-500">
+            <div class="flex justify-between items-start">
+                <div>
+                    <p class="text-sm opacity-80 mb-1">Registrando como:</p>
+                    <p id="estado-nombre" class="text-2xl font-bold"></p>
+                    <p id="estado-fecha" class="text-sm opacity-80 mt-1"></p>
+                </div>
+                <div class="text-right">
+                    <p class="text-sm opacity-80 mb-1">Tiempo hoy:</p>
+                    <p id="estado-tiempo" class="text-3xl font-bold">0h 0min</p>
+                    <p id="estado-restante" class="text-sm opacity-80"></p>
+                </div>
+            </div>
+            <div class="mt-4 bg-white bg-opacity-30 rounded-full h-3">
+                <div id="estado-barra" class="h-3 rounded-full bg-white transition-all duration-500" style="width:0%"></div>
+            </div>
+        </div>
 
-  const body = {
-    usuario_id: parseInt(usuario_id),
-    fecha, turno,
-    estado: document.getElementById("turnoEstado").value,
-    notas:  document.getElementById("turnoNotas").value || null
-  };
+        <div class="bg-white rounded-xl shadow p-4 mb-4 flex items-center gap-4">
+            <label class="text-sm font-medium text-slate-700 whitespace-nowrap">📅 Fecha:</label>
+            <input type="date" id="fecha" class="flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg" />
+        </div>
 
-  try {
-    const res = await fetch(`${API}/turnos/`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body)
-    });
-    if (!res.ok) throw new Error();
-    notify("Turno asignado");
-    document.getElementById("turnoNotas").value = "";
-    cargarTurnos();
-  } catch {
-    notify("Error al guardar turno", "error");
-  }
-}
+        <div class="bg-white rounded-xl shadow p-5 mb-4">
+            <h3 class="text-lg font-semibold text-slate-800 mb-4">Selecciona la tarea</h3>
+            <div class="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Tarea principal:</label>
+                    <select id="tarea_principal" onchange="actualizarSubtareas()" class="w-full px-3 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-base">
+                        <option value="Picking">Picking</option>
+                        <option value="Packing">Packing</option>
+                        <option value="Inbound">Inbound</option>
+                        <option value="Shipping">Shipping</option>
+                        <option value="Ecommerce">Ecommerce</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Subtarea:</label>
+                    <select id="subtarea" class="w-full px-3 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-base"></select>
+                </div>
+            </div>
+            <label class="block text-sm font-medium text-slate-700 mb-2">Tiempo dedicado:</label>
+            <div class="grid grid-cols-4 gap-2 mb-3">
+                <button onclick="seleccionarTiempo(15)" class="tiempo-btn py-3 rounded-xl border-2 border-slate-200 text-sm font-bold text-slate-700 hover:border-blue-400 hover:bg-blue-50 transition">15 min</button>
+                <button onclick="seleccionarTiempo(30)" class="tiempo-btn py-3 rounded-xl border-2 border-slate-200 text-sm font-bold text-slate-700 hover:border-blue-400 hover:bg-blue-50 transition">30 min</button>
+                <button onclick="seleccionarTiempo(45)" class="tiempo-btn py-3 rounded-xl border-2 border-slate-200 text-sm font-bold text-slate-700 hover:border-blue-400 hover:bg-blue-50 transition">45 min</button>
+                <button onclick="seleccionarTiempo(60)" class="tiempo-btn py-3 rounded-xl border-2 border-slate-200 text-sm font-bold text-slate-700 hover:border-blue-400 hover:bg-blue-50 transition">1 hora</button>
+                <button onclick="seleccionarTiempo(90)" class="tiempo-btn py-3 rounded-xl border-2 border-slate-200 text-sm font-bold text-slate-700 hover:border-blue-400 hover:bg-blue-50 transition">1h 30m</button>
+                <button onclick="seleccionarTiempo(120)" class="tiempo-btn py-3 rounded-xl border-2 border-slate-200 text-sm font-bold text-slate-700 hover:border-blue-400 hover:bg-blue-50 transition">2 horas</button>
+                <button onclick="seleccionarTiempo(180)" class="tiempo-btn py-3 rounded-xl border-2 border-slate-200 text-sm font-bold text-slate-700 hover:border-blue-400 hover:bg-blue-50 transition">3 horas</button>
+                <button onclick="seleccionarTiempo(240)" class="tiempo-btn py-3 rounded-xl border-2 border-slate-200 text-sm font-bold text-slate-700 hover:border-blue-400 hover:bg-blue-50 transition">4 horas</button>
+            </div>
+            <div class="text-center text-sm text-slate-500 mb-3">Tiempo seleccionado: <span id="tiempo-seleccionado" class="font-bold text-blue-600">Ninguno</span></div>
+            <input type="hidden" id="tiempo_minutos" value="0" />
+            <div class="grid grid-cols-2 gap-3 mt-3">
+                <div>
+                    <label class="block text-xs font-medium text-slate-500 mb-1">Proyecto (opcional):</label>
+                    <input type="text" id="proyecto" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-500 mb-1">Comentarios (opcional):</label>
+                    <input type="text" id="comentarios" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
+                </div>
+            </div>
+        </div>
 
-async function cargarTurnos() {
-  const fecha = document.getElementById("turnoFiltroFecha").value;
-  let url = `${API}/turnos/`;
-  if (fecha) url += `?fecha=${fecha}`;
+        <button onclick="añadirTarea()" class="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-4 rounded-xl text-lg mb-4 transition duration-200">+ Añadir a la lista</button>
 
-  try {
-    const res  = await fetch(url);
-    const data = await res.json();
-    const tbody = document.getElementById("turnosBody");
-    tbody.innerHTML = "";
-    data.forEach(t => {
-      const badge = t.estado === "completado"
-        ? `<span class="badge-green">Completado</span>`
-        : t.estado === "ausente"
-        ? `<span class="badge-red">Ausente</span>`
-        : `<span class="badge-blue">Programado</span>`;
-      tbody.innerHTML += `
-        <tr class="border-b hover:bg-gray-50">
-          <td class="px-3 py-2 font-mono">${t.usuario_codigo || t.usuario_id}</td>
-          <td class="px-3 py-2">${t.fecha}</td>
-          <td class="px-3 py-2 capitalize">${t.turno}</td>
-          <td class="px-3 py-2">${badge}</td>
-          <td class="px-3 py-2 text-center">
-            <button onclick="eliminarTurno(${t.id})" class="btn-danger">🗑️</button>
-          </td>
-        </tr>`;
-    });
-  } catch {
-    notify("Error al cargar turnos", "error");
-  }
-}
+        <div class="bg-white rounded-xl shadow p-5 mb-4">
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="font-semibold text-slate-800">Tareas pendientes <span id="contador" class="text-sm font-normal text-slate-400">(0)</span></h3>
+                <span id="total" class="text-sm font-bold text-blue-600">Total: 0 min</span>
+            </div>
+            <div id="tareas" class="space-y-2 max-h-64 overflow-y-auto">
+                <p class="text-sm text-slate-400 text-center py-4 italic">No hay tareas añadidas todavía.</p>
+            </div>
+        </div>
 
-async function eliminarTurno(id) {
-  if (!confirm("¿Eliminar este turno?")) return;
-  try {
-    await fetch(`${API}/turnos/${id}`, { method: "DELETE" });
-    notify("Turno eliminado");
-    cargarTurnos();
-  } catch {
-    notify("Error al eliminar", "error");
-  }
-}
+        <div class="flex gap-3">
+            <button onclick="guardarTodo()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl text-lg transition duration-200">💾 Guardar todo</button>
+            <button onclick="limpiarLista()" class="bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold py-4 px-6 rounded-xl transition duration-200">🗑️</button>
+        </div>
+        <div id="respuesta" class="mt-4 p-3 rounded-lg text-sm hidden"></div>
+    </div>
+    <!-- PESTAÑA DASHBOARD -->
+    <div id="pestana-dashboard" class="hidden">
+        <h2 class="text-2xl font-bold text-slate-800 mb-6">Dashboard</h2>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <div class="bg-white rounded-xl shadow p-4 text-center">
+                <div class="text-3xl font-bold text-blue-600" id="kpi-registros">—</div>
+                <div class="text-xs text-slate-500 mt-1">Registros hoy</div>
+            </div>
+            <div class="bg-white rounded-xl shadow p-4 text-center">
+                <div class="text-3xl font-bold text-violet-600" id="kpi-usuarios">—</div>
+                <div class="text-xs text-slate-500 mt-1">Usuarios activos hoy</div>
+            </div>
+            <div class="bg-white rounded-xl shadow p-4 text-center">
+                <div class="text-3xl font-bold text-amber-500" id="kpi-horas">—</div>
+                <div class="text-xs text-slate-500 mt-1">Horas totales hoy</div>
+            </div>
+            <div class="bg-white rounded-xl shadow p-4 text-center">
+                <div class="text-3xl font-bold text-emerald-500" id="kpi-media">—</div>
+                <div class="text-xs text-slate-500 mt-1">% jornada media</div>
+            </div>
+        </div>
+        <div class="bg-white rounded-xl shadow p-6 mb-6">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="font-bold text-slate-800">Estado de usuarios hoy</h3>
+                <input type="date" id="dashboard-fecha" onchange="cargarDashboard()" class="px-3 py-1 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div id="dashboard-usuarios" class="space-y-3">
+                <p class="text-sm text-slate-400 text-center py-4 italic">Cargando...</p>
+            </div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-white rounded-xl shadow p-6">
+                <h3 class="font-bold text-slate-800 mb-4">Tareas más realizadas hoy</h3>
+                <canvas id="dashboard-grafico-tareas"></canvas>
+            </div>
+            <div class="bg-white rounded-xl shadow p-6">
+                <h3 class="font-bold text-slate-800 mb-4">Horas por usuario hoy</h3>
+                <canvas id="dashboard-grafico-usuarios"></canvas>
+            </div>
+        </div>
+    </div>
 
-// ==================== USUARIOS ====================
-async function crearUsuario() {
-  const codigo = document.getElementById("usCodigo").value.trim().toUpperCase();
-  const nombre = document.getElementById("usNombre").value.trim();
-  const pin    = document.getElementById("usPin").value.trim();
-  const rol    = document.getElementById("usRol").value;
+    <!-- PESTAÑA PROGRESO -->
+    <div id="pestana-progreso" class="hidden">
+        <div class="bg-white shadow-lg rounded-xl p-8">
+            <div class="border-b pb-4 mb-6">
+                <h1 class="text-2xl font-bold text-slate-800">Progreso por Usuario</h1>
+                <p class="text-sm text-slate-500">Visualización de horas registradas con gráficos</p>
+            </div>
+            <div class="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Usuario:</label>
+                    <select id="filtro-usuario" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                        <option value="">-- Selecciona usuario --</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Fecha:</label>
+                    <input type="date" id="filtro-fecha" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                </div>
+            </div>
+            <button onclick="cargarProgreso()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-lg mb-6">Consultar Progreso</button>
+            <div id="progreso-resultado"><p class="text-sm text-slate-400 text-center py-8 italic">Selecciona usuario y fecha.</p></div>
+            <div id="graficos-contenedor" class="hidden mt-6 space-y-8">
+                <div>
+                    <h3 class="text-sm font-semibold text-slate-700 mb-2">Distribución de la jornada</h3>
+                    <div id="barra-segmentada" style="height:32px;" class="w-full bg-slate-200 rounded-lg overflow-hidden flex gap-0.5"></div>
+                    <div id="leyenda-barra" class="mt-3 space-y-2"></div>
+                </div>
+                <div>
+                    <div class="flex justify-between text-xs text-slate-500 mb-1">
+                        <span>Jornada completada</span>
+                        <span id="porcentaje-label">0%</span>
+                    </div>
+                    <div class="w-full bg-slate-200 rounded-full h-3">
+                        <div id="barra-total" class="h-3 rounded-full transition-all duration-500 bg-blue-600" style="width:0%"></div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-slate-50 rounded-xl p-4">
+                        <h3 class="text-sm font-semibold text-slate-700 mb-3">Distribución por tarea</h3>
+                        <canvas id="grafico-tarta"></canvas>
+                    </div>
+                    <div class="bg-slate-50 rounded-xl p-4">
+                        <h3 class="text-sm font-semibold text-slate-700 mb-3">Minutos por subtarea</h3>
+                        <canvas id="grafico-barras"></canvas>
+                    </div>
+                </div>
+                <div class="bg-slate-50 rounded-xl p-4">
+                    <h3 class="text-sm font-semibold text-slate-700 mb-3">Evolución semanal (horas por día)</h3>
+                    <canvas id="grafico-semanal"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
 
-  if (!codigo || !nombre || !pin || !rol) {
-    notify("Todos los campos son obligatorios", "warning"); return;
-  }
+    <!-- PESTAÑA EDICIÓN -->
+    <div id="pestana-edicion" class="hidden">
+        <div class="bg-white shadow-lg rounded-xl p-8">
+            <div class="border-b pb-4 mb-6">
+                <h1 class="text-2xl font-bold text-slate-800">Editar Registros</h1>
+                <p class="text-sm text-slate-500">Consulta, edita o elimina registros guardados</p>
+            </div>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1">Usuario:</label>
+                    <select id="edicion-usuario" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm">
+                        <option value="">-- Todos --</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1">Tarea principal:</label>
+                    <select id="edicion-tarea" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm">
+                        <option value="">-- Todas --</option>
+                        <option value="Picking">Picking</option>
+                        <option value="Packing">Packing</option>
+                        <option value="Inbound">Inbound</option>
+                        <option value="Shipping">Shipping</option>
+                        <option value="Ecommerce">Ecommerce</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1">Desde:</label>
+                    <input type="date" id="edicion-fecha-desde" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1">Hasta:</label>
+                    <input type="date" id="edicion-fecha-hasta" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
+                </div>
+            </div>
+            <button onclick="cargarEdicion()" class="w-full bg-slate-700 hover:bg-slate-800 text-white font-medium py-2.5 rounded-lg mb-6">Buscar Registros</button>
+            <div id="edicion-resultado"><p class="text-sm text-slate-400 text-center py-8 italic">Usa los filtros para buscar registros.</p></div>
+        </div>
+    </div>
 
-  try {
-    const res = await fetch(`${API}/usuarios/`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ codigo, nombre, pin, rol, activo: true })
-    });
-    if (!res.ok) {
-      const err = await res.json();
-      notify(err.detail || "Error al crear usuario", "error"); return;
-    }
-    notify("Usuario creado correctamente");
-    ["usCodigo","usNombre","usPin"].forEach(id => document.getElementById(id).value = "");
-    cargarUsuarios();
-    poblarSelectores();
-  } catch {
-    notify("Error al crear usuario", "error");
-  }
-}
+    <!-- PESTAÑA USUARIOS -->
+    <div id="pestana-usuarios" class="hidden">
+        <div class="bg-white shadow-lg rounded-xl p-8">
+            <div class="border-b pb-4 mb-6">
+                <h1 class="text-2xl font-bold text-slate-800">Gestión de Usuarios</h1>
+                <p class="text-sm text-slate-500">Añade o elimina usuarios del sistema</p>
+            </div>
+            <div class="bg-slate-50 rounded-xl p-4 mb-6">
+                <h3 class="text-sm font-bold text-slate-700 mb-3">Añadir nuevo usuario</h3>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Nombre:</label>
+                        <input type="text" id="nuevo-nombre" placeholder="Ej: Ana Gómez" class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Código:</label>
+                        <input type="text" id="nuevo-codigo" placeholder="Ej: EMP001" class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">PIN:</label>
+                        <input type="password" id="nuevo-pin" placeholder="••••" maxlength="6" class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Rol:</label>
+                        <select id="nuevo-rol" class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                            <option value="operario">Operario</option>
+                            <option value="supervisor">Supervisor</option>
+                        </select>
+                    </div>
+                </div>
+                <button onclick="crearUsuario()" class="mt-3 w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 rounded-lg">+ Añadir Usuario</button>
+                <div id="usuarios-mensaje" class="mt-2 text-sm hidden"></div>
+            </div>
+            <div id="lista-usuarios"><p class="text-sm text-slate-400 text-center py-4 italic">Cargando usuarios...</p></div>
+        </div>
+    </div>
 
-async function cargarUsuarios() {
-  try {
-    const res  = await fetch(`${API}/usuarios/`);
-    const data = await res.json();
-    const tbody = document.getElementById("usuariosBody");
-    tbody.innerHTML = "";
-    data.forEach(u => {
-      tbody.innerHTML += `
-        <tr class="border-b hover:bg-gray-50">
-          <td class="px-3 py-2 font-mono font-bold">${u.codigo}</td>
-          <td class="px-3 py-2">${u.nombre}</td>
-          <td class="px-3 py-2">
-            ${u.rol === "supervisor"
-              ? `<span class="badge-blue">Supervisor</span>`
-              : `<span class="badge-green">Operario</span>`}
-          </td>
-          <td class="px-3 py-2 text-center">
-            ${u.activo
-              ? `<span class="badge-green">Activo</span>`
-              : `<span class="badge-red">Inactivo</span>`}
-          </td>
-          <td class="px-3 py-2 text-center">
-            <button onclick="toggleUsuario(${u.id}, ${u.activo})" 
-              class="${u.activo ? "btn-danger" : "btn-success"} text-xs px-2 py-1">
-              ${u.activo ? "Desactivar" : "Activar"}
-            </button>
-          </td>
-        </tr>`;
-    });
-  } catch {
-    notify("Error al cargar usuarios", "error");
-  }
-}
+    </div><!-- fin max-w -->
 
-async function toggleUsuario(id, activo) {
-  try {
-    await fetch(`${API}/usuarios/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ activo: !activo })
-    });
-    notify(`Usuario ${activo ? "desactivado" : "activado"}`);
-    cargarUsuarios();
-  } catch {
-    notify("Error al actualizar usuario", "error");
-  }
-}
+    <!-- Modal edición -->
+    <div id="modal-edicion" style="display:none;" class="fixed inset-0 bg-black bg-opacity-50 items-center justify-center z-50">
+        <div class="bg-white rounded-xl p-6 w-full max-w-md mx-auto mt-10 shadow-xl">
+            <h3 class="text-lg font-bold text-slate-800 mb-4">Editar Registro</h3>
+            <input type="hidden" id="edit-id" />
+            <label class="block text-sm font-medium text-slate-700 mb-1">Usuario:</label>
+            <input type="text" id="edit-usuario" class="w-full px-3 py-2 border rounded-lg mb-3" />
+            <label class="block text-sm font-medium text-slate-700 mb-1">Fecha:</label>
+            <input type="date" id="edit-fecha" class="w-full px-3 py-2 border rounded-lg mb-3" />
+            <label class="block text-sm font-medium text-slate-700 mb-1">Tarea principal:</label>
+            <select id="edit-tarea-principal" onchange="actualizarSubtareasEdicion()" class="w-full px-3 py-2 border rounded-lg mb-3 bg-white">
+                <option value="Picking">Picking</option>
+                <option value="Packing">Packing</option>
+                <option value="Inbound">Inbound</option>
+                <option value="Shipping">Shipping</option>
+                <option value="Ecommerce">Ecommerce</option>
+            </select>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Subtarea:</label>
+            <select id="edit-subtarea" class="w-full px-3 py-2 border rounded-lg mb-3 bg-white"></select>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Tiempo:</label>
+            <select id="edit-tiempo" class="w-full px-3 py-2 border rounded-lg mb-3 bg-white">
+                <option value="15">15 minutos</option>
+                <option value="30">30 minutos</option>
+                <option value="45">45 minutos</option>
+                <option value="60">1 hora</option>
+                <option value="90">1h 30min</option>
+                <option value="120">2 horas</option>
+                <option value="180">3 horas</option>
+                <option value="240">4 horas</option>
+                <option value="480">8 horas</option>
+            </select>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Proyecto:</label>
+            <input type="text" id="edit-proyecto" class="w-full px-3 py-2 border rounded-lg mb-3" />
+            <label class="block text-sm font-medium text-slate-700 mb-1">Comentarios:</label>
+            <input type="text" id="edit-comentarios" class="w-full px-3 py-2 border rounded-lg mb-4" />
+            <div class="flex gap-3">
+                <button onclick="guardarEdicion()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded-lg">Guardar cambios</button>
+                <button onclick="cerrarModal()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-2 px-4 rounded-lg">Cancelar</button>
+            </div>
+        </div>
+    </div>
 
-async function poblarSelectores() {
-  try {
-    const res  = await fetch(`${API}/usuarios/`);
-    const data = await res.json();
-
-    const selects = ["statUsuario","objUsuario","turnoUsuario"];
-    selects.forEach(id => {
-      const sel = document.getElementById(id);
-      if (!sel) return;
-      const val = sel.value;
-      sel.innerHTML = id === "statUsuario"
-        ? `<option value="">Todos</option>`
-        : `<option value="">-- Selecciona --</option>`;
-      data.forEach(u => {
-        const opt = document.createElement("option");
-        opt.value = u.id;
-        opt.textContent = `${u.codigo} · ${u.nombre}`;
-        sel.appendChild(opt);
-      });
-      sel.value = val;
-    });
-  } catch {}
-}
-
-// ==================== AUDITORÍA ====================
-async function cargarAuditoria() {
-  const usuario = document.getElementById("audUsuario").value.trim();
-  const accion  = document.getElementById("audAccion").value;
-  const desde   = document.getElementById("audDesde").value;
-  const hasta   = document.getElementById("audHasta").value;
-
-  let url = `${API}/auditoria/?`;
-  if (usuario) url += `usuario=${usuario}&`;
-  if (accion)  url += `accion=${accion}&`;
-  if (desde)   url += `fecha_inicio=${desde}&`;
-  if (hasta)   url += `fecha_fin=${hasta}&`;
-
-  try {
-    const res  = await fetch(url);
-    const data = await res.json();
-    const tbody = document.getElementById("auditoriaBody");
-    tbody.innerHTML = "";
-    data.forEach(a => {
-      const color = a.accion === "ELIMINAR" ? "text-red-600"
-        : a.accion === "CREAR"   ? "text-green-600"
-        : a.accion === "EDITAR"  ? "text-blue-600"
-        : "text-gray-600";
-      tbody.innerHTML += `
-        <tr class="border-b hover:bg-gray-50 text-xs">
-          <td class="px-3 py-2 text-gray-400">${a.timestamp?.replace("T"," ").slice(0,19)}</td>
-          <td class="px-3 py-2 font-mono font-bold">${a.usuario_codigo || "-"}</td>
-          <td class="px-3 py-2 font-bold ${color}">${a.accion}</td>
-          <td class="px-3 py-2">${a.entidad || "-"}</td>
-          <td class="px-3 py-2 text-gray-500 max-w-xs truncate">${a.detalle || "-"}</td>
-        </tr>`;
-    });
-    if (data.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="5" class="text-center py-6 text-gray-400">
-        Sin registros de auditoría</td></tr>`;
-    }
-  } catch {
-    notify("Error al cargar auditoría", "error");
-  }
-}
-
-// ==================== EXCEL ====================
-async function exportarExcel() {
-  try {
-    notify("Generando Excel...", "info");
-    const res = await fetch(`${API}/exportar-excel/`);
-    if (!res.ok) throw new Error();
-    const blob = await res.blob();
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement("a");
-    a.href     = url;
-    a.download = `control_tareas_${today()}.xlsx`;
-    a.click();
-    URL.revokeObjectURL(url);
-    notify("Excel descargado correctamente");
-  } catch {
-    notify("Error al exportar Excel", "error");
-  }
-}
-</script>
+</div><!-- fin app-principal -->
 <script>
-// ==================== INICIALIZACIÓN ====================
-document.addEventListener("DOMContentLoaded", () => {
-  // Fechas por defecto en filtros
-  const hoy   = today();
-  const hace7 = new Date();
-  hace7.setDate(hace7.getDate() - 7);
-  const hace7str = hace7.toISOString().split("T")[0];
+    const API = "";
+    const hoy = new Date().toISOString().split('T')[0];
 
-  document.getElementById("filtroDesde").value = hace7str;
-  document.getElementById("filtroHasta").value = hoy;
-  document.getElementById("statDesde").value   = hace7str;
-  document.getElementById("statHasta").value   = hoy;
-  document.getElementById("prodDesde").value   = hace7str;
-  document.getElementById("prodHasta").value   = hoy;
-  document.getElementById("audDesde").value    = hace7str;
-  document.getElementById("audHasta").value    = hoy;
-  document.getElementById("turnoFiltroFecha").value = hoy;
+    let usuarioSesion = null;
+    let tareasPendientes = [];
+    let tiempoSeleccionado = 0;
+    let graficaTarta = null;
+    let graficaBarras = null;
+    let graficaSemanal = null;
+    let dashboardGraficoTareas = null;
+    let dashboardGraficoUsuarios = null;
 
-  // Enter en login
-  document.getElementById("loginCodigo").addEventListener("keydown", e => {
-    if (e.key === "Enter") document.getElementById("loginPin").focus();
-  });
-});
-
-// ==================== MODAL GENÉRICO ====================
-function abrirModal(titulo, contenidoHTML, onConfirm) {
-  const existing = document.getElementById("genericModal");
-  if (existing) existing.remove();
-
-  const modal = document.createElement("div");
-  modal.id = "genericModal";
-  modal.className = "fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50";
-  modal.innerHTML = `
-    <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md">
-      <h3 class="text-lg font-bold text-blue-900 mb-4">${titulo}</h3>
-      <div class="mb-4">${contenidoHTML}</div>
-      <div class="flex justify-end gap-2">
-        <button onclick="cerrarModal()" class="btn-gray">Cancelar</button>
-        <button onclick="(${onConfirm})()" class="btn-primary">Confirmar</button>
-      </div>
-    </div>`;
-  document.body.appendChild(modal);
-}
-
-function cerrarModal() {
-  const modal = document.getElementById("genericModal");
-  if (modal) modal.remove();
-}
-
-// ==================== EDITAR REGISTRO ====================
-function editarRegistro(id, fecha, tarea, subtarea, minutos, turno, notas) {
-  abrirModal(
-    "✏️ Editar registro",
-    `<div class="space-y-3">
-      <div>
-        <label class="block text-sm font-medium text-gray-600 mb-1">Fecha</label>
-        <input id="editFecha" type="date" value="${fecha}" class="input-field"/>
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-gray-600 mb-1">Tarea</label>
-        <select id="editTarea" class="input-field">
-          ${["Recepción","Almacenamiento","Picking","Packing","Expedición",
-             "Inventario","Carga","Descarga","Limpieza","Mantenimiento",
-             "Formación","Reunión","Otro"]
-            .map(t => `<option value="${t}" ${t===tarea?"selected":""}>${t}</option>`)
-            .join("")}
-        </select>
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-gray-600 mb-1">Subtarea</label>
-        <input id="editSubtarea" type="text" value="${subtarea||""}" class="input-field"/>
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-gray-600 mb-1">Minutos</label>
-        <input id="editMinutos" type="number" value="${minutos}" min="1" class="input-field"/>
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-gray-600 mb-1">Turno</label>
-        <select id="editTurno" class="input-field">
-          <option value="">Sin especificar</option>
-          ${["mañana","tarde","noche"]
-            .map(t => `<option value="${t}" ${t===turno?"selected":""}>${t}</option>`)
-            .join("")}
-        </select>
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-gray-600 mb-1">Notas</label>
-        <textarea id="editNotas" rows="2" class="input-field">${notas||""}</textarea>
-      </div>
-    </div>`,
-    async function() {
-      const body = {
-        fecha:    document.getElementById("editFecha").value,
-        tarea:    document.getElementById("editTarea").value,
-        subtarea: document.getElementById("editSubtarea").value || null,
-        minutos:  parseInt(document.getElementById("editMinutos").value),
-        turno:    document.getElementById("editTurno").value || null,
-        notas:    document.getElementById("editNotas").value || null
-      };
-      try {
-        const res = await fetch(`${API}/registros/${id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body)
-        });
-        if (!res.ok) throw new Error();
-        notify("Registro actualizado");
-        cerrarModal();
-        cargarMisRegistros();
-      } catch {
-        notify("Error al actualizar registro", "error");
-      }
-    }
-  );
-}
-
-// ==================== DUPLICAR REGISTRO ====================
-async function duplicarRegistro(id) {
-  try {
-    const res  = await fetch(`${API}/registros/${id}`);
-    const data = await res.json();
-    const body = {
-      usuario_id: currentUser.id,
-      fecha:      today(),
-      tarea:      data.tarea,
-      subtarea:   data.subtarea,
-      minutos:    data.minutos,
-      turno:      data.turno,
-      notas:      data.notas ? `[Copia] ${data.notas}` : "[Copia]"
+    const coloresTarea = {
+        "Picking":   { bg: "#3b82f6", light: "#eff6ff", text: "#1d4ed8" },
+        "Packing":   { bg: "#8b5cf6", light: "#f5f3ff", text: "#6d28d9" },
+        "Inbound":   { bg: "#f59e0b", light: "#fffbeb", text: "#b45309" },
+        "Shipping":  { bg: "#10b981", light: "#ecfdf5", text: "#065f46" },
+        "Ecommerce": { bg: "#ef4444", light: "#fef2f2", text: "#b91c1c" },
+        "Otro":      { bg: "#94a3b8", light: "#f8fafc", text: "#475569" }
     };
-    const res2 = await fetch(`${API}/registros/`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body)
-    });
-    if (!res2.ok) throw new Error();
-    notify("Registro duplicado en fecha de hoy");
-    cargarMisRegistros();
-  } catch {
-    notify("Error al duplicar registro", "error");
-  }
-}
 
-// ==================== ACTUALIZAR TABLA REGISTROS CON ACCIONES ====================
-// Sobrescribe cargarMisRegistros para incluir botones editar y duplicar
-const _cargarMisRegistros = cargarMisRegistros;
-cargarMisRegistros = async function() {
-  const uid    = currentUser.rol === "supervisor"
-    ? (document.getElementById("statUsuario")?.value || "")
-    : currentUser.id;
-  const desde  = document.getElementById("filtroDesde").value;
-  const hasta  = document.getElementById("filtroHasta").value;
-  const tarea  = document.getElementById("filtroTarea").value;
+    const subtareasPorTarea = {
+        "Picking":   ["Picking RF", "Picking Manual", "Picking Lote", "Revisión de Picking"],
+        "Packing":   ["Embalaje Estándar", "Embalaje Frágil", "Etiquetado", "Precintado"],
+        "Inbound":   ["Recepción de mercancía", "Desconsolidación", "Control de calidad", "Ubicación en estantería"],
+        "Shipping":  ["Carga de camión", "Validación de albaranes", "Expedición urgente"],
+        "Ecommerce": ["Preparación de pedidos B2C", "Gestión de devoluciones", "Embalaje especial E-commerce"]
+    };
 
-  let url = `${API}/registros/?usuario_id=${uid}`;
-  if (desde) url += `&fecha_inicio=${desde}`;
-  if (hasta) url += `&fecha_fin=${hasta}`;
+    const avatarColores = ["#3b82f6","#8b5cf6","#f59e0b","#10b981","#ef4444","#ec4899","#06b6d4"];
 
-  try {
-    const res  = await fetch(url);
-    let data   = await res.json();
-    if (tarea) data = data.filter(r => r.tarea === tarea);
+    window.onload = function() {
+        document.getElementById("login-codigo").focus();
+        document.getElementById("fecha").value = hoy;
+        document.getElementById("filtro-fecha").value = hoy;
+        document.getElementById("edicion-fecha-desde").value = hoy;
+        document.getElementById("edicion-fecha-hasta").value = hoy;
+        document.getElementById("dashboard-fecha").value = hoy;
+        actualizarSubtareas();
+        document.getElementById("login-codigo").addEventListener("keydown", function(e) {
+            if (e.key === "Enter") document.getElementById("login-pin").focus();
+        });
+        document.getElementById("login-pin").addEventListener("keydown", function(e) {
+            if (e.key === "Enter") hacerLogin();
+        });
+    };
 
-    const tbody = document.getElementById("misRegistrosBody");
-    tbody.innerHTML = "";
-    let totalMin = 0;
+    async function hacerLogin() {
+        const codigo = document.getElementById("login-codigo").value.trim();
+        const pin = document.getElementById("login-pin").value.trim();
+        const errorDiv = document.getElementById("login-error");
+        if (!codigo || !pin) {
+            errorDiv.textContent = "Introduce tu código y PIN.";
+            errorDiv.classList.remove("hidden");
+            return;
+        }
+        try {
+            const resp = await fetch(`${API}/login/`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ codigo, pin })
+            });
+            if (!resp.ok) {
+                errorDiv.textContent = "Código o PIN incorrectos.";
+                errorDiv.classList.remove("hidden");
+                document.getElementById("login-pin").value = "";
+                return;
+            }
+            usuarioSesion = await resp.json();
+            errorDiv.classList.add("hidden");
+            iniciarSesion();
+        } catch {
+            errorDiv.textContent = "No se pudo conectar con el servidor.";
+            errorDiv.classList.remove("hidden");
+        }
+    }
 
-    data.forEach(r => {
-      totalMin += r.minutos;
-      const sub   = (r.subtarea  || "").replace(/'/g, "\\'");
-      const notas = (r.notas     || "").replace(/'/g, "\\'");
-      const turno = (r.turno     || "");
-      tbody.innerHTML += `
-        <tr class="border-b hover:bg-gray-50">
-          <td class="px-3 py-2">${r.fecha}</td>
-          <td class="px-3 py-2 font-medium">${r.tarea}</td>
-          <td class="px-3 py-2 text-gray-500">${r.subtarea || "-"}</td>
-          <td class="px-3 py-2 text-right">${r.minutos}</td>
-          <td class="px-3 py-2 text-right">${(r.minutos/60).toFixed(2)}</td>
-          <td class="px-3 py-2">${r.turno || "-"}</td>
-          <td class="px-3 py-2 text-gray-500 text-xs max-w-xs truncate">${r.notas || "-"}</td>
-          <td class="px-3 py-2 text-center flex gap-1 justify-center">
-            <button onclick="editarRegistro(${r.id},'${r.fecha}','${r.tarea}',
-              '${sub}',${r.minutos},'${turno}','${notas}')"
-              class="bg-blue-100 hover:bg-blue-200 text-blue-700 font-semibold
-                     px-2 py-1 rounded text-xs transition">✏️</button>
-            <button onclick="duplicarRegistro(${r.id})"
-              class="bg-purple-100 hover:bg-purple-200 text-purple-700 font-semibold
-                     px-2 py-1 rounded text-xs transition">📋</button>
-            <button onclick="eliminarRegistro(${r.id})" class="btn-danger">🗑️</button>
-          </td>
-        </tr>`;
-    });
+    function iniciarSesion() {
+        document.getElementById("pantalla-login").classList.add("hidden");
+        document.getElementById("app-principal").classList.remove("hidden");
 
-    document.getElementById("misRegistrosResumen").textContent =
-      `${data.length} registros · ${formatMinutes(totalMin)} totales`;
-  } catch {
-    notify("Error al cargar registros", "error");
-  }
-};
+        const avatar = document.getElementById("header-avatar");
+        avatar.style.backgroundColor = avatarColores[usuarioSesion.id % avatarColores.length];
+        avatar.textContent = usuarioSesion.nombre.charAt(0).toUpperCase();
+        document.getElementById("header-nombre").textContent = usuarioSesion.nombre;
 
-// ==================== RESUMEN SIDEBAR TIEMPO REAL ====================
-setInterval(async () => {
-  if (!currentUser) return;
-  try {
-    const hoy = today();
-    const res = await fetch(
-      `${API}/registros/?usuario_id=${currentUser.id}&fecha_inicio=${hoy}&fecha_fin=${hoy}`
-    );
-    const data = await res.json();
-    const min  = data.reduce((a, r) => a + r.minutos, 0);
-    document.getElementById("sidebarUser").textContent =
-      `${currentUser.codigo} · ${currentUser.nombre} · Hoy: ${formatMinutes(min)}`;
-  } catch {}
-}, 60000);
+        const rolBadge = document.getElementById("header-rol");
+        if (usuarioSesion.rol === "supervisor") {
+            rolBadge.textContent = "Supervisor";
+            rolBadge.className = "text-xs px-2 py-0.5 rounded-full font-medium bg-violet-100 text-violet-700";
+            document.getElementById("tab-dashboard").classList.remove("hidden");
+            document.getElementById("tab-progreso").classList.remove("hidden");
+            document.getElementById("tab-edicion").classList.remove("hidden");
+            document.getElementById("tab-usuarios").classList.remove("hidden");
+            document.getElementById("btn-excel").classList.remove("hidden");
+            cargarUsuariosGestion();
+            cargarDashboard();
+        } else {
+            rolBadge.textContent = "Operario";
+            rolBadge.className = "text-xs px-2 py-0.5 rounded-full font-medium bg-blue-100 text-blue-700";
+        }
 
-// ==================== ATAJOS DE TECLADO ====================
-document.addEventListener("keydown", e => {
-  if (!currentUser) return;
-  if (e.altKey && e.key === "r") { e.preventDefault(); showTab("tabRegistro"); }
-  if (e.altKey && e.key === "m") { e.preventDefault(); showTab("tabMisRegistros"); }
-  if (e.altKey && e.key === "v") { e.preventDefault(); showTab("tabVolumen"); }
-  if (e.altKey && e.key === "i") { e.preventDefault(); showTab("tabIncidencias"); }
-  if (e.altKey && e.key === "Escape") { e.preventDefault(); cerrarModal(); }
-});
+        document.getElementById("estado-nombre").textContent = usuarioSesion.nombre;
+        document.getElementById("estado-fecha").textContent = new Date().toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" });
+
+        actualizarIndicadorTiempo();
+        cargarUsuariosFiltros();
+        mostrarPestana("registro");
+    }
+
+    function cerrarSesion() {
+        usuarioSesion = null;
+        tareasPendientes = [];
+        tiempoSeleccionado = 0;
+        actualizarLista();
+        document.getElementById("pantalla-login").classList.remove("hidden");
+        document.getElementById("app-principal").classList.add("hidden");
+        document.getElementById("login-codigo").value = "";
+        document.getElementById("login-pin").value = "";
+        document.getElementById("login-codigo").focus();
+        ["tab-dashboard","tab-progreso","tab-edicion","tab-usuarios"].forEach(id => {
+            document.getElementById(id).classList.add("hidden");
+        });
+        document.getElementById("btn-excel").classList.add("hidden");
+        resetearBotonesTiempo();
+    }
+
+    async function actualizarIndicadorTiempo() {
+        if (!usuarioSesion) return;
+        try {
+            const resp = await fetch(`${API}/registros/${usuarioSesion.codigo}`);
+            if (!resp.ok) { actualizarTarjetaEstado(0); return; }
+            const registros = await resp.json();
+            const totalHoy = registros.filter(r => r.fecha === hoy).reduce((sum, r) => sum + r.tiempo_minutos, 0);
+            const totalPendiente = tareasPendientes.reduce((sum, t) => sum + t.tiempo_minutos, 0);
+            actualizarTarjetaEstado(totalHoy + totalPendiente);
+        } catch { actualizarTarjetaEstado(0); }
+    }
+
+    function actualizarTarjetaEstado(totalMinutos) {
+        const horas = Math.floor(totalMinutos / 60);
+        const mins = totalMinutos % 60;
+        const restante = Math.max(0, 480 - totalMinutos);
+        const restanteH = Math.floor(restante / 60);
+        const restanteM = restante % 60;
+        const porcentaje = Math.min((totalMinutos / 480) * 100, 100);
+        document.getElementById("estado-tiempo").textContent = `${horas}h ${mins}min`;
+        document.getElementById("estado-restante").textContent = restante > 0 ? `Faltan ${restanteH}h ${restanteM}min` : "✅ Jornada completa";
+        document.getElementById("estado-barra").style.width = `${porcentaje}%`;
+        const tarjeta = document.getElementById("tarjeta-estado");
+        if (porcentaje >= 100) tarjeta.className = "rounded-2xl p-5 mb-6 text-white bg-emerald-500";
+        else if (porcentaje >= 60) tarjeta.className = "rounded-2xl p-5 mb-6 text-white bg-blue-500";
+        else if (porcentaje >= 30) tarjeta.className = "rounded-2xl p-5 mb-6 text-white bg-amber-500";
+        else tarjeta.className = "rounded-2xl p-5 mb-6 text-white bg-slate-500";
+    }
+
+    function mostrarPestana(nombre) {
+        if (usuarioSesion.rol !== "supervisor" && nombre !== "registro") {
+            alert("No tienes permisos para acceder a esta sección.");
+            return;
+        }
+        ["registro","dashboard","progreso","edicion","usuarios"].forEach(p => {
+            const pestana = document.getElementById(`pestana-${p}`);
+            const tab = document.getElementById(`tab-${p}`);
+            if (pestana) pestana.classList.add("hidden");
+            if (tab) tab.className = "px-4 py-2 rounded-lg font-medium text-sm bg-white text-slate-600 border";
+        });
+        document.getElementById(`pestana-${nombre}`).classList.remove("hidden");
+        document.getElementById(`tab-${nombre}`).className = "px-4 py-2 rounded-lg font-medium text-sm bg-blue-600 text-white";
+        if (nombre === "progreso" || nombre === "edicion") cargarUsuariosFiltros();
+        if (nombre === "usuarios") cargarUsuariosGestion();
+        if (nombre === "dashboard") cargarDashboard();
+    }
+
+    function actualizarSubtareas() {
+        const principal = document.getElementById("tarea_principal").value;
+        const sel = document.getElementById("subtarea");
+        sel.innerHTML = "";
+        (subtareasPorTarea[principal] || []).forEach(sub => {
+            const o = document.createElement("option");
+            o.value = sub; o.textContent = sub;
+            sel.appendChild(o);
+        });
+    }
+
+    function actualizarSubtareasEdicion(subtareaSeleccionada = "") {
+        const principal = document.getElementById("edit-tarea-principal").value;
+        const sel = document.getElementById("edit-subtarea");
+        sel.innerHTML = "";
+        (subtareasPorTarea[principal] || []).forEach(sub => {
+            const o = document.createElement("option");
+            o.value = sub; o.textContent = sub;
+            if (sub === subtareaSeleccionada) o.selected = true;
+            sel.appendChild(o);
+        });
+    }
+
+    function seleccionarTiempo(minutos) {
+        tiempoSeleccionado = minutos;
+        document.getElementById("tiempo_minutos").value = minutos;
+        const etiquetas = { 15:"15 min", 30:"30 min", 45:"45 min", 60:"1 hora", 90:"1h 30min", 120:"2 horas", 180:"3 horas", 240:"4 horas" };
+        document.getElementById("tiempo-seleccionado").textContent = etiquetas[minutos] || `${minutos} min`;
+        document.querySelectorAll(".tiempo-btn").forEach(btn => {
+            btn.className = "tiempo-btn py-3 rounded-xl border-2 border-slate-200 text-sm font-bold text-slate-700 hover:border-blue-400 hover:bg-blue-50 transition";
+        });
+        const valores = [15,30,45,60,90,120,180,240];
+        const index = valores.indexOf(minutos);
+        if (index !== -1) {
+            document.querySelectorAll(".tiempo-btn")[index].className = "tiempo-btn py-3 rounded-xl border-2 border-blue-500 bg-blue-50 text-sm font-bold text-blue-700 transition";
+        }
+    }
+
+    function resetearBotonesTiempo() {
+        tiempoSeleccionado = 0;
+        document.getElementById("tiempo_minutos").value = 0;
+        document.getElementById("tiempo-seleccionado").textContent = "Ninguno";
+        document.querySelectorAll(".tiempo-btn").forEach(btn => {
+            btn.className = "tiempo-btn py-3 rounded-xl border-2 border-slate-200 text-sm font-bold text-slate-700 hover:border-blue-400 hover:bg-blue-50 transition";
+        });
+    }
+
+    function añadirTarea() {
+        if (tiempoSeleccionado === 0) { alert("Por favor, selecciona el tiempo dedicado."); return; }
+        const principal = document.getElementById("tarea_principal").value;
+        const subtarea = document.getElementById("subtarea").value;
+        const tareaCompleta = `${principal} - ${subtarea}`;
+        const totalActual = tareasPendientes.reduce((sum, t) => sum + t.tiempo_minutos, 0);
+        if (totalActual + tiempoSeleccionado > 480) {
+            alert(`No puedes superar 8 horas. Te quedan ${480 - totalActual} minutos.`);
+            return;
+        }
+        tareasPendientes.push({
+            usuario: usuarioSesion.codigo,
+            fecha: document.getElementById("fecha").value,
+            tarea: tareaCompleta,
+            tiempo_minutos: tiempoSeleccionado,
+            proyecto: document.getElementById("proyecto").value || null,
+            comentarios: document.getElementById("comentarios").value || null
+        });
+        actualizarLista();
+        actualizarTarjetaEstado(tareasPendientes.reduce((s, t) => s + t.tiempo_minutos, 0));
+        resetearBotonesTiempo();
+        document.getElementById("proyecto").value = "";
+        document.getElementById("comentarios").value = "";
+    }
+
+    function eliminarTareaLista(index) {
+        tareasPendientes.splice(index, 1);
+        actualizarLista();
+        actualizarIndicadorTiempo();
+    }
+
+    function actualizarLista() {
+        const contenedor = document.getElementById("tareas");
+        contenedor.innerHTML = "";
+        let totalMinutos = 0;
+        if (tareasPendientes.length === 0) {
+            contenedor.innerHTML = `<p class="text-sm text-slate-400 text-center py-4 italic">No hay tareas añadidas todavía.</p>`;
+        } else {
+            tareasPendientes.forEach((t, index) => {
+                totalMinutos += t.tiempo_minutos;
+                const horas = Math.floor(t.tiempo_minutos / 60);
+                const mins = t.tiempo_minutos % 60;
+                const tiempoTexto = horas > 0 ? `${horas}h ${mins}min` : `${mins}min`;
+                const principal = t.tarea.split(" - ")[0];
+                const color = coloresTarea[principal] || coloresTarea["Otro"];
+                contenedor.innerHTML += `
+                    <div style="background-color:${color.light};border-left:4px solid ${color.bg}" class="p-3 rounded-lg flex justify-between items-center text-sm">
+                        <div>
+                            <span style="color:${color.text}" class="font-semibold">${t.tarea}</span>
+                            <span class="text-slate-500 ml-2">(${tiempoTexto})</span>
+                        </div>
+                        <button onclick="eliminarTareaLista(${index})" class="text-rose-500 hover:text-rose-700 font-bold px-2 py-1 text-lg">✕</button>
+                    </div>`;
+            });
+        }
+        document.getElementById("contador").textContent = `(${tareasPendientes.length})`;
+        document.getElementById("total").textContent = `Total: ${totalMinutos} min (${(totalMinutos/60).toFixed(2)}h)`;
+    }
+
+    async function guardarTodo() {
+        if (tareasPendientes.length === 0) { alert("No hay tareas en la lista."); return; }
+        let exito = 0, error = 0;
+        for (const tarea of tareasPendientes) {
+            try {
+                const r = await fetch(`${API}/registros/`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(tarea)
+                });
+                if (r.ok) exito++; else error++;
+            } catch { error++; }
+        }
+        if (error === 0) {
+            mostrarConfirmacion(exito);
+            limpiarLista();
+        } else {
+            const div = document.getElementById("respuesta");
+            div.style.display = "block";
+            div.className = "mt-4 p-3 rounded-lg text-sm bg-rose-100 text-rose-800";
+            div.innerHTML = `⚠️ ${exito} guardadas, ${error} fallaron.`;
+        }
+    }
+    function mostrarConfirmacion(numTareas) {
+        const pantalla = document.getElementById("pantalla-confirmacion");
+        document.getElementById("confirmacion-texto").textContent = `${numTareas} tarea(s) registradas para ${usuarioSesion.nombre}`;
+        pantalla.classList.remove("hidden");
+        pantalla.style.display = "flex";
+        let cuenta = 3;
+        document.getElementById("confirmacion-cuenta").textContent = cuenta;
+        const intervalo = setInterval(() => {
+            cuenta--;
+            document.getElementById("confirmacion-cuenta").textContent = cuenta;
+            if (cuenta <= 0) {
+                clearInterval(intervalo);
+                pantalla.style.display = "none";
+                pantalla.classList.add("hidden");
+                actualizarIndicadorTiempo();
+            }
+        }, 1000);
+    }
+
+    function limpiarLista() { tareasPendientes = []; actualizarLista(); actualizarIndicadorTiempo(); }
+    function descargarExcel() { window.open(`${API}/exportar-excel/`, "_blank"); }
+
+    async function cargarUsuariosFiltros() {
+        try {
+            const resp = await fetch(`${API}/registros/`);
+            const registros = await resp.json();
+            const usuarios = [...new Set(registros.map(r => r.usuario))].sort();
+            ["filtro-usuario","edicion-usuario"].forEach(id => {
+                const select = document.getElementById(id);
+                if (!select) return;
+                const def = id === "filtro-usuario"
+                    ? `<option value="">-- Selecciona usuario --</option>`
+                    : `<option value="">-- Todos --</option>`;
+                select.innerHTML = def;
+                usuarios.forEach(u => {
+                    const o = document.createElement("option");
+                    o.value = u; o.textContent = u;
+                    select.appendChild(o);
+                });
+            });
+        } catch {}
+    }
+
+    async function cargarDashboard() {
+        const fecha = document.getElementById("dashboard-fecha").value || hoy;
+        try {
+            const resp = await fetch(`${API}/registros/`);
+            const todos = await resp.json();
+            const registrosHoy = todos.filter(r => r.fecha === fecha);
+
+            const totalRegistros = registrosHoy.length;
+            const usuariosActivos = [...new Set(registrosHoy.map(r => r.usuario))];
+            const totalMinutos = registrosHoy.reduce((s, r) => s + r.tiempo_minutos, 0);
+            const mediaJornada = usuariosActivos.length > 0
+                ? Math.round((totalMinutos / usuariosActivos.length / 480) * 100)
+                : 0;
+
+            document.getElementById("kpi-registros").textContent = totalRegistros;
+            document.getElementById("kpi-usuarios").textContent = usuariosActivos.length;
+            document.getElementById("kpi-horas").textContent = `${(totalMinutos/60).toFixed(1)}h`;
+            document.getElementById("kpi-media").textContent = `${mediaJornada}%`;
+
+            const respUsuarios = await fetch(`${API}/usuarios/`);
+            const todosUsuarios = await respUsuarios.json();
+            const operarios = todosUsuarios.filter(u => u.rol === "operario");
+            const contenedor = document.getElementById("dashboard-usuarios");
+            contenedor.innerHTML = "";
+
+            operarios.forEach(u => {
+                const registrosU = registrosHoy.filter(r => r.usuario === u.codigo);
+                const minutosU = registrosU.reduce((s, r) => s + r.tiempo_minutos, 0);
+                const porcentaje = Math.min((minutosU / 480) * 100, 100);
+                const horasU = Math.floor(minutosU / 60);
+                const minsU = minutosU % 60;
+                const color = porcentaje >= 100 ? "bg-emerald-500" : porcentaje >= 60 ? "bg-blue-500" : porcentaje >= 30 ? "bg-amber-400" : "bg-slate-300";
+                const estado = porcentaje >= 100 ? "✅ Completo" : porcentaje === 0 ? "⚪ Sin actividad" : `🔵 ${horasU}h ${minsU}min`;
+                contenedor.innerHTML += `
+                    <div class="flex items-center gap-4 p-3 bg-slate-50 rounded-xl">
+                        <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold" style="background-color:${avatarColores[u.id % avatarColores.length]}">${u.nombre.charAt(0)}</div>
+                        <div class="flex-1">
+                            <div class="flex justify-between text-sm mb-1">
+                                <span class="font-medium text-slate-700">${u.nombre}</span>
+                                <span class="text-slate-500">${estado}</span>
+                            </div>
+                            <div class="w-full bg-slate-200 rounded-full h-2">
+                                <div class="${color} h-2 rounded-full transition-all duration-500" style="width:${porcentaje}%"></div>
+                            </div>
+                        </div>
+                    </div>`;
+            });
+
+            if (operarios.length === 0) contenedor.innerHTML = `<p class="text-sm text-slate-400 text-center py-4 italic">No hay operarios registrados.</p>`;
+
+            const tareaCount = {};
+            registrosHoy.forEach(r => {
+                const principal = r.tarea.split(" - ")[0];
+                tareaCount[principal] = (tareaCount[principal] || 0) + r.tiempo_minutos;
+            });
+            const labelsT = Object.keys(tareaCount);
+            const dataT = Object.values(tareaCount);
+            const bgT = labelsT.map(l => (coloresTarea[l] || coloresTarea["Otro"]).bg);
+
+            if (dashboardGraficoTareas) dashboardGraficoTareas.destroy();
+            const ctxT = document.getElementById("dashboard-grafico-tareas").getContext("2d");
+            dashboardGraficoTareas = new Chart(ctxT, {
+                type: "doughnut",
+                data: { labels: labelsT, datasets: [{ data: dataT, backgroundColor: bgT, borderWidth: 2 }] },
+                options: { responsive: true, plugins: { legend: { position: "bottom" } } }
+            });
+
+            const usuarioMinutos = {};
+            usuariosActivos.forEach(u => {
+                usuarioMinutos[u] = registrosHoy.filter(r => r.usuario === u).reduce((s, r) => s + r.tiempo_minutos, 0);
+            });
+            const labelsU = Object.keys(usuarioMinutos);
+            const dataU = Object.values(usuarioMinutos).map(m => parseFloat((m/60).toFixed(2)));
+            const bgU = labelsU.map((_, i) => avatarColores[i % avatarColores.length]);
+
+            if (dashboardGraficoUsuarios) dashboardGraficoUsuarios.destroy();
+            const ctxU = document.getElementById("dashboard-grafico-usuarios").getContext("2d");
+            dashboardGraficoUsuarios = new Chart(ctxU, {
+                type: "bar",
+                data: {
+                    labels: labelsU,
+                    datasets: [{ label: "Horas", data: dataU, backgroundColor: bgU, borderRadius: 8 }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, max: 8, title: { display: true, text: "Horas" } }
+                    }
+                }
+            });
+
+        } catch(e) {
+            document.getElementById("dashboard-usuarios").innerHTML = `<p class="text-sm text-rose-500 text-center py-4">Error cargando datos.</p>`;
+        }
+    }
+
+    async function cargarProgreso() {
+        const usuario = document.getElementById("filtro-usuario").value;
+        const fecha = document.getElementById("filtro-fecha").value;
+        if (!usuario || !fecha) { alert("Selecciona usuario y fecha."); return; }
+        try {
+            const resp = await fetch(`${API}/registros/${usuario}`);
+            const todos = await resp.json();
+            const registros = todos.filter(r => r.fecha === fecha);
+            const contenedor = document.getElementById("progreso-resultado");
+            const graficos = document.getElementById("graficos-contenedor");
+
+            if (registros.length === 0) {
+                contenedor.innerHTML = `<p class="text-sm text-slate-400 text-center py-8 italic">No hay registros para esta fecha.</p>`;
+                graficos.classList.add("hidden");
+                return;
+            }
+
+            const totalMinutos = registros.reduce((s, r) => s + r.tiempo_minutos, 0);
+            const porcentaje = Math.min((totalMinutos / 480) * 100, 100);
+            const horas = Math.floor(totalMinutos / 60);
+            const mins = totalMinutos % 60;
+
+            contenedor.innerHTML = `
+                <div class="grid grid-cols-3 gap-4 mb-4">
+                    <div class="bg-blue-50 rounded-xl p-4 text-center">
+                        <div class="text-2xl font-bold text-blue-700">${registros.length}</div>
+                        <div class="text-xs text-slate-500 mt-1">Registros</div>
+                    </div>
+                    <div class="bg-violet-50 rounded-xl p-4 text-center">
+                        <div class="text-2xl font-bold text-violet-700">${horas}h ${mins}min</div>
+                        <div class="text-xs text-slate-500 mt-1">Tiempo total</div>
+                    </div>
+                    <div class="bg-emerald-50 rounded-xl p-4 text-center">
+                        <div class="text-2xl font-bold text-emerald-700">${porcentaje.toFixed(0)}%</div>
+                        <div class="text-xs text-slate-500 mt-1">Jornada</div>
+                    </div>
+                </div>`;
+
+            const barraSeg = document.getElementById("barra-segmentada");
+            const leyenda = document.getElementById("leyenda-barra");
+            barraSeg.innerHTML = ""; leyenda.innerHTML = "";
+            const agrupado = {};
+            registros.forEach(r => {
+                const p = r.tarea.split(" - ")[0];
+                agrupado[p] = (agrupado[p] || 0) + r.tiempo_minutos;
+            });
+            Object.entries(agrupado).forEach(([tarea, minutos]) => {
+                const pct = (minutos / 480) * 100;
+                const color = (coloresTarea[tarea] || coloresTarea["Otro"]).bg;
+                barraSeg.innerHTML += `<div style="width:${pct}%;background-color:${color}" title="${tarea}: ${minutos}min" class="h-full first:rounded-l-lg last:rounded-r-lg"></div>`;
+                leyenda.innerHTML += `
+                    <div class="flex justify-between items-center text-sm">
+                        <div class="flex items-center gap-2">
+                            <div class="w-3 h-3 rounded-full" style="background-color:${color}"></div>
+                            <span class="text-slate-700">${tarea}</span>
+                        </div>
+                        <span class="font-medium text-slate-600">${minutos} min (${Math.floor(minutos/60)}h ${minutos%60}m)</span>
+                    </div>`;
+            });
+
+            document.getElementById("barra-total").style.width = `${porcentaje}%`;
+            document.getElementById("porcentaje-label").textContent = `${porcentaje.toFixed(0)}%`;
+
+            const labelsP = Object.keys(agrupado);
+            const dataP = Object.values(agrupado);
+            const bgP = labelsP.map(l => (coloresTarea[l] || coloresTarea["Otro"]).bg);
+            if (graficaTarta) graficaTarta.destroy();
+            graficaTarta = new Chart(document.getElementById("grafico-tarta").getContext("2d"), {
+                type: "pie",
+                data: { labels: labelsP, datasets: [{ data: dataP, backgroundColor: bgP }] },
+                options: { responsive: true, plugins: { legend: { position: "bottom" } } }
+            });
+
+            const labelsB = registros.map(r => r.tarea.split(" - ")[1] || r.tarea);
+            const dataB = registros.map(r => r.tiempo_minutos);
+            const bgB = registros.map(r => (coloresTarea[r.tarea.split(" - ")[0]] || coloresTarea["Otro"]).bg);
+            if (graficaBarras) graficaBarras.destroy();
+            graficaBarras = new Chart(document.getElementById("grafico-barras").getContext("2d"), {
+                type: "bar",
+                data: { labels: labelsB, datasets: [{ label: "Minutos", data: dataB, backgroundColor: bgB, borderRadius: 6 }] },
+                options: { responsive: true, indexAxis: "y", plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true } } }
+            });
+
+            const diasSemana = [];
+            for (let i = 6; i >= 0; i--) {
+                const d = new Date(fecha);
+                d.setDate(d.getDate() - i);
+                diasSemana.push(d.toISOString().split("T")[0]);
+            }
+            const horasSemana = diasSemana.map(dia => {
+                const mins = todos.filter(r => r.fecha === dia).reduce((s, r) => s + r.tiempo_minutos, 0);
+                return parseFloat((mins / 60).toFixed(2));
+            });
+            if (graficaSemanal) graficaSemanal.destroy();
+            graficaSemanal = new Chart(document.getElementById("grafico-semanal").getContext("2d"), {
+                type: "line",
+                data: {
+                    labels: diasSemana.map(d => new Date(d + "T00:00:00").toLocaleDateString("es-ES", { weekday: "short", day: "numeric" })),
+                    datasets: [{
+                        label: "Horas",
+                        data: horasSemana,
+                        borderColor: "#3b82f6",
+                        backgroundColor: "rgba(59,130,246,0.1)",
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4,
+                        pointBackgroundColor: "#3b82f6"
+                    }]
+                },
+                options: { responsive: true, scales: { y: { beginAtZero: true, max: 8 } } }
+            });
+
+            graficos.classList.remove("hidden");
+        } catch(e) {
+            document.getElementById("progreso-resultado").innerHTML = `<p class="text-sm text-rose-500 text-center py-8">Error cargando progreso.</p>`;
+        }
+    }
+
+    async function cargarEdicion() {
+        const usuario = document.getElementById("edicion-usuario").value;
+        const tarea = document.getElementById("edicion-tarea").value;
+        const desde = document.getElementById("edicion-fecha-desde").value;
+        const hasta = document.getElementById("edicion-fecha-hasta").value;
+        try {
+            const resp = await fetch(`${API}/registros/`);
+            let registros = await resp.json();
+            if (usuario) registros = registros.filter(r => r.usuario === usuario);
+            if (tarea) registros = registros.filter(r => r.tarea.startsWith(tarea));
+            if (desde) registros = registros.filter(r => r.fecha >= desde);
+            if (hasta) registros = registros.filter(r => r.fecha <= hasta);
+            registros.sort((a, b) => b.fecha.localeCompare(a.fecha));
+
+            const contenedor = document.getElementById("edicion-resultado");
+            if (registros.length === 0) {
+                contenedor.innerHTML = `<p class="text-sm text-slate-400 text-center py-8 italic">No se encontraron registros.</p>`;
+                return;
+            }
+
+            const totalMin = registros.reduce((s, r) => s + r.tiempo_minutos, 0);
+            let html = `
+                <div class="flex justify-between items-center mb-3 text-sm">
+                    <span class="text-slate-500">${registros.length} registro(s) encontrado(s)</span>
+                    <span class="font-bold text-blue-600">Total: ${(totalMin/60).toFixed(1)}h</span>
+                </div>
+                <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead class="bg-slate-50 text-slate-600">
+                        <tr>
+                            <th class="px-3 py-2 text-left rounded-tl-lg">Usuario</th>
+                            <th class="px-3 py-2 text-left">Fecha</th>
+                            <th class="px-3 py-2 text-left">Tarea</th>
+                            <th class="px-3 py-2 text-left">Tiempo</th>
+                            <th class="px-3 py-2 text-left rounded-tr-lg">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">`;
+
+            registros.forEach(r => {
+                const principal = r.tarea.split(" - ")[0];
+                const color = (coloresTarea[principal] || coloresTarea["Otro"]).bg;
+                const h = Math.floor(r.tiempo_minutos / 60);
+                const m = r.tiempo_minutos % 60;
+                html += `
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="px-3 py-2 font-medium text-slate-700">${r.usuario}</td>
+                        <td class="px-3 py-2 text-slate-500">${r.fecha}</td>
+                        <td class="px-3 py-2">
+                            <span class="inline-flex items-center gap-1">
+                                <span class="w-2 h-2 rounded-full inline-block" style="background-color:${color}"></span>
+                                ${r.tarea}
+                            </span>
+                        </td>
+                        <td class="px-3 py-2 text-slate-600">${h > 0 ? h + "h " : ""}${m}min</td>
+                        <td class="px-3 py-2">
+                            <div class="flex gap-2">
+                                <button onclick='abrirModal(${JSON.stringify(r)})' class="text-blue-600 hover:text-blue-800 text-xs font-medium px-2 py-1 bg-blue-50 rounded-lg">✏️ Editar</button>
+                                <button onclick="eliminarRegistro(${r.id})" class="text-rose-600 hover:text-rose-800 text-xs font-medium px-2 py-1 bg-rose-50 rounded-lg">🗑️ Borrar</button>
+                            </div>
+                        </td>
+                    </tr>`;
+            });
+            html += `</tbody></table></div>`;
+            contenedor.innerHTML = html;
+        } catch(e) {
+            document.getElementById("edicion-resultado").innerHTML = `<p class="text-sm text-rose-500 text-center py-8">Error cargando registros.</p>`;
+        }
+    }
+
+    function abrirModal(registro) {
+        document.getElementById("edit-id").value = registro.id;
+        document.getElementById("edit-usuario").value = registro.usuario;
+        document.getElementById("edit-fecha").value = registro.fecha;
+        const partes = registro.tarea.split(" - ");
+        document.getElementById("edit-tarea-principal").value = partes[0];
+        actualizarSubtareasEdicion(partes[1] || "");
+        document.getElementById("edit-tiempo").value = registro.tiempo_minutos;
+        document.getElementById("edit-proyecto").value = registro.proyecto || "";
+        document.getElementById("edit-comentarios").value = registro.comentarios || "";
+        const modal = document.getElementById("modal-edicion");
+        modal.style.display = "flex";
+    }
+
+    function cerrarModal() {
+        document.getElementById("modal-edicion").style.display = "none";
+    }
+
+    async function guardarEdicion() {
+        const id = document.getElementById("edit-id").value;
+        const principal = document.getElementById("edit-tarea-principal").value;
+        const subtarea = document.getElementById("edit-subtarea").value;
+        const datos = {
+            usuario: document.getElementById("edit-usuario").value,
+            fecha: document.getElementById("edit-fecha").value,
+            tarea: `${principal} - ${subtarea}`,
+            tiempo_minutos: parseInt(document.getElementById("edit-tiempo").value),
+            proyecto: document.getElementById("edit-proyecto").value || null,
+            comentarios: document.getElementById("edit-comentarios").value || null
+        };
+        try {
+            const resp = await fetch(`${API}/registros/${id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(datos)
+            });
+            if (resp.ok) { cerrarModal(); cargarEdicion(); }
+            else alert("Error al guardar los cambios.");
+        } catch { alert("Error de conexión."); }
+    }
+
+    async function eliminarRegistro(id) {
+        if (!confirm("¿Seguro que quieres eliminar este registro?")) return;
+        try {
+            const resp = await fetch(`${API}/registros/${id}`, { method: "DELETE" });
+            if (resp.ok) cargarEdicion();
+            else alert("Error al eliminar.");
+        } catch { alert("Error de conexión."); }
+    }
+
+    async function cargarUsuariosGestion() {
+        try {
+            const resp = await fetch(`${API}/usuarios/`);
+            const usuarios = await resp.json();
+            const contenedor = document.getElementById("lista-usuarios");
+            if (usuarios.length === 0) {
+                contenedor.innerHTML = `<p class="text-sm text-slate-400 text-center py-4 italic">No hay usuarios.</p>`;
+                return;
+            }
+            let html = `<div class="space-y-2">`;
+            usuarios.forEach(u => {
+                const rolColor = u.rol === "supervisor"
+                    ? "bg-violet-100 text-violet-705"
+                    : "bg-blue-100 text-blue-700";
+                html += `
+                    <div class="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold" style="background-color:${avatarColores[u.id % avatarColores.length]}">${u.nombre.charAt(0)}</div>
+                            <div>
+                                <div class="font-medium text-slate-800 text-sm">${u.nombre}</div>
+                                <div class="text-xs text-slate-500">${u.codigo}</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs px-2 py-0.5 rounded-full font-medium ${rolColor}">${u.rol}</span>
+                            <button onclick="eliminarUsuario(${u.id})" class="text-rose-500 hover:text-rose-700 text-xs font-medium px-2 py-1 bg-rose-50 rounded-lg">Eliminar</button>
+                        </div>
+                    </div>`;
+            });
+            html += `</div>`;
+            contenedor.innerHTML = html;
+        } catch {
+            document.getElementById("lista-usuarios").innerHTML = `<p class="text-sm text-rose-500 text-center py-4">Error cargando usuarios.</p>`;
+        }
+    }
+
+    async function crearUsuario() {
+        const nombre = document.getElementById("nuevo-nombre").value.trim();
+        const codigo = document.getElementById("nuevo-codigo").value.trim();
+        const pin = document.getElementById("nuevo-pin").value.trim();
+        const rol = document.getElementById("nuevo-rol").value;
+        const msg = document.getElementById("usuarios-mensaje");
+        if (!nombre || !codigo || !pin) {
+            msg.textContent = "Rellena todos los campos.";
+            msg.className = "mt-2 text-sm text-rose-600";
+            msg.classList.remove("hidden");
+            return;
+        }
+        try {
+            const resp = await fetch(`${API}/usuarios/`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ nombre, codigo, pin, rol })
+            });
+            if (resp.ok) {
+                msg.textContent = "Usuario creado correctamente.";
+                msg.className = "mt-2 text-sm text-emerald-600";
+                msg.classList.remove("hidden");
+                document.getElementById("nuevo-nombre").value = "";
+                document.getElementById("nuevo-codigo").value = "";
+                document.getElementById("nuevo-pin").value = "";
+                cargarUsuariosGestion();
+                setTimeout(() => msg.classList.add("hidden"), 3000);
+            } else {
+                const err = await resp.json();
+                msg.textContent = err.detail || "Error al crear usuario.";
+                msg.className = "mt-2 text-sm text-rose-600";
+                msg.classList.remove("hidden");
+            }
+        } catch {
+            msg.textContent = "Error de conexión.";
+            msg.className = "mt-2 text-sm text-rose-600";
+            msg.classList.remove("hidden");
+        }
+    }
+
+    async function eliminarUsuario(id) {
+        if (!confirm("¿Seguro que quieres eliminar este usuario?")) return;
+        try {
+            const resp = await fetch(`${API}/usuarios/${id}`, { method: "DELETE" });
+            if (resp.ok) cargarUsuariosGestion();
+            else alert("Error al eliminar usuario.");
+        } catch { alert("Error de conexión."); }
+    }
 </script>
-
 </body>
 </html>
