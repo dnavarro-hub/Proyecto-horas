@@ -126,7 +126,30 @@ class Auditoria(Base):
 
 # ==================== INIT DB ====================
 def init_db():
+    # Crear tablas nuevas que no existan
     Base.metadata.create_all(bind=engine)
+
+    # Migración segura: agregar columnas faltantes en PostgreSQL
+    try:
+        with engine.connect() as conn:
+            migraciones = [
+                "ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS activo BOOLEAN DEFAULT TRUE",
+                "ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS fecha_creacion DATE",
+                "ALTER TABLE registros ADD COLUMN IF NOT EXISTS subtarea VARCHAR",
+                "ALTER TABLE registros ADD COLUMN IF NOT EXISTS turno VARCHAR",
+                "ALTER TABLE registros ADD COLUMN IF NOT EXISTS notas VARCHAR",
+                "ALTER TABLE registros ADD COLUMN IF NOT EXISTS duplicado_de INTEGER",
+            ]
+            for sql in migraciones:
+                try:
+                    conn.execute(text(sql))
+                except Exception:
+                    pass
+            conn.commit()
+    except Exception:
+        pass
+
+    # Crear usuario ADMIN por defecto
     db = SessionLocal()
     try:
         admin = db.query(Usuario).filter(Usuario.codigo == "ADMIN").first()
@@ -136,11 +159,16 @@ def init_db():
                 nombre="Administrador",
                 pin="1234",
                 rol="supervisor",
-                activo=True
+                activo=True,
+                fecha_creacion=date.today()
             ))
             db.commit()
+    except Exception as e:
+        db.rollback()
+        print(f"Error creando ADMIN: {e}")
     finally:
         db.close()
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
