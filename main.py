@@ -210,10 +210,9 @@ def eliminar_registro(id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Registro no encontrado")
     db.delete(db_registro)
     db.commit()
-
 # Exportar Excel
 @app.get("/exportar-excel/")
-def exportar-excel(db: Session = Depends(get_db)):
+def exportar_excel(db: Session = Depends(get_db)):
     registros = db.query(RegistroDB).all()
     wb = openpyxl.Workbook()
     ws = wb.active
@@ -229,7 +228,6 @@ def exportar-excel(db: Session = Depends(get_db)):
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={"Content-Disposition": "attachment; filename=registros.xlsx"}
     )
-
 # Bloque para arrancar localmente y compatible con Render
 if __name__ == "__main__":
     import uvicorn
