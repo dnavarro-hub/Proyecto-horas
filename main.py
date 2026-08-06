@@ -36,6 +36,19 @@ class UsuarioDB(Base):
 
 Base.metadata.create_all(bind=engine)
 
+# Crear usuario administrador por defecto si no existe ninguno
+with SessionLocal() as session:
+    admin_existente = session.query(UsuarioDB).filter(UsuarioDB.rol == "supervisor").first()
+    if not admin_existente:
+        nuevo_admin = UsuarioDB(
+            codigo="ADMIN",
+            nombre="Administrador",
+            pin="1234",
+            rol="supervisor"
+        )
+        session.add(nuevo_admin)
+        session.commit()
+
 app = FastAPI(
     title="API de Registro de Tareas",
     version="6.0.0",
@@ -152,7 +165,6 @@ def crear_registro(registro: RegistroTarea, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(nuevo)
     return nuevo
-
 # Obtener todos los registros
 @app.get("/registros/", response_model=List[RegistroTareaRespuesta])
 def obtener_registros(db: Session = Depends(get_db)):
@@ -201,7 +213,7 @@ def eliminar_registro(id: int, db: Session = Depends(get_db)):
 
 # Exportar Excel
 @app.get("/exportar-excel/")
-def exportar_excel(db: Session = Depends(get_db)):
+def exportar-excel(db: Session = Depends(get_db)):
     registros = db.query(RegistroDB).all()
     wb = openpyxl.Workbook()
     ws = wb.active
