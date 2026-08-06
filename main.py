@@ -4,7 +4,7 @@ from fastapi import FastAPI, HTTPException, Depends
 from fastapi.responses import StreamingResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from sqlalchemy import create_engine, Column, Integer, String, Date, DateTime, func
+from sqlalchemy import create_engine, Column, Integer, String, Date, DateTime, Float
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 import openpyxl
@@ -56,6 +56,18 @@ class PlantillaItemDB(Base):
     proyecto         = Column(String, nullable=True)
     comentarios      = Column(String, nullable=True)
 
+class VolumenDB(Base):
+    __tablename__ = "volumenes"
+    id               = Column(Integer, primary_key=True, index=True)
+    fecha            = Column(Date, index=True)
+    tarea_principal  = Column(String, index=True)
+    unidades         = Column(Integer)
+    horas_teoricas   = Column(Float)
+    creado_por       = Column(String)
+    comentarios      = Column(String, nullable=True)
+    created_at       = Column(DateTime, default=datetime.utcnow)
+    updated_at       = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
 Base.metadata.create_all(bind=engine)
 
 # Crear usuario administrador por defecto si no existe ninguno
@@ -73,7 +85,7 @@ with SessionLocal() as session:
 
 app = FastAPI(
     title="API de Registro de Tareas",
-    version="7.0.0",
+    version="8.0.0",
 )
 
 app.add_middleware(
@@ -138,11 +150,18 @@ class PlantillaItemRespuesta(PlantillaItemCreate):
     class Config:
         from_attributes = True
 
-class PlantillaRespuesta(BaseModel):
+class VolumenCreate(BaseModel):
+    fecha: date
+    tarea_principal: str
+    unidades: int
+    horas_teoricas: float
+    creado_por: str
+    comentarios: Optional[str] = None
+
+class VolumenRespuesta(VolumenCreate):
     id: int
-    nombre: str
-    usuario: str
-    items: List[PlantillaItemRespuesta] = []
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
     class Config:
         from_attributes = True
 
@@ -427,6 +446,106 @@ def eliminar_plantilla(id: int, db: Session = Depends(get_db)):
     db.delete(plantilla)
     db.commit()
 
+# ==================== VOLUMEN & MÉTRICAS ====================
+
+@app.post("/volumenes/", response_model=VolumenRespuesta, status_code=201)
+def crear_volumen(volumen: VolumenCreate, db: Session = Depends(get_db)):
+    nuevo = VolumenDB(**volumen.dict())
+    db.add(nuevo)
+    db.commit()
+    db.refresh(nuevo)
+    return nuevo
+
+@app.get("/volumenes/", response_model=List[VolumenRespuesta])
+def obtener_volumenes(
+    desde: Optional[date] = None,
+    hasta: Optional[date] = None,
+    tarea: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    query = db.query(VolumenDB)
+    if desde:
+        query = query.filter(VolumenDB.fecha >= desde)
+    if hasta:
+        query = query.filter(VolumenDB.fecha <= hasta)
+    if tarea:
+        query = query.filter(VolumenDB.tarea_principal == tarea)
+    return query.order_by(VolumenDB.fecha.desc()).all()
+
+@app.put("/volumenes/{id}", response_model=VolumenRespuesta)
+def editar_volumen(id: int, volumen: VolumenCreate, db: Session = Depends(get_db)):
+    db_vol = db.query(VolumenDB).filter(VolumenDB.id == id).first()
+    if not db_vol:
+        raise HTTPException(status_code=404, detail="Volumen no encontrado")
+    db_vol.fecha           = volumen.fecha
+    db_vol.tarea_principal = volumen.tarea_principal
+    db_vol.unidades        = volumen.unidades
+    db_vol.horas_teoricas  = volumen.horas_teoricas
+    db_vol.creado_por      = volumen.creado_por
+    db_vol.comentarios     = volumen.comentarios
+    db_vol.updated_at      = datetime.utcnow()
+    db.commit()
+    db.refresh(db_vol)
+    return db_vol
+
+@app.delete("/volumenes/{id}", status_code=204)
+def eliminar_volumen(id: int, db: Session = Depends(get_db)):
+    db_vol = db.query(VolumenDB).filter(VolumenDB.id == id).first()
+    if not db_vol:
+        raise HTTPException(status_code=404, detail="Volumen no encontrado")
+    db.delete(db_vol)
+    db.commit()
+
+@app.get("/volumenes/metricas/")
+def obtener_metricas(
+    desde: Optional[date] = None,
+    hasta: Optional[date] = None,
+    db: Session = Depends(get_db)
+):
+    if not desde:
+        desde = date.today() - timedelta(days=30)
+    if not hasta:
+        hasta = date.today()
+
+    volumenes = db.query(VolumenDB).filter(
+        VolumenDB.fecha >= desde,
+        VolumenDB.fecha <= hasta
+    ).all()
+
+    registros = db.query(RegistroDB).filter(
+        RegistroDB.fecha >= desde,
+        RegistroDB.fecha <= hasta
+    ).all()
+
+    resultado = []
+    for v in volumenes:
+        horas_reales = sum(
+            r.tiempo_minutos for r in registros
+            if str(r.fecha) == str(v.fecha) and r.tarea_principal == v.tarea_principal
+        ) / 60
+
+        eficiencia = round((v.horas_teoricas / horas_reales) * 100, 1) if horas_reales > 0 else None
+        uds_hora_real = round(v.unidades / horas_reales, 1) if horas_reales > 0 else None
+        uds_hora_teorica = round(v.unidades / v.horas_teoricas, 1) if v.horas_teoricas > 0 else None
+        desviacion = round(horas_reales - v.horas_teoricas, 2)
+
+        resultado.append({
+            "id": v.id,
+            "fecha": str(v.fecha),
+            "tarea_principal": v.tarea_principal,
+            "unidades": v.unidades,
+            "horas_teoricas": v.horas_teoricas,
+            "horas_reales": round(horas_reales, 2),
+            "eficiencia_pct": eficiencia,
+            "uds_hora_real": uds_hora_real,
+            "uds_hora_teorica": uds_hora_teorica,
+            "desviacion_horas": desviacion,
+            "comentarios": v.comentarios,
+            "creado_por": v.creado_por
+        })
+
+    return sorted(resultado, key=lambda x: x["fecha"], reverse=True)
+
 # ==================== EXCEL MEJORADO ====================
 
 @app.get("/exportar-excel/")
@@ -445,14 +564,6 @@ def exportar_excel(
         query = query.filter(RegistroDB.usuario == usuario)
     registros = query.order_by(RegistroDB.fecha.desc()).all()
 
-    colores_tarea = {
-        "Picking":   "3b82f6",
-        "Packing":   "8b5cf6",
-        "Inbound":   "f59e0b",
-        "Shipping":  "10b981",
-        "Ecommerce": "ef4444",
-    }
-
     wb = openpyxl.Workbook()
 
     # ---- HOJA 1: Registros detallados ----
@@ -467,11 +578,7 @@ def exportar_excel(
     for r in registros:
         semana = r.fecha.isocalendar()[1]
         mes = r.fecha.strftime("%B %Y")
-        color = colores_tarea.get(r.tarea_principal, "94a3b8")
-        fila = [r.id, r.usuario, str(r.fecha), f"Semana {semana}", mes, r.tarea_principal, r.subtarea, r.tiempo_minutos, round(r.tiempo_minutos/60, 2), r.proyecto or "", r.comentarios or ""]
-        ws1.append(fila)
-        for cell in ws1[ws1.max_row]:
-            cell.fill = PatternFill("solid", fgColor=color + "22" if len(color) == 6 else "f1f5f9")
+        ws1.append([r.id, r.usuario, str(r.fecha), f"Semana {semana}", mes, r.tarea_principal, r.subtarea, r.tiempo_minutos, round(r.tiempo_minutos/60, 2), r.proyecto or "", r.comentarios or ""])
     ws1.auto_filter.ref = ws1.dimensions
     for col in ws1.columns:
         max_length = max(len(str(cell.value or "")) for cell in col)
@@ -543,6 +650,29 @@ def exportar_excel(
     for col in ws4.columns:
         max_length = max(len(str(cell.value or "")) for cell in col)
         ws4.column_dimensions[col[0].column_letter].width = min(max_length + 4, 40)
+
+    # ---- HOJA 5: Métricas de Volumen ----
+    ws5 = wb.create_sheet("Métricas Volumen")
+    ws5.append(["Fecha", "Tarea", "Unidades", "Horas Teóricas", "Horas Reales", "Eficiencia %", "Uds/Hora Real", "Uds/Hora Teórica", "Desviación (h)", "Comentarios"])
+    for cell in ws5[1]:
+        cell.font = Font(bold=True, color="FFFFFF")
+        cell.fill = PatternFill("solid", fgColor="1e293b")
+        cell.alignment = Alignment(horizontal="center")
+    volumenes = db.query(VolumenDB).order_by(VolumenDB.fecha.desc()).all()
+    todos_registros = db.query(RegistroDB).all()
+    for v in volumenes:
+        horas_reales = sum(
+            r.tiempo_minutos for r in todos_registros
+            if str(r.fecha) == str(v.fecha) and r.tarea_principal == v.tarea_principal
+        ) / 60
+        eficiencia = round((v.horas_teoricas / horas_reales) * 100, 1) if horas_reales > 0 else 0
+        uds_hora_real = round(v.unidades / horas_reales, 1) if horas_reales > 0 else 0
+        uds_hora_teo = round(v.unidades / v.horas_teoricas, 1) if v.horas_teoricas > 0 else 0
+        desviacion = round(horas_reales - v.horas_teoricas, 2)
+        ws5.append([str(v.fecha), v.tarea_principal, v.unidades, v.horas_teoricas, round(horas_reales, 2), eficiencia, uds_hora_real, uds_hora_teo, desviacion, v.comentarios or ""])
+    for col in ws5.columns:
+        max_length = max(len(str(cell.value or "")) for cell in col)
+        ws5.column_dimensions[col[0].column_letter].width = min(max_length + 4, 40)
 
     output = io.BytesIO()
     wb.save(output)
