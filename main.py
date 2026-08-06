@@ -1,806 +1,647 @@
-from fastapi import FastAPI, Depends, HTTPException, Request
-from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
-from fastapi.staticfiles import StaticFiles
-from sqlalchemy import create_engine, Column, Integer, String, Date, Float, Boolean, Text, text
+from datetime import date, timedelta
+from typing import List, Optional
+from fastapi import FastAPI, HTTPException, Depends
+from fastapi.responses import StreamingResponse, FileResponse
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+from sqlalchemy import create_engine, Column, Integer, String, Date, DateTime, func
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
-from pydantic import BaseModel
-from typing import Optional, List
-from datetime import date, datetime
-from contextlib import asynccontextmanager
 import openpyxl
-import os
+from openpyxl.styles import PatternFill, Font, Alignment
 import io
-from fastapi.responses import StreamingResponse
+import os
+from datetime import datetime
 
-# ── Base de datos ──────────────────────────────────────────────────────────────
-DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///./registros.db")
-if DATABASE_URL.startswith("postgres://"):
-    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
-
-engine = create_engine(DATABASE_URL)
+SQLALCHEMY_DATABASE_URL = "sqlite:///./registros.db"
+engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
-# ── Modelos ────────────────────────────────────────────────────────────────────
-class Usuario(Base):
+class RegistroDB(Base):
+    __tablename__ = "registros"
+    id               = Column(Integer, primary_key=True, index=True)
+    usuario          = Column(String, index=True)
+    fecha            = Column(Date)
+    tarea_principal  = Column(String, index=True)
+    subtarea         = Column(String)
+    tiempo_minutos   = Column(Integer)
+    proyecto         = Column(String, nullable=True)
+    comentarios      = Column(String, nullable=True)
+    created_at       = Column(DateTime, default=datetime.utcnow)
+    updated_at       = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class UsuarioDB(Base):
     __tablename__ = "usuarios"
     id             = Column(Integer, primary_key=True, index=True)
     codigo         = Column(String, unique=True, index=True)
     nombre         = Column(String)
     pin            = Column(String)
     rol            = Column(String, default="operario")
-    activo         = Column(Boolean, default=True)
-    fecha_creacion = Column(Date, default=date.today)
 
-class Registro(Base):
-    __tablename__ = "registros"
-    id           = Column(Integer, primary_key=True, index=True)
-    usuario_id   = Column(Integer)
-    codigo       = Column(String)
-    nombre       = Column(String)
-    tarea        = Column(String)
-    subtarea     = Column(String, nullable=True)
-    cantidad     = Column(Integer)
-    fecha        = Column(Date)
-    turno        = Column(String, nullable=True)
-    notas        = Column(String, nullable=True)
-    duplicado_de = Column(Integer, nullable=True)
-
-class Plantilla(Base):
+class PlantillaDB(Base):
     __tablename__ = "plantillas"
     id          = Column(Integer, primary_key=True, index=True)
     nombre      = Column(String)
-    tarea       = Column(String)
-    subtarea    = Column(String, nullable=True)
-    descripcion = Column(String, nullable=True)
+    usuario     = Column(String)
+    created_at  = Column(DateTime, default=datetime.utcnow)
 
-class Volumen(Base):
-    __tablename__ = "volumenes"
-    id      = Column(Integer, primary_key=True, index=True)
-    fecha   = Column(Date)
-    tipo    = Column(String)
-    valor   = Column(Float)
-    notas   = Column(String, nullable=True)
+class PlantillaItemDB(Base):
+    __tablename__ = "plantilla_items"
+    id               = Column(Integer, primary_key=True, index=True)
+    plantilla_id     = Column(Integer)
+    tarea_principal  = Column(String)
+    subtarea         = Column(String)
+    tiempo_minutos   = Column(Integer)
+    proyecto         = Column(String, nullable=True)
+    comentarios      = Column(String, nullable=True)
 
-class Objetivo(Base):
-    __tablename__ = "objetivos"
-    id      = Column(Integer, primary_key=True, index=True)
-    tarea   = Column(String)
-    meta    = Column(Integer)
-    periodo = Column(String, default="diario")
+Base.metadata.create_all(bind=engine)
 
-class Incidencia(Base):
-    __tablename__ = "incidencias"
-    id          = Column(Integer, primary_key=True, index=True)
-    fecha       = Column(Date)
-    tipo        = Column(String)
-    descripcion = Column(Text)
-    usuario_id  = Column(Integer, nullable=True)
-    resuelto    = Column(Boolean, default=False)
+# Crear usuario administrador por defecto si no existe ninguno
+with SessionLocal() as session:
+    admin_existente = session.query(UsuarioDB).filter(UsuarioDB.rol == "supervisor").first()
+    if not admin_existente:
+        nuevo_admin = UsuarioDB(
+            codigo="ADMIN",
+            nombre="Administrador",
+            pin="1234",
+            rol="supervisor"
+        )
+        session.add(nuevo_admin)
+        session.commit()
 
-class TurnoUsuario(Base):
-    __tablename__ = "turnos_usuarios"
-    id         = Column(Integer, primary_key=True, index=True)
-    usuario_id = Column(Integer)
-    fecha      = Column(Date)
-    turno      = Column(String)
-    hora_ini   = Column(String, nullable=True)
-    hora_fin   = Column(String, nullable=True)
+app = FastAPI(
+    title="API de Registro de Tareas",
+    version="7.0.0",
+)
 
-class Auditoria(Base):
-    __tablename__ = "auditoria"
-    id         = Column(Integer, primary_key=True, index=True)
-    fecha      = Column(Date)
-    hora       = Column(String)
-    usuario_id = Column(Integer, nullable=True)
-    accion     = Column(String)
-    detalle    = Column(Text, nullable=True)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-# ── Migración segura ───────────────────────────────────────────────────────────
-def migrar_columnas():
-    es_postgres = not DATABASE_URL.startswith("sqlite")
-    if not es_postgres:
-        return
-    columnas = [
-        "ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS activo BOOLEAN DEFAULT TRUE",
-        "ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS fecha_creacion DATE",
-        "ALTER TABLE registros ADD COLUMN IF NOT EXISTS subtarea VARCHAR",
-        "ALTER TABLE registros ADD COLUMN IF NOT EXISTS turno VARCHAR",
-        "ALTER TABLE registros ADD COLUMN IF NOT EXISTS notas VARCHAR",
-        "ALTER TABLE registros ADD COLUMN IF NOT EXISTS duplicado_de INTEGER",
-        "ALTER TABLE volumenes ADD COLUMN IF NOT EXISTS notas VARCHAR",
-        "ALTER TABLE incidencias ADD COLUMN IF NOT EXISTS resuelto BOOLEAN DEFAULT FALSE",
-    ]
-    with engine.connect() as conn:
-        for sql in columnas:
-            try:
-                conn.execute(text(sql))
-            except Exception:
-                pass
-        conn.commit()
+# ==================== SCHEMAS ====================
 
-# ── Init DB ────────────────────────────────────────────────────────────────────
-def init_db():
-    Base.metadata.create_all(bind=engine)
-    migrar_columnas()
-    db = SessionLocal()
-    try:
-        admin = db.query(Usuario).filter(Usuario.codigo == "ADMIN").first()
-        if not admin:
-            db.add(Usuario(
-                codigo="ADMIN",
-                nombre="Administrador",
-                pin="1234",
-                rol="supervisor",
-                activo=True,
-                fecha_creacion=date.today()
-            ))
-        else:
-            admin.pin = "1234"
-            admin.rol = "supervisor"
-            admin.activo = True
-        obj = db.query(Objetivo).first()
-        if not obj:
-            db.add(Objetivo(tarea="General", meta=100, periodo="diario"))
-        db.commit()
-    except Exception as e:
-        db.rollback()
-        print(f"Error en init_db: {e}")
-    finally:
-        db.close()
+class RegistroTarea(BaseModel):
+    usuario: str
+    fecha: date
+    tarea_principal: str
+    subtarea: str
+    tiempo_minutos: int
+    proyecto: Optional[str] = None
+    comentarios: Optional[str] = None
 
-# ── Lifespan ───────────────────────────────────────────────────────────────────
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    init_db()
-    yield
+class RegistroTareaRespuesta(RegistroTarea):
+    id: int
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+    class Config:
+        from_attributes = True
 
-app = FastAPI(lifespan=lifespan)
+class UsuarioCreate(BaseModel):
+    codigo: str
+    nombre: str
+    pin: str
+    rol: str = "operario"
 
-# ── Dependencia DB ─────────────────────────────────────────────────────────────
+class UsuarioRespuesta(BaseModel):
+    id: int
+    codigo: str
+    nombre: str
+    rol: str
+    class Config:
+        from_attributes = True
+
+class LoginRequest(BaseModel):
+    codigo: str
+    pin: str
+
+class PlantillaItemCreate(BaseModel):
+    tarea_principal: str
+    subtarea: str
+    tiempo_minutos: int
+    proyecto: Optional[str] = None
+    comentarios: Optional[str] = None
+
+class PlantillaCreate(BaseModel):
+    nombre: str
+    usuario: str
+    items: List[PlantillaItemCreate]
+
+class PlantillaItemRespuesta(PlantillaItemCreate):
+    id: int
+    plantilla_id: int
+    class Config:
+        from_attributes = True
+
+class PlantillaRespuesta(BaseModel):
+    id: int
+    nombre: str
+    usuario: str
+    items: List[PlantillaItemRespuesta] = []
+    class Config:
+        from_attributes = True
+
 def get_db():
     db = SessionLocal()
     try:
         yield db
     finally:
         db.close()
-# ── Schemas Pydantic ───────────────────────────────────────────────────────────
-class UsuarioSchema(BaseModel):
-    codigo: str
-    nombre: str
-    pin: str
-    rol: str = "operario"
-    activo: bool = True
 
-class LoginSchema(BaseModel):
-    codigo: str
-    pin: str
+# ==================== RUTAS GENERALES ====================
 
-class RegistroSchema(BaseModel):
-    usuario_id: int
-    codigo: str
-    nombre: str
-    tarea: str
-    subtarea: Optional[str] = None
-    cantidad: int
-    fecha: str
-    turno: Optional[str] = None
-    notas: Optional[str] = None
+@app.get("/")
+def leer_index():
+    ruta = os.path.join(os.path.dirname(__file__), "index.html")
+    if os.path.exists(ruta):
+        return FileResponse(ruta)
+    return {"error": "No se encuentra el archivo index.html"}
 
-class PlantillaSchema(BaseModel):
-    nombre: str
-    tarea: str
-    subtarea: Optional[str] = None
-    descripcion: Optional[str] = None
+# ==================== LOGIN ====================
 
-class VolumenSchema(BaseModel):
-    fecha: str
-    tipo: str
-    valor: float
-    notas: Optional[str] = None
-
-class ObjetivoSchema(BaseModel):
-    tarea: str
-    meta: int
-    periodo: str = "diario"
-
-class IncidenciaSchema(BaseModel):
-    fecha: str
-    tipo: str
-    descripcion: str
-    usuario_id: Optional[int] = None
-    resuelto: bool = False
-
-class TurnoSchema(BaseModel):
-    usuario_id: int
-    fecha: str
-    turno: str
-    hora_ini: Optional[str] = None
-    hora_fin: Optional[str] = None
-
-class AuditoriaSchema(BaseModel):
-    usuario_id: Optional[int] = None
-    accion: str
-    detalle: Optional[str] = None
-
-# ── Endpoints: Auth & Usuarios ─────────────────────────────────────────────────
-@app.post("/login")
-def login(data: LoginSchema, db: Session = Depends(get_db)):
-    user = db.query(Usuario).filter(
-        Usuario.codigo == data.codigo,
-        Usuario.pin == data.pin,
-        Usuario.activo == True
+@app.post("/login/")
+def login(datos: LoginRequest, db: Session = Depends(get_db)):
+    usuario = db.query(UsuarioDB).filter(
+        UsuarioDB.codigo == datos.codigo,
+        UsuarioDB.pin == datos.pin
     ).first()
-    if not user:
-        raise HTTPException(status_code=401, detail="Código o PIN incorrecto")
+    if not usuario:
+        raise HTTPException(status_code=401, detail="Código o PIN incorrectos")
     return {
-        "id": user.id,
-        "codigo": user.codigo,
-        "nombre": user.nombre,
-        "rol": user.rol
+        "id": usuario.id,
+        "codigo": usuario.codigo,
+        "nombre": usuario.nombre,
+        "rol": usuario.rol
     }
 
-@app.get("/usuarios")
-def get_usuarios(db: Session = Depends(get_db)):
-    usuarios = db.query(Usuario).all()
-    return [
-        {
-            "id": u.id,
-            "codigo": u.codigo,
-            "nombre": u.nombre,
-            "rol": u.rol,
-            "activo": u.activo,
-            "fecha_creacion": str(u.fecha_creacion) if u.fecha_creacion else None
-        }
-        for u in usuarios
-    ]
+# ==================== USUARIOS ====================
 
-@app.post("/usuarios")
-def crear_usuario(data: UsuarioSchema, db: Session = Depends(get_db)):
-    existente = db.query(Usuario).filter(Usuario.codigo == data.codigo).first()
+@app.post("/usuarios/", response_model=UsuarioRespuesta, status_code=201)
+def crear_usuario(usuario: UsuarioCreate, db: Session = Depends(get_db)):
+    existente = db.query(UsuarioDB).filter(UsuarioDB.codigo == usuario.codigo).first()
     if existente:
-        raise HTTPException(status_code=400, detail="Código ya existe")
-    u = Usuario(
-        codigo=data.codigo,
-        nombre=data.nombre,
-        pin=data.pin,
-        rol=data.rol,
-        activo=data.activo,
-        fecha_creacion=date.today()
-    )
-    db.add(u)
+        raise HTTPException(status_code=400, detail="Ya existe un usuario con ese código")
+    nuevo = UsuarioDB(**usuario.dict())
+    db.add(nuevo)
     db.commit()
-    db.refresh(u)
-    return {"id": u.id, "codigo": u.codigo, "nombre": u.nombre, "rol": u.rol}
+    db.refresh(nuevo)
+    return nuevo
 
-@app.put("/usuarios/{usuario_id}")
-def actualizar_usuario(usuario_id: int, data: UsuarioSchema, db: Session = Depends(get_db)):
-    u = db.query(Usuario).filter(Usuario.id == usuario_id).first()
-    if not u:
+@app.get("/usuarios/", response_model=List[UsuarioRespuesta])
+def obtener_usuarios(db: Session = Depends(get_db)):
+    return db.query(UsuarioDB).all()
+
+@app.delete("/usuarios/{id}", status_code=204)
+def eliminar_usuario(id: int, db: Session = Depends(get_db)):
+    usuario = db.query(UsuarioDB).filter(UsuarioDB.id == id).first()
+    if not usuario:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
-    u.codigo  = data.codigo
-    u.nombre  = data.nombre
-    u.pin     = data.pin
-    u.rol     = data.rol
-    u.activo  = data.activo
+    db.delete(usuario)
     db.commit()
-    return {"ok": True}
 
-@app.delete("/usuarios/{usuario_id}")
-def eliminar_usuario(usuario_id: int, db: Session = Depends(get_db)):
-    u = db.query(Usuario).filter(Usuario.id == usuario_id).first()
-    if not u:
-        raise HTTPException(status_code=404, detail="Usuario no encontrado")
-    db.delete(u)
+# ==================== REGISTROS ====================
+
+@app.post("/registros/", response_model=RegistroTareaRespuesta, status_code=201)
+def crear_registro(registro: RegistroTarea, db: Session = Depends(get_db)):
+    total_minutos = db.query(RegistroDB).filter(
+        RegistroDB.usuario == registro.usuario,
+        RegistroDB.fecha == registro.fecha
+    ).with_entities(RegistroDB.tiempo_minutos).all()
+    total = sum(r.tiempo_minutos for r in total_minutos)
+    if total + registro.tiempo_minutos > 480:
+        raise HTTPException(status_code=400, detail=f"No se pueden superar 8 horas. Minutos ya registrados: {total}")
+    nuevo = RegistroDB(**registro.dict())
+    db.add(nuevo)
     db.commit()
-    return {"ok": True}
+    db.refresh(nuevo)
+    return nuevo
 
-# ── Endpoints: Registros ───────────────────────────────────────────────────────
-@app.get("/registros")
-def get_registros(
-    fecha: Optional[str] = None,
-    usuario_id: Optional[int] = None,
+@app.get("/registros/", response_model=List[RegistroTareaRespuesta])
+def obtener_registros(db: Session = Depends(get_db)):
+    return db.query(RegistroDB).all()
+
+@app.get("/registros/rango/", response_model=List[RegistroTareaRespuesta])
+def obtener_registros_rango(
+    desde: date,
+    hasta: date,
+    usuario: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
-    q = db.query(Registro)
-    if fecha:
-        q = q.filter(Registro.fecha == date.fromisoformat(fecha))
-    if usuario_id:
-        q = q.filter(Registro.usuario_id == usuario_id)
-    registros = q.order_by(Registro.id.desc()).all()
-    return [
-        {
-            "id": r.id,
-            "usuario_id": r.usuario_id,
-            "codigo": r.codigo,
-            "nombre": r.nombre,
-            "tarea": r.tarea,
-            "subtarea": r.subtarea,
-            "cantidad": r.cantidad,
-            "fecha": str(r.fecha),
-            "turno": r.turno,
-            "notas": r.notas,
-            "duplicado_de": r.duplicado_de
-        }
-        for r in registros
-    ]
-
-@app.post("/registros")
-def crear_registro(data: RegistroSchema, db: Session = Depends(get_db)):
-    r = Registro(
-        usuario_id=data.usuario_id,
-        codigo=data.codigo,
-        nombre=data.nombre,
-        tarea=data.tarea,
-        subtarea=data.subtarea,
-        cantidad=data.cantidad,
-        fecha=date.fromisoformat(data.fecha),
-        turno=data.turno,
-        notas=data.notas
+    query = db.query(RegistroDB).filter(
+        RegistroDB.fecha >= desde,
+        RegistroDB.fecha <= hasta
     )
-    db.add(r)
-    db.commit()
-    db.refresh(r)
-    return {"id": r.id, "ok": True}
+    if usuario:
+        query = query.filter(RegistroDB.usuario == usuario)
+    return query.order_by(RegistroDB.fecha.desc()).all()
 
-@app.put("/registros/{registro_id}")
-def actualizar_registro(registro_id: int, data: RegistroSchema, db: Session = Depends(get_db)):
-    r = db.query(Registro).filter(Registro.id == registro_id).first()
-    if not r:
-        raise HTTPException(status_code=404, detail="Registro no encontrado")
-    r.tarea    = data.tarea
-    r.subtarea = data.subtarea
-    r.cantidad = data.cantidad
-    r.turno    = data.turno
-    r.notas    = data.notas
-    db.commit()
-    return {"ok": True}
+@app.get("/registros/resumen-semanal/")
+def resumen_semanal(usuario: Optional[str] = None, fecha_ref: Optional[date] = None, db: Session = Depends(get_db)):
+    if not fecha_ref:
+        fecha_ref = date.today()
+    inicio_semana = fecha_ref - timedelta(days=fecha_ref.weekday())
+    fin_semana = inicio_semana + timedelta(days=6)
+    query = db.query(RegistroDB).filter(
+        RegistroDB.fecha >= inicio_semana,
+        RegistroDB.fecha <= fin_semana
+    )
+    if usuario:
+        query = query.filter(RegistroDB.usuario == usuario)
+    registros = query.all()
+    resumen = {}
+    for r in registros:
+        dia = str(r.fecha)
+        if dia not in resumen:
+            resumen[dia] = {"total_minutos": 0, "tareas": {}}
+        resumen[dia]["total_minutos"] += r.tiempo_minutos
+        tarea = r.tarea_principal
+        resumen[dia]["tareas"][tarea] = resumen[dia]["tareas"].get(tarea, 0) + r.tiempo_minutos
+    return {
+        "inicio": str(inicio_semana),
+        "fin": str(fin_semana),
+        "dias": resumen,
+        "total_minutos": sum(r.tiempo_minutos for r in registros)
+    }
 
-@app.delete("/registros/{registro_id}")
-def eliminar_registro(registro_id: int, db: Session = Depends(get_db)):
-    r = db.query(Registro).filter(Registro.id == registro_id).first()
-    if not r:
-        raise HTTPException(status_code=404, detail="Registro no encontrado")
-    db.delete(r)
-    db.commit()
-    return {"ok": True}
+@app.get("/registros/resumen-mensual/")
+def resumen_mensual(usuario: Optional[str] = None, anyo: Optional[int] = None, mes: Optional[int] = None, db: Session = Depends(get_db)):
+    hoy = date.today()
+    if not anyo:
+        anyo = hoy.year
+    if not mes:
+        mes = hoy.month
+    inicio_mes = date(anyo, mes, 1)
+    if mes == 12:
+        fin_mes = date(anyo + 1, 1, 1) - timedelta(days=1)
+    else:
+        fin_mes = date(anyo, mes + 1, 1) - timedelta(days=1)
+    query = db.query(RegistroDB).filter(
+        RegistroDB.fecha >= inicio_mes,
+        RegistroDB.fecha <= fin_mes
+    )
+    if usuario:
+        query = query.filter(RegistroDB.usuario == usuario)
+    registros = query.all()
+    por_usuario = {}
+    por_tarea = {}
+    for r in registros:
+        por_usuario[r.usuario] = por_usuario.get(r.usuario, 0) + r.tiempo_minutos
+        por_tarea[r.tarea_principal] = por_tarea.get(r.tarea_principal, 0) + r.tiempo_minutos
+    return {
+        "anyo": anyo,
+        "mes": mes,
+        "total_minutos": sum(r.tiempo_minutos for r in registros),
+        "total_registros": len(registros),
+        "por_usuario": por_usuario,
+        "por_tarea": por_tarea
+    }
 
-@app.post("/registros/{registro_id}/duplicar")
-def duplicar_registro(registro_id: int, db: Session = Depends(get_db)):
-    r = db.query(Registro).filter(Registro.id == registro_id).first()
-    if not r:
+@app.get("/registros/{usuario}", response_model=List[RegistroTareaRespuesta])
+def obtener_registros_por_usuario(usuario: str, db: Session = Depends(get_db)):
+    resultado = db.query(RegistroDB).filter(RegistroDB.usuario.ilike(usuario)).all()
+    if not resultado:
+        raise HTTPException(status_code=404, detail="No se encontraron registros")
+    return resultado
+
+@app.put("/registros/{id}", response_model=RegistroTareaRespuesta)
+def editar_registro(id: int, registro: RegistroTarea, db: Session = Depends(get_db)):
+    db_registro = db.query(RegistroDB).filter(RegistroDB.id == id).first()
+    if not db_registro:
         raise HTTPException(status_code=404, detail="Registro no encontrado")
-    nuevo = Registro(
-        usuario_id=r.usuario_id,
-        codigo=r.codigo,
-        nombre=r.nombre,
-        tarea=r.tarea,
-        subtarea=r.subtarea,
-        cantidad=r.cantidad,
-        fecha=date.today(),
-        turno=r.turno,
-        notas=r.notas,
-        duplicado_de=r.id
+    total_minutos = db.query(RegistroDB).filter(
+        RegistroDB.usuario == registro.usuario,
+        RegistroDB.fecha == registro.fecha,
+        RegistroDB.id != id
+    ).with_entities(RegistroDB.tiempo_minutos).all()
+    total = sum(r.tiempo_minutos for r in total_minutos)
+    if total + registro.tiempo_minutos > 480:
+        raise HTTPException(status_code=400, detail=f"No se pueden superar 8 horas. Minutos ya registrados: {total}")
+    db_registro.usuario         = registro.usuario
+    db_registro.fecha           = registro.fecha
+    db_registro.tarea_principal = registro.tarea_principal
+    db_registro.subtarea        = registro.subtarea
+    db_registro.tiempo_minutos  = registro.tiempo_minutos
+    db_registro.proyecto        = registro.proyecto
+    db_registro.comentarios     = registro.comentarios
+    db_registro.updated_at      = datetime.utcnow()
+    db.commit()
+    db.refresh(db_registro)
+    return db_registro
+
+@app.delete("/registros/{id}", status_code=204)
+def eliminar_registro(id: int, db: Session = Depends(get_db)):
+    db_registro = db.query(RegistroDB).filter(RegistroDB.id == id).first()
+    if not db_registro:
+        raise HTTPException(status_code=404, detail="Registro no encontrado")
+    db.delete(db_registro)
+    db.commit()
+
+@app.post("/registros/{id}/duplicar", response_model=RegistroTareaRespuesta, status_code=201)
+def duplicar_registro(id: int, nueva_fecha: Optional[date] = None, db: Session = Depends(get_db)):
+    original = db.query(RegistroDB).filter(RegistroDB.id == id).first()
+    if not original:
+        raise HTTPException(status_code=404, detail="Registro no encontrado")
+    fecha_destino = nueva_fecha if nueva_fecha else original.fecha
+    total_minutos = db.query(RegistroDB).filter(
+        RegistroDB.usuario == original.usuario,
+        RegistroDB.fecha == fecha_destino
+    ).with_entities(RegistroDB.tiempo_minutos).all()
+    total = sum(r.tiempo_minutos for r in total_minutos)
+    if total + original.tiempo_minutos > 480:
+        raise HTTPException(status_code=400, detail=f"No se pueden superar 8 horas. Minutos ya registrados: {total}")
+    nuevo = RegistroDB(
+        usuario=original.usuario,
+        fecha=fecha_destino,
+        tarea_principal=original.tarea_principal,
+        subtarea=original.subtarea,
+        tiempo_minutos=original.tiempo_minutos,
+        proyecto=original.proyecto,
+        comentarios=original.comentarios
     )
     db.add(nuevo)
     db.commit()
     db.refresh(nuevo)
-    return {"id": nuevo.id, "ok": True}
-# ── Endpoints: Plantillas ──────────────────────────────────────────────────────
-@app.get("/plantillas")
-def get_plantillas(db: Session = Depends(get_db)):
-    plantillas = db.query(Plantilla).all()
-    return [
-        {
+    return nuevo
+# ==================== PLANTILLAS ====================
+
+@app.post("/plantillas/", status_code=201)
+def crear_plantilla(plantilla: PlantillaCreate, db: Session = Depends(get_db)):
+    nueva = PlantillaDB(
+        nombre=plantilla.nombre,
+        usuario=plantilla.usuario
+    )
+    db.add(nueva)
+    db.commit()
+    db.refresh(nueva)
+    for item in plantilla.items:
+        nuevo_item = PlantillaItemDB(
+            plantilla_id=nueva.id,
+            tarea_principal=item.tarea_principal,
+            subtarea=item.subtarea,
+            tiempo_minutos=item.tiempo_minutos,
+            proyecto=item.proyecto,
+            comentarios=item.comentarios
+        )
+        db.add(nuevo_item)
+    db.commit()
+    return {"id": nueva.id, "nombre": nueva.nombre, "mensaje": "Plantilla creada correctamente"}
+
+@app.get("/plantillas/")
+def obtener_plantillas(usuario: Optional[str] = None, db: Session = Depends(get_db)):
+    query = db.query(PlantillaDB)
+    if usuario:
+        query = query.filter(PlantillaDB.usuario == usuario)
+    plantillas = query.all()
+    resultado = []
+    for p in plantillas:
+        items = db.query(PlantillaItemDB).filter(PlantillaItemDB.plantilla_id == p.id).all()
+        resultado.append({
             "id": p.id,
             "nombre": p.nombre,
-            "tarea": p.tarea,
-            "subtarea": p.subtarea,
-            "descripcion": p.descripcion
-        }
-        for p in plantillas
-    ]
+            "usuario": p.usuario,
+            "created_at": str(p.created_at),
+            "items": [
+                {
+                    "id": i.id,
+                    "tarea_principal": i.tarea_principal,
+                    "subtarea": i.subtarea,
+                    "tiempo_minutos": i.tiempo_minutos,
+                    "proyecto": i.proyecto,
+                    "comentarios": i.comentarios
+                } for i in items
+            ]
+        })
+    return resultado
 
-@app.post("/plantillas")
-def crear_plantilla(data: PlantillaSchema, db: Session = Depends(get_db)):
-    p = Plantilla(
-        nombre=data.nombre,
-        tarea=data.tarea,
-        subtarea=data.subtarea,
-        descripcion=data.descripcion
-    )
-    db.add(p)
-    db.commit()
-    db.refresh(p)
-    return {"id": p.id, "ok": True}
-
-@app.delete("/plantillas/{plantilla_id}")
-def eliminar_plantilla(plantilla_id: int, db: Session = Depends(get_db)):
-    p = db.query(Plantilla).filter(Plantilla.id == plantilla_id).first()
-    if not p:
+@app.delete("/plantillas/{id}", status_code=204)
+def eliminar_plantilla(id: int, db: Session = Depends(get_db)):
+    plantilla = db.query(PlantillaDB).filter(PlantillaDB.id == id).first()
+    if not plantilla:
         raise HTTPException(status_code=404, detail="Plantilla no encontrada")
-    db.delete(p)
+    db.query(PlantillaItemDB).filter(PlantillaItemDB.plantilla_id == id).delete()
+    db.delete(plantilla)
     db.commit()
-    return {"ok": True}
 
-# ── Endpoints: Volúmenes ───────────────────────────────────────────────────────
-@app.get("/volumenes")
-def get_volumenes(fecha: Optional[str] = None, db: Session = Depends(get_db)):
-    q = db.query(Volumen)
-    if fecha:
-        q = q.filter(Volumen.fecha == date.fromisoformat(fecha))
-    volumenes = q.order_by(Volumen.id.desc()).all()
-    return [
-        {
-            "id": v.id,
-            "fecha": str(v.fecha),
-            "tipo": v.tipo,
-            "valor": v.valor,
-            "notas": v.notas
-        }
-        for v in volumenes
-    ]
+# ==================== EXCEL MEJORADO ====================
 
-@app.post("/volumenes")
-def crear_volumen(data: VolumenSchema, db: Session = Depends(get_db)):
-    v = Volumen(
-        fecha=date.fromisoformat(data.fecha),
-        tipo=data.tipo,
-        valor=data.valor,
-        notas=data.notas
-    )
-    db.add(v)
-    db.commit()
-    db.refresh(v)
-    return {"id": v.id, "ok": True}
-
-@app.delete("/volumenes/{volumen_id}")
-def eliminar_volumen(volumen_id: int, db: Session = Depends(get_db)):
-    v = db.query(Volumen).filter(Volumen.id == volumen_id).first()
-    if not v:
-        raise HTTPException(status_code=404, detail="Volumen no encontrado")
-    db.delete(v)
-    db.commit()
-    return {"ok": True}
-
-# ── Endpoints: Objetivos ───────────────────────────────────────────────────────
-@app.get("/objetivos")
-def get_objetivos(db: Session = Depends(get_db)):
-    objetivos = db.query(Objetivo).all()
-    return [
-        {
-            "id": o.id,
-            "tarea": o.tarea,
-            "meta": o.meta,
-            "periodo": o.periodo
-        }
-        for o in objetivos
-    ]
-
-@app.post("/objetivos")
-def crear_objetivo(data: ObjetivoSchema, db: Session = Depends(get_db)):
-    o = Objetivo(tarea=data.tarea, meta=data.meta, periodo=data.periodo)
-    db.add(o)
-    db.commit()
-    db.refresh(o)
-    return {"id": o.id, "ok": True}
-
-@app.put("/objetivos/{objetivo_id}")
-def actualizar_objetivo(objetivo_id: int, data: ObjetivoSchema, db: Session = Depends(get_db)):
-    o = db.query(Objetivo).filter(Objetivo.id == objetivo_id).first()
-    if not o:
-        raise HTTPException(status_code=404, detail="Objetivo no encontrado")
-    o.tarea   = data.tarea
-    o.meta    = data.meta
-    o.periodo = data.periodo
-    db.commit()
-    return {"ok": True}
-
-@app.delete("/objetivos/{objetivo_id}")
-def eliminar_objetivo(objetivo_id: int, db: Session = Depends(get_db)):
-    o = db.query(Objetivo).filter(Objetivo.id == objetivo_id).first()
-    if not o:
-        raise HTTPException(status_code=404, detail="Objetivo no encontrado")
-    db.delete(o)
-    db.commit()
-    return {"ok": True}
-
-# ── Endpoints: Incidencias ─────────────────────────────────────────────────────
-@app.get("/incidencias")
-def get_incidencias(db: Session = Depends(get_db)):
-    incidencias = db.query(Incidencia).order_by(Incidencia.id.desc()).all()
-    return [
-        {
-            "id": i.id,
-            "fecha": str(i.fecha),
-            "tipo": i.tipo,
-            "descripcion": i.descripcion,
-            "usuario_id": i.usuario_id,
-            "resuelto": i.resuelto
-        }
-        for i in incidencias
-    ]
-
-@app.post("/incidencias")
-def crear_incidencia(data: IncidenciaSchema, db: Session = Depends(get_db)):
-    i = Incidencia(
-        fecha=date.fromisoformat(data.fecha),
-        tipo=data.tipo,
-        descripcion=data.descripcion,
-        usuario_id=data.usuario_id,
-        resuelto=data.resuelto
-    )
-    db.add(i)
-    db.commit()
-    db.refresh(i)
-    return {"id": i.id, "ok": True}
-
-@app.put("/incidencias/{incidencia_id}/resolver")
-def resolver_incidencia(incidencia_id: int, db: Session = Depends(get_db)):
-    i = db.query(Incidencia).filter(Incidencia.id == incidencia_id).first()
-    if not i:
-        raise HTTPException(status_code=404, detail="Incidencia no encontrada")
-    i.resuelto = True
-    db.commit()
-    return {"ok": True}
-
-@app.delete("/incidencias/{incidencia_id}")
-def eliminar_incidencia(incidencia_id: int, db: Session = Depends(get_db)):
-    i = db.query(Incidencia).filter(Incidencia.id == incidencia_id).first()
-    if not i:
-        raise HTTPException(status_code=404, detail="Incidencia no encontrada")
-    db.delete(i)
-    db.commit()
-    return {"ok": True}
-
-# ── Endpoints: Turnos ──────────────────────────────────────────────────────────
-@app.get("/turnos")
-def get_turnos(fecha: Optional[str] = None, db: Session = Depends(get_db)):
-    q = db.query(TurnoUsuario)
-    if fecha:
-        q = q.filter(TurnoUsuario.fecha == date.fromisoformat(fecha))
-    turnos = q.order_by(TurnoUsuario.id.desc()).all()
-    return [
-        {
-            "id": t.id,
-            "usuario_id": t.usuario_id,
-            "fecha": str(t.fecha),
-            "turno": t.turno,
-            "hora_ini": t.hora_ini,
-            "hora_fin": t.hora_fin
-        }
-        for t in turnos
-    ]
-
-@app.post("/turnos")
-def crear_turno(data: TurnoSchema, db: Session = Depends(get_db)):
-    t = TurnoUsuario(
-        usuario_id=data.usuario_id,
-        fecha=date.fromisoformat(data.fecha),
-        turno=data.turno,
-        hora_ini=data.hora_ini,
-        hora_fin=data.hora_fin
-    )
-    db.add(t)
-    db.commit()
-    db.refresh(t)
-    return {"id": t.id, "ok": True}
-
-@app.delete("/turnos/{turno_id}")
-def eliminar_turno(turno_id: int, db: Session = Depends(get_db)):
-    t = db.query(TurnoUsuario).filter(TurnoUsuario.id == turno_id).first()
-    if not t:
-        raise HTTPException(status_code=404, detail="Turno no encontrado")
-    db.delete(t)
-    db.commit()
-    return {"ok": True}
-
-# ── Endpoints: Auditoría ───────────────────────────────────────────────────────
-@app.get("/auditoria")
-def get_auditoria(db: Session = Depends(get_db)):
-    logs = db.query(Auditoria).order_by(Auditoria.id.desc()).limit(200).all()
-    return [
-        {
-            "id": a.id,
-            "fecha": str(a.fecha),
-            "hora": a.hora,
-            "usuario_id": a.usuario_id,
-            "accion": a.accion,
-            "detalle": a.detalle
-        }
-        for a in logs
-    ]
-
-@app.post("/auditoria")
-def registrar_auditoria(data: AuditoriaSchema, db: Session = Depends(get_db)):
-    ahora = datetime.now()
-    a = Auditoria(
-        fecha=ahora.date(),
-        hora=ahora.strftime("%H:%M:%S"),
-        usuario_id=data.usuario_id,
-        accion=data.accion,
-        detalle=data.detalle
-    )
-    db.add(a)
-    db.commit()
-    return {"ok": True}
-# ── Endpoints: Estadísticas ────────────────────────────────────────────────────
-@app.get("/estadisticas")
-def get_estadisticas(
-    fecha: Optional[str] = None,
-    usuario_id: Optional[int] = None,
-    db: Session = Depends(get_db)
-):
-    q = db.query(Registro)
-    if fecha:
-        q = q.filter(Registro.fecha == date.fromisoformat(fecha))
-    if usuario_id:
-        q = q.filter(Registro.usuario_id == usuario_id)
-    registros = q.all()
-
-    total_tareas    = len(registros)
-    total_cantidad  = sum(r.cantidad for r in registros)
-    por_tarea       = {}
-    por_usuario     = {}
-    por_turno       = {}
-
-    for r in registros:
-        por_tarea[r.tarea]            = por_tarea.get(r.tarea, 0) + r.cantidad
-        por_usuario[r.codigo]         = por_usuario.get(r.codigo, 0) + r.cantidad
-        turno_key                     = r.turno or "Sin turno"
-        por_turno[turno_key]          = por_turno.get(turno_key, 0) + r.cantidad
-
-    objetivo = db.query(Objetivo).first()
-    meta     = objetivo.meta if objetivo else 100
-    progreso = round((total_cantidad / meta) * 100, 1) if meta > 0 else 0
-
-    return {
-        "total_tareas":   total_tareas,
-        "total_cantidad": total_cantidad,
-        "por_tarea":      por_tarea,
-        "por_usuario":    por_usuario,
-        "por_turno":      por_turno,
-        "meta":           meta,
-        "progreso":       progreso
-    }
-
-@app.get("/estadisticas/rango")
-def get_estadisticas_rango(
-    fecha_ini: str,
-    fecha_fin: str,
-    db: Session = Depends(get_db)
-):
-    registros = db.query(Registro).filter(
-        Registro.fecha >= date.fromisoformat(fecha_ini),
-        Registro.fecha <= date.fromisoformat(fecha_fin)
-    ).all()
-
-    por_dia     = {}
-    por_tarea   = {}
-    por_usuario = {}
-
-    for r in registros:
-        dia_key                    = str(r.fecha)
-        por_dia[dia_key]           = por_dia.get(dia_key, 0) + r.cantidad
-        por_tarea[r.tarea]         = por_tarea.get(r.tarea, 0) + r.cantidad
-        por_usuario[r.codigo]      = por_usuario.get(r.codigo, 0) + r.cantidad
-
-    return {
-        "total_cantidad": sum(r.cantidad for r in registros),
-        "por_dia":        por_dia,
-        "por_tarea":      por_tarea,
-        "por_usuario":    por_usuario
-    }
-
-# ── Exportar Excel ─────────────────────────────────────────────────────────────
-@app.get("/exportar/excel")
+@app.get("/exportar-excel/")
 def exportar_excel(
-    fecha_ini: Optional[str] = None,
-    fecha_fin: Optional[str] = None,
+    desde: Optional[date] = None,
+    hasta: Optional[date] = None,
+    usuario: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
-    q = db.query(Registro)
-    if fecha_ini:
-        q = q.filter(Registro.fecha >= date.fromisoformat(fecha_ini))
-    if fecha_fin:
-        q = q.filter(Registro.fecha <= date.fromisoformat(fecha_fin))
-    registros = q.order_by(Registro.fecha).all()
+    query = db.query(RegistroDB)
+    if desde:
+        query = query.filter(RegistroDB.fecha >= desde)
+    if hasta:
+        query = query.filter(RegistroDB.fecha <= hasta)
+    if usuario:
+        query = query.filter(RegistroDB.usuario == usuario)
+    registros = query.order_by(RegistroDB.fecha.desc()).all()
+
+    colores_tarea = {
+        "Picking":   "3b82f6",
+        "Packing":   "8b5cf6",
+        "Inbound":   "f59e0b",
+        "Shipping":  "10b981",
+        "Ecommerce": "ef4444",
+    }
 
     wb = openpyxl.Workbook()
-    ws = wb.active
-    ws.title = "Registros"
 
-    encabezados = [
-        "ID", "Código", "Nombre", "Tarea", "Subtarea",
-        "Cantidad", "Fecha", "Turno", "Notas"
-    ]
-    ws.append(encabezados)
-
+    # ---- HOJA 1: Registros detallados ----
+    ws1 = wb.active
+    ws1.title = "Registros Detallados"
+    cabecera = ["ID", "Usuario", "Fecha", "Semana", "Mes", "Tarea Principal", "Subtarea", "Tiempo (min)", "Horas", "Proyecto", "Comentarios"]
+    ws1.append(cabecera)
+    for cell in ws1[1]:
+        cell.font = Font(bold=True, color="FFFFFF")
+        cell.fill = PatternFill("solid", fgColor="1e293b")
+        cell.alignment = Alignment(horizontal="center")
     for r in registros:
-        ws.append([
-            r.id,
-            r.codigo,
-            r.nombre,
-            r.tarea,
-            r.subtarea or "",
-            r.cantidad,
-            str(r.fecha),
-            r.turno or "",
-            r.notas or ""
-        ])
+        semana = r.fecha.isocalendar()[1]
+        mes = r.fecha.strftime("%B %Y")
+        color = colores_tarea.get(r.tarea_principal, "94a3b8")
+        fila = [r.id, r.usuario, str(r.fecha), f"Semana {semana}", mes, r.tarea_principal, r.subtarea, r.tiempo_minutos, round(r.tiempo_minutos/60, 2), r.proyecto or "", r.comentarios or ""]
+        ws1.append(fila)
+        for cell in ws1[ws1.max_row]:
+            cell.fill = PatternFill("solid", fgColor=color + "22" if len(color) == 6 else "f1f5f9")
+    ws1.auto_filter.ref = ws1.dimensions
+    for col in ws1.columns:
+        max_length = max(len(str(cell.value or "")) for cell in col)
+        ws1.column_dimensions[col[0].column_letter].width = min(max_length + 4, 40)
+    ws1.freeze_panes = "A2"
 
-    # Hoja de resumen por tarea
-    ws2 = wb.create_sheet("Resumen por Tarea")
-    ws2.append(["Tarea", "Total Cantidad"])
+    # ---- HOJA 2: Resumen por usuario ----
+    ws2 = wb.create_sheet("Resumen por Usuario")
+    ws2.append(["Usuario", "Total Registros", "Total Minutos", "Total Horas", "Media Minutos/Día"])
+    for cell in ws2[1]:
+        cell.font = Font(bold=True, color="FFFFFF")
+        cell.fill = PatternFill("solid", fgColor="1e293b")
+        cell.alignment = Alignment(horizontal="center")
+    por_usuario = {}
+    for r in registros:
+        if r.usuario not in por_usuario:
+            por_usuario[r.usuario] = {"registros": 0, "minutos": 0, "dias": set()}
+        por_usuario[r.usuario]["registros"] += 1
+        por_usuario[r.usuario]["minutos"] += r.tiempo_minutos
+        por_usuario[r.usuario]["dias"].add(str(r.fecha))
+    for u, datos in por_usuario.items():
+        dias = len(datos["dias"]) or 1
+        ws2.append([u, datos["registros"], datos["minutos"], round(datos["minutos"]/60, 2), round(datos["minutos"]/dias, 1)])
+    for col in ws2.columns:
+        max_length = max(len(str(cell.value or "")) for cell in col)
+        ws2.column_dimensions[col[0].column_letter].width = min(max_length + 4, 40)
+
+    # ---- HOJA 3: Resumen por tarea ----
+    ws3 = wb.create_sheet("Resumen por Tarea")
+    ws3.append(["Tarea Principal", "Subtarea", "Total Registros", "Total Minutos", "Total Horas", "Media Min/Registro"])
+    for cell in ws3[1]:
+        cell.font = Font(bold=True, color="FFFFFF")
+        cell.fill = PatternFill("solid", fgColor="1e293b")
+        cell.alignment = Alignment(horizontal="center")
     por_tarea = {}
     for r in registros:
-        por_tarea[r.tarea] = por_tarea.get(r.tarea, 0) + r.cantidad
-    for tarea, total in sorted(por_tarea.items()):
-        ws2.append([tarea, total])
+        clave = (r.tarea_principal, r.subtarea)
+        if clave not in por_tarea:
+            por_tarea[clave] = {"registros": 0, "minutos": 0}
+        por_tarea[clave]["registros"] += 1
+        por_tarea[clave]["minutos"] += r.tiempo_minutos
+    for (tp, st), datos in sorted(por_tarea.items()):
+        media = round(datos["minutos"] / datos["registros"], 1) if datos["registros"] > 0 else 0
+        ws3.append([tp, st, datos["registros"], datos["minutos"], round(datos["minutos"]/60, 2), media])
+    for col in ws3.columns:
+        max_length = max(len(str(cell.value or "")) for cell in col)
+        ws3.column_dimensions[col[0].column_letter].width = min(max_length + 4, 40)
 
-    # Hoja de resumen por usuario
-    ws3 = wb.create_sheet("Resumen por Usuario")
-    ws3.append(["Código", "Nombre", "Total Cantidad"])
-    por_usuario = {}
+    # ---- HOJA 4: Resumen por día ----
+    ws4 = wb.create_sheet("Resumen por Día")
+    ws4.append(["Fecha", "Día Semana", "Total Registros", "Total Minutos", "Total Horas", "Usuarios Activos"])
+    for cell in ws4[1]:
+        cell.font = Font(bold=True, color="FFFFFF")
+        cell.fill = PatternFill("solid", fgColor="1e293b")
+        cell.alignment = Alignment(horizontal="center")
+    por_dia = {}
+    dias_semana = ["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"]
     for r in registros:
-        if r.codigo not in por_usuario:
-            por_usuario[r.codigo] = {"nombre": r.nombre, "total": 0}
-        por_usuario[r.codigo]["total"] += r.cantidad
-    for codigo, datos in sorted(por_usuario.items()):
-        ws3.append([codigo, datos["nombre"], datos["total"]])
+        dia = str(r.fecha)
+        if dia not in por_dia:
+            por_dia[dia] = {"registros": 0, "minutos": 0, "usuarios": set()}
+        por_dia[dia]["registros"] += 1
+        por_dia[dia]["minutos"] += r.tiempo_minutos
+        por_dia[dia]["usuarios"].add(r.usuario)
+    for dia, datos in sorted(por_dia.items(), reverse=True):
+        fecha_obj = date.fromisoformat(dia)
+        nombre_dia = dias_semana[fecha_obj.weekday()]
+        ws4.append([dia, nombre_dia, datos["registros"], datos["minutos"], round(datos["minutos"]/60, 2), len(datos["usuarios"])])
+    for col in ws4.columns:
+        max_length = max(len(str(cell.value or "")) for cell in col)
+        ws4.column_dimensions[col[0].column_letter].width = min(max_length + 4, 40)
 
-    stream = io.BytesIO()
-    wb.save(stream)
-    stream.seek(0)
-
-    nombre_archivo = f"registros_{date.today()}.xlsx"
+    output = io.BytesIO()
+    wb.save(output)
+    output.seek(0)
     return StreamingResponse(
-        stream,
+        output,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": f"attachment; filename={nombre_archivo}"}
+        headers={"Content-Disposition": "attachment; filename=registros.xlsx"}
     )
 
-# ── Exportar Excel Incidencias ─────────────────────────────────────────────────
-@app.get("/exportar/incidencias")
-def exportar_incidencias(db: Session = Depends(get_db)):
-    incidencias = db.query(Incidencia).order_by(Incidencia.fecha).all()
+# ==================== ESTADÍSTICAS ====================
 
-    wb = openpyxl.Workbook()
-    ws = wb.active
-    ws.title = "Incidencias"
-    ws.append(["ID", "Fecha", "Tipo", "Descripción", "Usuario ID", "Resuelto"])
+@app.get("/estadisticas/productividad/")
+def productividad(fecha_ref: Optional[date] = None, db: Session = Depends(get_db)):
+    if not fecha_ref:
+        fecha_ref = date.today()
+    ayer = fecha_ref - timedelta(days=1)
+    usuarios = db.query(UsuarioDB).filter(UsuarioDB.rol == "operario").all()
+    resultado = []
+    for u in usuarios:
+        hoy_mins = db.query(RegistroDB).filter(
+            RegistroDB.usuario == u.codigo,
+            RegistroDB.fecha == fecha_ref
+        ).with_entities(RegistroDB.tiempo_minutos).all()
+        ayer_mins = db.query(RegistroDB).filter(
+            RegistroDB.usuario == u.codigo,
+            RegistroDB.fecha == ayer
+        ).with_entities(RegistroDB.tiempo_minutos).all()
+        total_hoy = sum(r.tiempo_minutos for r in hoy_mins)
+        total_ayer = sum(r.tiempo_minutos for r in ayer_mins)
+        variacion = total_hoy - total_ayer
+        resultado.append({
+            "usuario": u.codigo,
+            "nombre": u.nombre,
+            "minutos_hoy": total_hoy,
+            "minutos_ayer": total_ayer,
+            "variacion_minutos": variacion,
+            "porcentaje_jornada": round((total_hoy / 480) * 100, 1)
+        })
+    return resultado
 
-    for i in incidencias:
-        ws.append([
-            i.id,
-            str(i.fecha),
-            i.tipo,
-            i.descripcion,
-            i.usuario_id or "",
-            "Sí" if i.resuelto else "No"
-        ])
+@app.get("/estadisticas/top-tareas/")
+def top_tareas(
+    fecha_desde: Optional[date] = None,
+    fecha_hasta: Optional[date] = None,
+    db: Session = Depends(get_db)
+):
+    if not fecha_desde:
+        fecha_desde = date.today() - timedelta(days=30)
+    if not fecha_hasta:
+        fecha_hasta = date.today()
+    registros = db.query(RegistroDB).filter(
+        RegistroDB.fecha >= fecha_desde,
+        RegistroDB.fecha <= fecha_hasta
+    ).all()
+    por_tarea = {}
+    for r in registros:
+        clave = f"{r.tarea_principal} - {r.subtarea}"
+        if clave not in por_tarea:
+            por_tarea[clave] = {"count": 0, "minutos": 0}
+        por_tarea[clave]["count"] += 1
+        por_tarea[clave]["minutos"] += r.tiempo_minutos
+    ordenado = sorted(por_tarea.items(), key=lambda x: x[1]["minutos"], reverse=True)
+    return [
+        {
+            "tarea": k,
+            "count": v["count"],
+            "minutos_totales": v["minutos"],
+            "media_minutos": round(v["minutos"] / v["count"], 1)
+        }
+        for k, v in ordenado[:10]
+    ]
 
-    stream = io.BytesIO()
-    wb.save(stream)
-    stream.seek(0)
+@app.get("/estadisticas/media-por-tarea/")
+def media_por_tarea(usuario: Optional[str] = None, db: Session = Depends(get_db)):
+    query = db.query(RegistroDB)
+    if usuario:
+        query = query.filter(RegistroDB.usuario == usuario)
+    registros = query.all()
+    por_tarea = {}
+    for r in registros:
+        clave = r.tarea_principal
+        if clave not in por_tarea:
+            por_tarea[clave] = {"count": 0, "minutos": 0}
+        por_tarea[clave]["count"] += 1
+        por_tarea[clave]["minutos"] += r.tiempo_minutos
+    return [
+        {
+            "tarea": k,
+            "count": v["count"],
+            "media_minutos": round(v["minutos"] / v["count"], 1),
+            "total_minutos": v["minutos"]
+        }
+        for k, v in por_tarea.items()
+    ]
 
-    return StreamingResponse(
-        stream,
-        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": f"attachment; filename=incidencias_{date.today()}.xlsx"}
-    )
+# ==================== ARRANQUE ====================
 
-# ── Endpoint raíz ──────────────────────────────────────────────────────────────
-@app.get("/", response_class=HTMLResponse)
-def root():
-    ruta = os.path.join(os.path.dirname(__file__), "static", "index.html")
-    if os.path.exists(ruta):
-        with open(ruta, "r", encoding="utf-8") as f:
-            return HTMLResponse(content=f.read())
-    return HTMLResponse(content="<h1>App funcionando. Coloca tu index.html en /static/</h1>")
-
-# ── Archivos estáticos ─────────────────────────────────────────────────────────
-static_path = os.path.join(os.path.dirname(__file__), "static")
-if os.path.exists(static_path):
-    app.mount("/static", StaticFiles(directory=static_path), name="static")
+if __name__ == "__main__":
+    import uvicorn
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run("main:app", host="0.0.0.0", port=port)
