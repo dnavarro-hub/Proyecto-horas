@@ -1,885 +1,2584 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>Warehouse Tracker</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro de Tareas</title>
+    <link rel="icon" href="data:,">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        body { font-family: 'Inter', sans-serif; background: #f1f5f9; }
-        .tab-active { border-bottom: 3px solid #3b82f6; color: #3b82f6; font-weight: 600; }
-        .tab-btn { transition: all 0.2s; }
-        .tab-btn:hover { background: #e0e7ff; }
-        .card { background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); }
-        .btn-primary { background: #3b82f6; color: white; padding: 8px 18px; border-radius: 8px; font-weight: 600; transition: background 0.2s; }
-        .btn-primary:hover { background: #2563eb; }
-        .btn-danger { background: #ef4444; color: white; padding: 6px 14px; border-radius: 8px; font-weight: 600; }
-        .btn-danger:hover { background: #dc2626; }
-        .btn-secondary { background: #6b7280; color: white; padding: 8px 18px; border-radius: 8px; font-weight: 600; }
-        .btn-secondary:hover { background: #4b5563; }
-        .input-base { border: 1px solid #d1d5db; border-radius: 8px; padding: 8px 12px; width: 100%; outline: none; transition: border 0.2s; }
-        .input-base:focus { border-color: #3b82f6; }
-        .badge-supervisor { background: #dbeafe; color: #1d4ed8; padding: 2px 10px; border-radius: 20px; font-size: 12px; }
-        .badge-operario { background: #dcfce7; color: #15803d; padding: 2px 10px; border-radius: 20px; font-size: 12px; }
-        .alert-success { background: #dcfce7; color: #15803d; padding: 10px 16px; border-radius: 8px; margin-bottom: 12px; }
-        .alert-error { background: #fee2e2; color: #dc2626; padding: 10px 16px; border-radius: 8px; margin-bottom: 12px; }
-        #login-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #1e3a5f 0%, #3b82f6 100%); }
-        .hidden { display: none !important; }
-        .progress-bar { height: 12px; border-radius: 6px; background: #e5e7eb; overflow: hidden; }
-        .progress-fill { height: 100%; border-radius: 6px; background: linear-gradient(90deg, #3b82f6, #06b6d4); transition: width 0.5s; }
-    </style>
 </head>
-<body>
+<body class="bg-slate-100 min-h-screen">
 
-<!-- ═══════════════════════════════════════════════════
-     PANTALLA DE LOGIN
-════════════════════════════════════════════════════ -->
-<div id="login-screen">
-    <div class="card p-10 w-full max-w-sm">
-        <div class="text-center mb-8">
-            <div class="text-5xl mb-3">📦</div>
-            <h1 class="text-2xl font-bold text-gray-800">Warehouse Tracker</h1>
-            <p class="text-gray-500 text-sm mt-1">Accede con tu código y PIN</p>
+<!-- ==================== PANTALLA DE LOGIN ==================== -->
+<div id="pantalla-login" class="flex items-center justify-center min-h-screen px-4">
+    <div class="bg-white shadow-xl rounded-2xl p-10 w-full max-w-sm text-center">
+        <h1 class="text-3xl font-bold text-slate-800 mb-1">Registro de Tareas</h1>
+        <p class="text-sm text-slate-500 mb-8">Identifícate para continuar</p>
+        <div class="bg-blue-50 border-2 border-dashed border-blue-300 rounded-xl p-4 mb-4">
+            <label class="block text-sm font-semibold text-blue-900 mb-2">Escanea tu código o escríbelo:</label>
+            <input type="text" id="login-codigo" class="w-full px-4 py-3 text-center text-xl font-bold border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white" placeholder="Código de usuario..." autocomplete="off" />
         </div>
-        <div id="login-error" class="alert-error hidden"></div>
-        <div class="space-y-4">
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Código de usuario</label>
-                <input id="login-codigo" type="text" placeholder="Ej: ADMIN"
-                    class="input-base text-center text-lg uppercase tracking-widest" />
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">PIN</label>
-                <input id="login-pin" type="password" placeholder="••••"
-                    class="input-base text-center text-xl tracking-widest"
-                    maxlength="10" />
-            </div>
-            <button onclick="hacerLogin()" class="btn-primary w-full text-center mt-2">
-                Entrar
-            </button>
+        <div class="mb-6">
+            <label class="block text-sm font-medium text-slate-700 mb-1">PIN:</label>
+            <input type="password" id="login-pin" class="w-full px-4 py-3 text-center text-2xl tracking-widest border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="••••" maxlength="6" />
         </div>
+        <button onclick="hacerLogin()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl text-xl transition duration-200">Entrar</button>
+        <div id="login-error" class="mt-4 p-3 rounded-lg text-sm bg-rose-100 text-rose-800 hidden"></div>
     </div>
 </div>
 
-<!-- ═══════════════════════════════════════════════════
-     PANTALLA PRINCIPAL (oculta hasta login)
-════════════════════════════════════════════════════ -->
-<div id="main-screen" class="hidden min-h-screen">
+<!-- ==================== CONFIRMACIÓN GUARDADO ==================== -->
+<div id="pantalla-confirmacion" class="fixed inset-0 bg-emerald-500 hidden items-center justify-center z-50">
+    <div class="text-center text-white">
+        <div class="text-9xl mb-6">✅</div>
+        <h2 class="text-4xl font-bold mb-3">¡Guardado correctamente!</h2>
+        <p id="confirmacion-texto" class="text-xl opacity-90"></p>
+        <p class="text-lg opacity-75 mt-4">Volviendo al inicio en <span id="confirmacion-cuenta">3</span>s...</p>
+    </div>
+</div>
 
-    <!-- NAVBAR -->
-    <nav class="bg-white shadow-sm sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto px-4 flex items-center justify-between h-14">
-            <div class="flex items-center gap-3">
-                <span class="text-2xl">📦</span>
-                <span class="font-bold text-gray-800 text-lg">Warehouse Tracker</span>
-            </div>
-            <div class="flex items-center gap-3">
-                <span id="nav-nombre" class="text-sm text-gray-600"></span>
-                <span id="nav-rol" class="badge-operario"></span>
-                <button onclick="cerrarSesion()" class="btn-danger text-sm">Salir</button>
+<!-- ==================== APLICACIÓN PRINCIPAL ==================== -->
+<div id="app-principal" class="hidden">
+
+    <!-- Header -->
+    <div class="bg-white shadow px-6 py-3 flex justify-between items-center">
+        <div class="flex items-center gap-3">
+            <div id="header-avatar" class="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-lg"></div>
+            <div>
+                <div class="font-bold text-slate-800" id="header-nombre"></div>
+                <span id="header-rol" class="text-xs px-2 py-0.5 rounded-full font-medium"></span>
             </div>
         </div>
-    </nav>
-
-    <!-- TABS -->
-    <div class="bg-white border-b sticky top-14 z-40">
-        <div class="max-w-7xl mx-auto px-4 flex gap-1 overflow-x-auto">
-            <button class="tab-btn tab-active px-5 py-3 text-sm" onclick="mostrarTab('dashboard')" id="tab-dashboard">Dashboard</button>
-            <button class="tab-btn px-5 py-3 text-sm text-gray-600" onclick="mostrarTab('registros')" id="tab-registros">Registros</button>
-            <button class="tab-btn px-5 py-3 text-sm text-gray-600" onclick="mostrarTab('volumenes')" id="tab-volumenes">Volúmenes</button>
-            <button class="tab-btn px-5 py-3 text-sm text-gray-600" onclick="mostrarTab('plantillas')" id="tab-plantillas">Plantillas</button>
-            <button class="tab-btn px-5 py-3 text-sm text-gray-600 supervisor-only hidden" onclick="mostrarTab('objetivos')" id="tab-objetivos">Objetivos</button>
-            <button class="tab-btn px-5 py-3 text-sm text-gray-600 supervisor-only hidden" onclick="mostrarTab('usuarios')" id="tab-usuarios">Usuarios</button>
+        <div class="flex items-center gap-4">
+            <button onclick="descargarExcel()" id="btn-excel" class="hidden bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium py-2 px-4 rounded-lg">📊 Excel</button>
+            <button onclick="cerrarSesion()" class="text-sm text-rose-500 hover:text-rose-700 font-medium">Cerrar sesión</button>
         </div>
     </div>
 
-    <!-- CONTENIDO TABS -->
-    <div class="max-w-7xl mx-auto px-4 py-6">
-        <!-- ── DASHBOARD ── -->
-        <div id="tab-content-dashboard">
-            <h2 class="text-xl font-bold text-gray-800 mb-5">Resumen del día</h2>
+    <!-- Pestañas -->
+    <div class="bg-white border-b px-6 flex gap-2 py-2">
+        <button onclick="mostrarPestana('registro')" id="tab-registro" class="px-4 py-2 rounded-lg font-medium text-sm bg-blue-600 text-white">📋 Registro</button>
+        <button onclick="mostrarPestana('dashboard')" id="tab-dashboard" class="px-4 py-2 rounded-lg font-medium text-sm bg-white text-slate-600 border hidden">🏠 Dashboard</button>
+        <button onclick="mostrarPestana('progreso')" id="tab-progreso" class="px-4 py-2 rounded-lg font-medium text-sm bg-white text-slate-600 border hidden">📊 Progreso</button>
+        <button onclick="mostrarPestana('edicion')" id="tab-edicion" class="px-4 py-2 rounded-lg font-medium text-sm bg-white text-slate-600 border hidden">✏️ Editar</button>
+        <button onclick="mostrarPestana('usuarios')" id="tab-usuarios" class="px-4 py-2 rounded-lg font-medium text-sm bg-white text-slate-600 border hidden">👥 Usuarios</button>
+    </div>
 
-            <!-- Tarjetas KPI -->
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                <div class="card p-5 text-center">
-                    <div class="text-3xl font-bold text-blue-600" id="kpi-registros">—</div>
-                    <div class="text-sm text-gray-500 mt-1">Registros hoy</div>
-                </div>
-                <div class="card p-5 text-center">
-                    <div class="text-3xl font-bold text-cyan-600" id="kpi-cantidad">—</div>
-                    <div class="text-sm text-gray-500 mt-1">Unidades hoy</div>
-                </div>
-                <div class="card p-5 text-center">
-                    <div class="text-3xl font-bold text-green-600" id="kpi-progreso">—%</div>
-                    <div class="text-sm text-gray-500 mt-1">Progreso meta</div>
-                </div>
-                <div class="card p-5 text-center">
-                    <div class="text-3xl font-bold text-purple-600" id="kpi-usuarios">—</div>
-                    <div class="text-sm text-gray-500 mt-1">Usuarios activos</div>
-                </div>
-            </div>
+    <div class="max-w-4xl mx-auto px-4 py-6">
 
-            <!-- Barra de progreso -->
-            <div class="card p-5 mb-6">
-                <div class="flex justify-between items-center mb-2">
-                    <span class="font-semibold text-gray-700">Progreso hacia la meta</span>
-                    <span id="progreso-label" class="text-sm text-gray-500">0 / 0 unidades</span>
-                </div>
-                <div class="progress-bar">
-                    <div class="progress-fill" id="progreso-bar" style="width:0%"></div>
-                </div>
-            </div>
-
-            <!-- Gráficas -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                <div class="card p-5">
-                    <h3 class="font-semibold text-gray-700 mb-3">Histórico 7 días</h3>
-                    <canvas id="chart-historico" height="180"></canvas>
-                </div>
-                <div class="card p-5">
-                    <h3 class="font-semibold text-gray-700 mb-3">Por turno (hoy)</h3>
-                    <canvas id="chart-turnos" height="180"></canvas>
-                </div>
-            </div>
-
-            <!-- Top usuarios -->
-            <div class="card p-5">
-                <h3 class="font-semibold text-gray-700 mb-3">Top usuarios hoy</h3>
-                <div id="top-usuarios" class="space-y-2"></div>
-            </div>
-        </div>
-
-        <!-- ── REGISTROS ── -->
-        <div id="tab-content-registros" class="hidden">
-            <div class="flex items-center justify-between mb-5">
-                <h2 class="text-xl font-bold text-gray-800">Registros de tareas</h2>
-                <button class="btn-primary" onclick="abrirModalRegistro()">+ Nuevo registro</button>
-            </div>
-
-            <!-- Filtros -->
-            <div class="card p-4 mb-5 flex flex-wrap gap-3">
-                <input type="date" id="filtro-fecha-reg" class="input-base w-auto"
-                    onchange="cargarRegistros()" />
-                <select id="filtro-turno-reg" class="input-base w-auto" onchange="cargarRegistros()">
-                    <option value="">Todos los turnos</option>
-                    <option value="mañana">Mañana</option>
-                    <option value="tarde">Tarde</option>
-                    <option value="noche">Noche</option>
-                </select>
-                <button class="btn-secondary" onclick="limpiarFiltrosReg()">Limpiar</button>
-            </div>
-
-            <!-- Tabla registros -->
-            <div class="card overflow-x-auto">
-                <table class="w-full text-sm">
-                    <thead class="bg-gray-50 text-gray-600">
-                        <tr>
-                            <th class="px-4 py-3 text-left">Usuario</th>
-                            <th class="px-4 py-3 text-left">Tarea</th>
-                            <th class="px-4 py-3 text-left">Plantilla</th>
-                            <th class="px-4 py-3 text-left">Cantidad</th>
-                            <th class="px-4 py-3 text-left">Turno</th>
-                            <th class="px-4 py-3 text-left">Fecha</th>
-                            <th class="px-4 py-3 text-left">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tabla-registros" class="divide-y divide-gray-100"></tbody>
-                </table>
-            </div>
-        </div>
-        <!-- ── VOLÚMENES ── -->
-        <div id="tab-content-volumenes" class="hidden">
-            <div class="flex items-center justify-between mb-5">
-                <h2 class="text-xl font-bold text-gray-800">Volúmenes</h2>
-                <button class="btn-primary" onclick="abrirModalVolumen()">+ Nuevo volumen</button>
-            </div>
-
-            <!-- Filtros -->
-            <div class="card p-4 mb-5 flex flex-wrap gap-3">
-                <input type="date" id="filtro-fecha-vol" class="input-base w-auto"
-                    onchange="cargarVolumenes()" />
-                <select id="filtro-turno-vol" class="input-base w-auto" onchange="cargarVolumenes()">
-                    <option value="">Todos los turnos</option>
-                    <option value="mañana">Mañana</option>
-                    <option value="tarde">Tarde</option>
-                    <option value="noche">Noche</option>
-                </select>
-                <button class="btn-secondary" onclick="limpiarFiltrosVol()">Limpiar</button>
-            </div>
-
-            <div class="card overflow-x-auto">
-                <table class="w-full text-sm">
-                    <thead class="bg-gray-50 text-gray-600">
-                        <tr>
-                            <th class="px-4 py-3 text-left">Fecha</th>
-                            <th class="px-4 py-3 text-left">Turno</th>
-                            <th class="px-4 py-3 text-left">Categoría</th>
-                            <th class="px-4 py-3 text-left">Cantidad</th>
-                            <th class="px-4 py-3 text-left">Notas</th>
-                            <th class="px-4 py-3 text-left">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tabla-volumenes" class="divide-y divide-gray-100"></tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- ── PLANTILLAS ── -->
-        <div id="tab-content-plantillas" class="hidden">
-            <div class="flex items-center justify-between mb-5">
-                <h2 class="text-xl font-bold text-gray-800">Plantillas de tareas</h2>
-                <button class="btn-primary" onclick="abrirModalPlantilla()">+ Nueva plantilla</button>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="grid-plantillas"></div>
-        </div>
-
-        <!-- ── OBJETIVOS (solo supervisor) ── -->
-        <div id="tab-content-objetivos" class="hidden">
-            <div class="flex items-center justify-between mb-5">
-                <h2 class="text-xl font-bold text-gray-800">Objetivos</h2>
-                <button class="btn-primary" onclick="abrirModalObjetivo()">+ Nuevo objetivo</button>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="grid-objetivos"></div>
-        </div>
-
-        <!-- ── USUARIOS (solo supervisor) ── -->
-        <div id="tab-content-usuarios" class="hidden">
-            <div class="flex items-center justify-between mb-5">
-                <h2 class="text-xl font-bold text-gray-800">Gestión de usuarios</h2>
-                <button class="btn-primary" onclick="abrirModalUsuario()">+ Nuevo usuario</button>
-            </div>
-
-            <div class="card overflow-x-auto">
-                <table class="w-full text-sm">
-                    <thead class="bg-gray-50 text-gray-600">
-                        <tr>
-                            <th class="px-4 py-3 text-left">Código</th>
-                            <th class="px-4 py-3 text-left">Nombre</th>
-                            <th class="px-4 py-3 text-left">Rol</th>
-                            <th class="px-4 py-3 text-left">Estado</th>
-                            <th class="px-4 py-3 text-left">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tabla-usuarios" class="divide-y divide-gray-100"></tbody>
-                </table>
-            </div>
-        </div>
-
-    </div><!-- fin max-w-7xl -->
-</div><!-- fin main-screen -->
-<!-- ═══════════════ MODALES ═══════════════ -->
-
-<!-- Modal Registro -->
-<div id="modal-registro" class="hidden fixed inset-0 bg-black bg-opacity-40 z-50 flex items-center justify-center">
-    <div class="card p-6 w-full max-w-md mx-4">
-        <h3 class="text-lg font-bold mb-4 text-gray-800">Nuevo Registro</h3>
-        <div class="space-y-3">
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Usuario</label>
-                <select id="reg-usuario" class="input-base"></select>
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Plantilla (opcional)</label>
-                <select id="reg-plantilla" class="input-base" onchange="aplicarPlantilla()">
-                    <option value="">Sin plantilla</option>
-                </select>
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Tarea</label>
-                <input id="reg-tarea" type="text" class="input-base" placeholder="Descripción de la tarea" />
-            </div>
-            <div class="grid grid-cols-2 gap-3">
+    <!-- PESTAÑA 1: REGISTRO -->
+    <div id="pestana-registro">
+        <div id="tarjeta-estado" class="rounded-2xl p-5 mb-6 text-white bg-slate-500">
+            <div class="flex justify-between items-start">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Cantidad</label>
-                    <input id="reg-cantidad" type="number" class="input-base" placeholder="0" min="0" />
+                    <p class="text-sm opacity-80 mb-1">Registrando como:</p>
+                    <p id="estado-nombre" class="text-2xl font-bold"></p>
+                    <p id="estado-fecha" class="text-sm opacity-80 mt-1"></p>
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Unidad</label>
-                    <input id="reg-unidad" type="text" class="input-base" placeholder="unidades" />
+                <div class="text-right">
+                    <p class="text-sm opacity-80 mb-1">Tiempo hoy:</p>
+                    <p id="estado-tiempo" class="text-3xl font-bold">0h 0min</p>
+                    <p id="estado-restante" class="text-sm opacity-80"></p>
                 </div>
             </div>
-            <div class="grid grid-cols-2 gap-3">
+            <div class="mt-4 bg-white bg-opacity-30 rounded-full h-3">
+                <div id="estado-barra" class="h-3 rounded-full bg-white transition-all duration-500" style="width:0%"></div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow p-4 mb-4 flex items-center gap-4">
+            <label class="text-sm font-medium text-slate-700 whitespace-nowrap">📅 Fecha:</label>
+            <input type="date" id="fecha" class="flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg" />
+        </div>
+
+        <div class="bg-white rounded-xl shadow p-5 mb-4">
+            <h3 class="text-lg font-semibold text-slate-800 mb-4">Selecciona la tarea</h3>
+            <div class="grid grid-cols-2 gap-4 mb-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Turno</label>
-                    <select id="reg-turno" class="input-base">
-                        <option value="mañana">Mañana</option>
-                        <option value="tarde">Tarde</option>
-                        <option value="noche">Noche</option>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Tarea principal:</label>
+                    <select id="tarea_principal" onchange="actualizarSubtareas()" class="w-full px-3 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-base">
+                        <option value="Picking">Picking</option>
+                        <option value="Packing">Packing</option>
+                        <option value="Inbound">Inbound</option>
+                        <option value="Shipping">Shipping</option>
+                        <option value="Ecommerce">Ecommerce</option>
                     </select>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Fecha</label>
-                    <input id="reg-fecha" type="date" class="input-base" />
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Subtarea:</label>
+                    <select id="subtarea" class="w-full px-3 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-base"></select>
                 </div>
             </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Notas</label>
-                <textarea id="reg-notas" class="input-base" rows="2" placeholder="Opcional..."></textarea>
+            <label class="block text-sm font-medium text-slate-700 mb-2">Tiempo dedicado:</label>
+            <div class="grid grid-cols-4 gap-2 mb-3">
+                <button onclick="seleccionarTiempo(15)" class="tiempo-btn py-3 rounded-xl border-2 border-slate-200 text-sm font-bold text-slate-700 hover:border-blue-400 hover:bg-blue-50 transition">15 min</button>
+                <button onclick="seleccionarTiempo(30)" class="tiempo-btn py-3 rounded-xl border-2 border-slate-200 text-sm font-bold text-slate-700 hover:border-blue-400 hover:bg-blue-50 transition">30 min</button>
+                <button onclick="seleccionarTiempo(45)" class="tiempo-btn py-3 rounded-xl border-2 border-slate-200 text-sm font-bold text-slate-700 hover:border-blue-400 hover:bg-blue-50 transition">45 min</button>
+                <button onclick="seleccionarTiempo(60)" class="tiempo-btn py-3 rounded-xl border-2 border-slate-200 text-sm font-bold text-slate-700 hover:border-blue-400 hover:bg-blue-50 transition">1 hora</button>
+                <button onclick="seleccionarTiempo(90)" class="tiempo-btn py-3 rounded-xl border-2 border-slate-200 text-sm font-bold text-slate-700 hover:border-blue-400 hover:bg-blue-50 transition">1h 30m</button>
+                <button onclick="seleccionarTiempo(120)" class="tiempo-btn py-3 rounded-xl border-2 border-slate-200 text-sm font-bold text-slate-700 hover:border-blue-400 hover:bg-blue-50 transition">2 horas</button>
+                <button onclick="seleccionarTiempo(180)" class="tiempo-btn py-3 rounded-xl border-2 border-slate-200 text-sm font-bold text-slate-700 hover:border-blue-400 hover:bg-blue-50 transition">3 horas</button>
+                <button onclick="seleccionarTiempo(240)" class="tiempo-btn py-3 rounded-xl border-2 border-slate-200 text-sm font-bold text-slate-700 hover:border-blue-400 hover:bg-blue-50 transition">4 horas</button>
+            </div>
+            <div class="text-center text-sm text-slate-500 mb-3">Tiempo seleccionado: <span id="tiempo-seleccionado" class="font-bold text-blue-600">Ninguno</span></div>
+            <input type="hidden" id="tiempo_minutos" value="0" />
+            <div class="grid grid-cols-2 gap-3 mt-3">
+                <div>
+                    <label class="block text-xs font-medium text-slate-500 mb-1">Proyecto (opcional):</label>
+                    <input type="text" id="proyecto" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-500 mb-1">Comentarios (opcional):</label>
+                    <input type="text" id="comentarios" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
+                </div>
             </div>
         </div>
-        <div class="flex gap-3 mt-5">
-            <button class="btn-primary flex-1" onclick="guardarRegistro()">Guardar</button>
-            <button class="btn-secondary flex-1" onclick="cerrarModal('modal-registro')">Cancelar</button>
+
+        <button onclick="añadirTarea()" class="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-4 rounded-xl text-lg mb-4 transition duration-200">+ Añadir a la lista</button>
+
+        <div class="bg-white rounded-xl shadow p-5 mb-4">
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="font-semibold text-slate-800">Tareas pendientes <span id="contador" class="text-sm font-normal text-slate-400">(0)</span></h3>
+                <span id="total" class="text-sm font-bold text-blue-600">Total: 0 min</span>
+            </div>
+            <div id="tareas" class="space-y-2 max-h-64 overflow-y-auto">
+                <p class="text-sm text-slate-400 text-center py-4 italic">No hay tareas añadidas todavía.</p>
+            </div>
+        </div>
+
+        <div class="flex gap-3">
+            <button onclick="guardarTodo()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl text-lg transition duration-200">💾 Guardar todo</button>
+            <button onclick="limpiarLista()" class="bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold py-4 px-6 rounded-xl transition duration-200">🗑️</button>
+        </div>
+        <div id="respuesta" class="mt-4 p-3 rounded-lg text-sm hidden"></div>
+    </div>
+
+    <!-- PESTAÑA DASHBOARD -->
+    <div id="pestana-dashboard" class="hidden">
+        <h2 class="text-2xl font-bold text-slate-800 mb-6">Dashboard</h2>
+
+        <!-- KPI Cards -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <div class="bg-white rounded-xl shadow p-4 text-center">
+                <div class="text-3xl font-bold text-blue-600" id="kpi-registros">—</div>
+                <div class="text-xs text-slate-500 mt-1">Registros hoy</div>
+            </div>
+            <div class="bg-white rounded-xl shadow p-4 text-center">
+                <div class="text-3xl font-bold text-violet-600" id="kpi-usuarios">—</div>
+                <div class="text-xs text-slate-500 mt-1">Usuarios activos hoy</div>
+            </div>
+            <div class="bg-white rounded-xl shadow p-4 text-center">
+                <div class="text-3xl font-bold text-amber-500" id="kpi-horas">—</div>
+                <div class="text-xs text-slate-500 mt-1">Horas totales hoy</div>
+            </div>
+            <div class="bg-white rounded-xl shadow p-4 text-center">
+                <div class="text-3xl font-bold text-emerald-500" id="kpi-media">—</div>
+                <div class="text-xs text-slate-500 mt-1">% jornada media</div>
+            </div>
+        </div>
+
+        <!-- Resumen por usuario -->
+        <div class="bg-white rounded-xl shadow p-6 mb-6">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="font-bold text-slate-800">Estado de usuarios hoy</h3>
+                <input type="date" id="dashboard-fecha" onchange="cargarDashboard()" class="px-3 py-1 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div id="dashboard-usuarios" class="space-y-3">
+                <p class="text-sm text-slate-400 text-center py-4 italic">Cargando...</p>
+            </div>
+        </div>
+
+        <!-- Gráfico tareas más realizadas -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-white rounded-xl shadow p-6">
+                <h3 class="font-bold text-slate-800 mb-4">Tareas más realizadas hoy</h3>
+                <canvas id="dashboard-grafico-tareas"></canvas>
+            </div>
+            <div class="bg-white rounded-xl shadow p-6">
+                <h3 class="font-bold text-slate-800 mb-4">Horas por usuario hoy</h3>
+                <canvas id="dashboard-grafico-usuarios"></canvas>
+            </div>
         </div>
     </div>
-</div>
 
-<!-- Modal Volumen -->
-<div id="modal-volumen" class="hidden fixed inset-0 bg-black bg-opacity-40 z-50 flex items-center justify-center">
-    <div class="card p-6 w-full max-w-md mx-4">
-        <h3 class="text-lg font-bold mb-4 text-gray-800">Nuevo Volumen</h3>
-        <div class="space-y-3">
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
-                <input id="vol-categoria" type="text" class="input-base" placeholder="Ej: Paquetes recibidos" />
+    <!-- PESTAÑA PROGRESO -->
+    <div id="pestana-progreso" class="hidden">
+        <div class="bg-white shadow-lg rounded-xl p-8">
+            <div class="border-b pb-4 mb-6">
+                <h1 class="text-2xl font-bold text-slate-800">Progreso por Usuario</h1>
+                <p class="text-sm text-slate-500">Visualización de horas registradas con gráficos</p>
             </div>
-            <div class="grid grid-cols-2 gap-3">
+            <div class="grid grid-cols-2 gap-4 mb-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Cantidad</label>
-                    <input id="vol-cantidad" type="number" class="input-base" placeholder="0" min="0" />
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Turno</label>
-                    <select id="vol-turno" class="input-base">
-                        <option value="mañana">Mañana</option>
-                        <option value="tarde">Tarde</option>
-                        <option value="noche">Noche</option>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Usuario:</label>
+                    <select id="filtro-usuario" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                        <option value="">-- Selecciona usuario --</option>
                     </select>
                 </div>
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Fecha</label>
-                <input id="vol-fecha" type="date" class="input-base" />
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Notas</label>
-                <textarea id="vol-notas" class="input-base" rows="2" placeholder="Opcional..."></textarea>
-            </div>
-        </div>
-        <div class="flex gap-3 mt-5">
-            <button class="btn-primary flex-1" onclick="guardarVolumen()">Guardar</button>
-            <button class="btn-secondary flex-1" onclick="cerrarModal('modal-volumen')">Cancelar</button>
-        </div>
-    </div>
-</div>
-
-<!-- Modal Plantilla -->
-<div id="modal-plantilla" class="hidden fixed inset-0 bg-black bg-opacity-40 z-50 flex items-center justify-center">
-    <div class="card p-6 w-full max-w-md mx-4">
-        <h3 class="text-lg font-bold mb-4 text-gray-800">Nueva Plantilla</h3>
-        <div class="space-y-3">
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
-                <input id="pla-nombre" type="text" class="input-base" placeholder="Nombre de la plantilla" />
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
-                <textarea id="pla-descripcion" class="input-base" rows="3" placeholder="Descripción opcional..."></textarea>
-            </div>
-        </div>
-        <div class="flex gap-3 mt-5">
-            <button class="btn-primary flex-1" onclick="guardarPlantilla()">Guardar</button>
-            <button class="btn-secondary flex-1" onclick="cerrarModal('modal-plantilla')">Cancelar</button>
-        </div>
-    </div>
-</div>
-
-<!-- Modal Objetivo -->
-<div id="modal-objetivo" class="hidden fixed inset-0 bg-black bg-opacity-40 z-50 flex items-center justify-center">
-    <div class="card p-6 w-full max-w-md mx-4">
-        <h3 class="text-lg font-bold mb-4 text-gray-800">Nuevo Objetivo</h3>
-        <div class="space-y-3">
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
-                <input id="obj-nombre" type="text" class="input-base" placeholder="Ej: Meta diaria" />
-            </div>
-            <div class="grid grid-cols-2 gap-3">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Meta</label>
-                    <input id="obj-meta" type="number" class="input-base" placeholder="1000" min="0" />
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Fecha:</label>
+                    <input type="date" id="filtro-fecha" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                </div>
+            </div>
+            <button onclick="cargarProgreso()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-lg mb-6">Consultar Progreso</button>
+            <div id="progreso-resultado"><p class="text-sm text-slate-400 text-center py-8 italic">Selecciona usuario y fecha.</p></div>
+            <div id="graficos-contenedor" class="hidden mt-6 space-y-8">
+                <div>
+                    <h3 class="text-sm font-semibold text-slate-700 mb-2">Distribución de la jornada</h3>
+                    <div id="barra-segmentada" style="height:32px;" class="w-full bg-slate-200 rounded-lg overflow-hidden flex gap-0.5"></div>
+                    <div id="leyenda-barra" class="mt-3 space-y-2"></div>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Unidad</label>
-                    <input id="obj-unidad" type="text" class="input-base" placeholder="unidades" />
+                    <div class="flex justify-between text-xs text-slate-500 mb-1">
+                        <span>Jornada completada</span>
+                        <span id="porcentaje-label">0%</span>
+                    </div>
+                    <div class="w-full bg-slate-200 rounded-full h-3">
+                        <div id="barra-total" class="h-3 rounded-full transition-all duration-500 bg-blue-600" style="width:0%"></div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-slate-50 rounded-xl p-4">
+                        <h3 class="text-sm font-semibold text-slate-700 mb-3">Distribución por tarea</h3>
+                        <canvas id="grafico-tarta"></canvas>
+                    </div>
+                    <div class="bg-slate-50 rounded-xl p-4">
+                        <h3 class="text-sm font-semibold text-slate-700 mb-3">Minutos por subtarea</h3>
+                        <canvas id="grafico-barras"></canvas>
+                    </div>
+                </div>
+                <div class="bg-slate-50 rounded-xl p-4">
+                    <h3 class="text-sm font-semibold text-slate-700 mb-3">Evolución semanal (horas por día)</h3>
+                    <canvas id="grafico-semanal"></canvas>
                 </div>
             </div>
         </div>
-        <div class="flex gap-3 mt-5">
-            <button class="btn-primary flex-1" onclick="guardarObjetivo()">Guardar</button>
-            <button class="btn-secondary flex-1" onclick="cerrarModal('modal-objetivo')">Cancelar</button>
-        </div>
     </div>
-</div>
 
-<!-- Modal Usuario -->
-<div id="modal-usuario" class="hidden fixed inset-0 bg-black bg-opacity-40 z-50 flex items-center justify-center">
-    <div class="card p-6 w-full max-w-md mx-4">
-        <h3 class="text-lg font-bold mb-4 text-gray-800">Nuevo Usuario</h3>
-        <div class="space-y-3">
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Código</label>
-                <input id="usu-codigo" type="text" class="input-base uppercase" placeholder="Ej: OP01" />
+    <!-- PESTAÑA EDICIÓN -->
+    <div id="pestana-edicion" class="hidden">
+        <div class="bg-white shadow-lg rounded-xl p-8">
+            <div class="border-b pb-4 mb-6">
+                <h1 class="text-2xl font-bold text-slate-800">Editar Registros</h1>
+                <p class="text-sm text-slate-500">Consulta, edita o elimina registros guardados</p>
             </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
-                <input id="usu-nombre" type="text" class="input-base" placeholder="Nombre completo" />
+            <!-- Filtros avanzados -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1">Usuario:</label>
+                    <select id="edicion-usuario" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm">
+                        <option value="">-- Todos --</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1">Tarea principal:</label>
+                    <select id="edicion-tarea" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm">
+                        <option value="">-- Todas --</option>
+                        <option value="Picking">Picking</option>
+                        <option value="Packing">Packing</option>
+                        <option value="Inbound">Inbound</option>
+                        <option value="Shipping">Shipping</option>
+                        <option value="Ecommerce">Ecommerce</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1">Desde:</label>
+                    <input type="date" id="edicion-fecha-desde" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1">Hasta:</label>
+                    <input type="date" id="edicion-fecha-hasta" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
+                </div>
             </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">PIN</label>
-                <input id="usu-pin" type="password" class="input-base" placeholder="PIN numérico" maxlength="10" />
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Rol</label>
-                <select id="usu-rol" class="input-base">
-                    <option value="operario">Operario</option>
-                    <option value="supervisor">Supervisor</option>
-                </select>
-            </div>
-        </div>
-        <div class="flex gap-3 mt-5">
-            <button class="btn-primary flex-1" onclick="guardarUsuario()">Guardar</button>
-            <button class="btn-secondary flex-1" onclick="cerrarModal('modal-usuario')">Cancelar</button>
+            <button onclick="cargarEdicion()" class="w-full bg-slate-700 hover:bg-slate-800 text-white font-medium py-2.5 rounded-lg mb-6">Buscar Registros</button>
+            <div id="edicion-resultado"><p class="text-sm text-slate-400 text-center py-8 italic">Usa los filtros para buscar registros.</p></div>
         </div>
     </div>
-</div>
+
+    <!-- PESTAÑA USUARIOS -->
+    <div id="pestana-usuarios" class="hidden">
+        <div class="bg-white shadow-lg rounded-xl p-8">
+            <div class="border-b pb-4 mb-6">
+                <h1 class="text-2xl font-bold text-slate-800">Gestión de Usuarios</h1>
+                <p class="text-sm text-slate-500">Añade o elimina usuarios del sistema</p>
+            </div>
+            <div class="bg-slate-50 rounded-xl p-4 mb-6">
+                <h3 class="text-sm font-bold text-slate-700 mb-3">Añadir nuevo usuario</h3>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Nombre:</label>
+                        <input type="text" id="nuevo-nombre" placeholder="Ej: Ana Gómez" class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Código:</label>
+                        <input type="text" id="nuevo-codigo" placeholder="Ej: EMP001" class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">PIN:</label>
+                        <input type="password" id="nuevo-pin" placeholder="••••" maxlength="6" class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Rol:</label>
+                        <select id="nuevo-rol" class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                            <option value="operario">Operario</option>
+                            <option value="supervisor">Supervisor</option>
+                        </select>
+                    </div>
+                </div>
+                <button onclick="crearUsuario()" class="mt-3 w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 rounded-lg">+ Añadir Usuario</button>
+                <div id="usuarios-mensaje" class="mt-2 text-sm hidden"></div>
+            </div>
+            <div id="lista-usuarios"><p class="text-sm text-slate-400 text-center py-4 italic">Cargando usuarios...</p></div>
+        </div>
+    </div>
+
+    </div><!-- fin max-w -->
+
+    <!-- Modal edición -->
+    <div id="modal-edicion" style="display:none;" class="fixed inset-0 bg-black bg-opacity-50 items-center justify-center z-50">
+        <div class="bg-white rounded-xl p-6 w-full max-w-md mx-auto mt-10 shadow-xl">
+            <h3 class="text-lg font-bold text-slate-800 mb-4">Editar Registro</h3>
+            <input type="hidden" id="edit-id" />
+            <label class="block text-sm font-medium text-slate-700 mb-1">Usuario:</label>
+            <input type="text" id="edit-usuario" class="w-full px-3 py-2 border rounded-lg mb-3" />
+            <label class="block text-sm font-medium text-slate-700 mb-1">Fecha:</label>
+            <input type="date" id="edit-fecha" class="w-full px-3 py-2 border rounded-lg mb-3" />
+            <label class="block text-sm font-medium text-slate-700 mb-1">Tarea principal:</label>
+            <select id="edit-tarea-principal" onchange="actualizarSubtareasEdicion()" class="w-full px-3 py-2 border rounded-lg mb-3 bg-white">
+                <option value="Picking">Picking</option>
+                <option value="Packing">Packing</option>
+                <option value="Inbound">Inbound</option>
+                <option value="Shipping">Shipping</option>
+                <option value="Ecommerce">Ecommerce</option>
+            </select>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Subtarea:</label>
+            <select id="edit-subtarea" class="w-full px-3 py-2 border rounded-lg mb-3 bg-white"></select>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Tiempo:</label>
+            <select id="edit-tiempo" class="w-full px-3 py-2 border rounded-lg mb-3 bg-white">
+                <option value="15">15 minutos</option>
+                <option value="30">30 minutos</option>
+                <option value="45">45 minutos</option>
+                <option value="60">1 hora</option>
+                <option value="90">1h 30min</option>
+                <option value="120">2 horas</option>
+                <option value="180">3 horas</option>
+                <option value="240">4 horas</option>
+                <option value="480">8 horas</option>
+            </select>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Proyecto:</label>
+            <input type="text" id="edit-proyecto" class="w-full px-3 py-2 border rounded-lg mb-3" />
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Comentarios:</label>
+            <input type="text" id="edit-comentarios" class="w-full px-3 py-2 border rounded-lg mb-4" />
+            <div class="flex gap-3">
+                <button onclick="guardarEdicion()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded-lg">Guardar cambios</button>
+                <button onclick="cerrarModal()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-2 px-4 rounded-lg">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+</div><!-- fin app-principal -->
 <script>
-// ─── ESTADO GLOBAL ────────────────────────────────────────────────────────────
-let usuarioActual = null;
-let chartHistorico = null;
-let chartTurnos = null;
+    const API = "http://10.147.88.31:8000";
+    const hoy = new Date().toISOString().split('T')[0];
 
-// ─── LOGIN ────────────────────────────────────────────────────────────────────
-async function hacerLogin() {
-    const codigo = document.getElementById('login-codigo').value.trim().toUpperCase();
-    const pin    = document.getElementById('login-pin').value.trim();
-    if (!codigo || !pin) return mostrarLoginError('Ingresa código y PIN');
+    let usuarioSesion = null;
+    let tareasPendientes = [];
+    let tiempoSeleccionado = 0;
+    let graficaTarta = null;
+    let graficaBarras = null;
+    let graficaSemanal = null;
+    let dashboardGraficoTareas = null;
+    let dashboardGraficoUsuarios = null;
 
-    try {
-        const res = await fetch('/api/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ codigo, pin })
+    const coloresTarea = {
+        "Picking":   { bg: "#3b82f6", light: "#eff6ff", text: "#1d4ed8" },
+        "Packing":   { bg: "#8b5cf6", light: "#f5f3ff", text: "#6d28d9" },
+        "Inbound":   { bg: "#f59e0b", light: "#fffbeb", text: "#b45309" },
+        "Shipping":  { bg: "#10b981", light: "#ecfdf5", text: "#065f46" },
+        "Ecommerce": { bg: "#ef4444", light: "#fef2f2", text: "#b91c1c" },
+        "Otro":      { bg: "#94a3b8", light: "#f8fafc", text: "#475569" }
+    };
+
+    const coloresSubtarea = {
+        "Picking":   ["#93c5fd", "#60a5fa", "#3b82f6", "#2563eb"],
+        "Packing":   ["#c4b5fd", "#a78bfa", "#8b5cf6", "#7c3aed"],
+        "Inbound":   ["#fcd34d", "#fbbf24", "#f59e0b", "#d97706"],
+        "Shipping":  ["#6ee7b7", "#34d399", "#10b981", "#059669"],
+        "Ecommerce": ["#fca5a5", "#f87171", "#ef4444", "#dc2626"],
+        "Otro":      ["#cbd5e1", "#94a3b8", "#64748b", "#475569"]
+    };
+
+    const subtareasPorTarea = {
+        "Picking":   ["Picking RF", "Picking Manual", "Picking Lote", "Revisión de Picking"],
+        "Packing":   ["Embalaje Estándar", "Embalaje Frágil", "Etiquetado", "Precintado"],
+        "Inbound":   ["Recepción de mercancía", "Desconsolidación", "Control de calidad", "Ubicación en estantería"],
+        "Shipping":  ["Carga de camión", "Validación de albaranes", "Expedición urgente"],
+        "Ecommerce": ["Preparación de pedidos B2C", "Gestión de devoluciones", "Embalaje especial E-commerce"]
+    };
+
+    const avatarColores = ["#3b82f6","#8b5cf6","#f59e0b","#10b981","#ef4444","#ec4899","#06b6d4"];
+
+    window.onload = function() {
+        document.getElementById("login-codigo").focus();
+        document.getElementById("fecha").value = hoy;
+        document.getElementById("filtro-fecha").value = hoy;
+        document.getElementById("edicion-fecha-desde").value = hoy;
+        document.getElementById("edicion-fecha-hasta").value = hoy;
+        document.getElementById("dashboard-fecha").value = hoy;
+        actualizarSubtareas();
+        document.getElementById("login-codigo").addEventListener("keydown", function(e) {
+            if (e.key === "Enter") document.getElementById("login-pin").focus();
         });
-        if (!res.ok) {
-            const err = await res.json();
-            return mostrarLoginError(err.detail || 'Credenciales incorrectas');
+        document.getElementById("login-pin").addEventListener("keydown", function(e) {
+            if (e.key === "Enter") hacerLogin();
+        });
+    };
+
+    // ==================== LOGIN ====================
+    async function hacerLogin() {
+        const codigo = document.getElementById("login-codigo").value.trim();
+        const pin = document.getElementById("login-pin").value.trim();
+        const errorDiv = document.getElementById("login-error");
+        if (!codigo || !pin) {
+            errorDiv.textContent = "Introduce tu código y PIN.";
+            errorDiv.classList.remove("hidden");
+            return;
         }
-        usuarioActual = await res.json();
-        iniciarApp();
-    } catch {
-        mostrarLoginError('Error de conexión con el servidor');
-    }
-}
-
-function mostrarLoginError(msg) {
-    const el = document.getElementById('login-error');
-    el.textContent = msg;
-    el.classList.remove('hidden');
-    setTimeout(() => el.classList.add('hidden'), 4000);
-}
-
-function iniciarApp() {
-    document.getElementById('login-screen').classList.add('hidden');
-    document.getElementById('main-screen').classList.remove('hidden');
-    document.getElementById('nav-nombre').textContent = usuarioActual.nombre;
-    const rolBadge = document.getElementById('nav-rol');
-    rolBadge.textContent = usuarioActual.rol;
-    rolBadge.className = usuarioActual.rol === 'supervisor' ? 'badge-supervisor' : 'badge-operario';
-
-    // Mostrar tabs de supervisor
-    if (usuarioActual.rol === 'supervisor') {
-        document.querySelectorAll('.supervisor-only').forEach(el => el.classList.remove('hidden'));
+        try {
+            const resp = await fetch(`${API}/login/`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ codigo, pin })
+            });
+            if (!resp.ok) {
+                errorDiv.textContent = "Código o PIN incorrectos.";
+                errorDiv.classList.remove("hidden");
+                document.getElementById("login-pin").value = "";
+                return;
+            }
+            usuarioSesion = await resp.json();
+            errorDiv.classList.add("hidden");
+            iniciarSesion();
+        } catch {
+            errorDiv.textContent = "No se pudo conectar con el servidor.";
+            errorDiv.classList.remove("hidden");
+        }
     }
 
-    mostrarTab('dashboard');
-}
+    function iniciarSesion() {
+        document.getElementById("pantalla-login").classList.add("hidden");
+        document.getElementById("app-principal").classList.remove("hidden");
 
-function cerrarSesion() {
-    usuarioActual = null;
-    document.getElementById('main-screen').classList.add('hidden');
-    document.getElementById('login-screen').classList.remove('hidden');
-    document.getElementById('login-codigo').value = '';
-    document.getElementById('login-pin').value = '';
-}
+        const avatar = document.getElementById("header-avatar");
+        avatar.style.backgroundColor = avatarColores[usuarioSesion.id % avatarColores.length];
+        avatar.textContent = usuarioSesion.nombre.charAt(0).toUpperCase();
+        document.getElementById("header-nombre").textContent = usuarioSesion.nombre;
 
-// Enter en login
-document.getElementById('login-pin').addEventListener('keydown', e => {
-document.getElementById('login-pin').addEventListener('keydown', e => {
-    if (e.key === 'Enter') hacerLogin();
-});
-document.getElementById('login-codigo').addEventListener('keydown', e => {
-    if (e.key === 'Enter') document.getElementById('login-pin').focus();
-});
+        const rolBadge = document.getElementById("header-rol");
+        if (usuarioSesion.rol === "supervisor") {
+            rolBadge.textContent = "Supervisor";
+            rolBadge.className = "text-xs px-2 py-0.5 rounded-full font-medium bg-violet-100 text-violet-700";
+            document.getElementById("tab-dashboard").classList.remove("hidden");
+            document.getElementById("tab-progreso").classList.remove("hidden");
+            document.getElementById("tab-edicion").classList.remove("hidden");
+            document.getElementById("tab-usuarios").classList.remove("hidden");
+            document.getElementById("btn-excel").classList.remove("hidden");
+            cargarUsuariosGestion();
+            cargarDashboard();
+        } else {
+            rolBadge.textContent = "Operario";
+            rolBadge.className = "text-xs px-2 py-0.5 rounded-full font-medium bg-blue-100 text-blue-700";
+        }
 
-// ─── TABS ─────────────────────────────────────────────────────────────────────
-function mostrarTab(tab) {
-    const tabs = ['dashboard', 'registros', 'volumenes', 'plantillas', 'objetivos', 'usuarios'];
-    tabs.forEach(t => {
-        document.getElementById('tab-content-' + t).classList.add('hidden');
-        document.getElementById('tab-' + t)?.classList.remove('tab-active');
-        document.getElementById('tab-' + t)?.classList.add('text-gray-600');
-    });
-    document.getElementById('tab-content-' + tab).classList.remove('hidden');
-    document.getElementById('tab-' + tab).classList.add('tab-active');
-    document.getElementById('tab-' + tab).classList.remove('text-gray-600');
+        document.getElementById("estado-nombre").textContent = usuarioSesion.nombre;
+        document.getElementById("estado-fecha").textContent = new Date().toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" });
 
-    if (tab === 'dashboard')   cargarDashboard();
-    if (tab === 'registros')   cargarRegistros();
-    if (tab === 'volumenes')   cargarVolumenes();
-    if (tab === 'plantillas')  cargarPlantillas();
-    if (tab === 'objetivos')   cargarObjetivos();
-    if (tab === 'usuarios')    cargarUsuarios();
-}
+        actualizarIndicadorTiempo();
+        cargarUsuariosFiltros();
+        mostrarPestana("registro");
+    }
 
-// ─── DASHBOARD ────────────────────────────────────────────────────────────────
-async function cargarDashboard() {
-    try {
-        const [resumen, turnos, historico, porUsuario] = await Promise.all([
-            fetch('/api/estadisticas/resumen').then(r => r.json()),
-            fetch('/api/estadisticas/por_turno').then(r => r.json()),
-            fetch('/api/estadisticas/historico?dias=7').then(r => r.json()),
-            fetch('/api/estadisticas/por_usuario').then(r => r.json())
-        ]);
-
-        // KPIs
-        document.getElementById('kpi-registros').textContent = resumen.total_registros_hoy;
-        document.getElementById('kpi-cantidad').textContent  = resumen.total_cantidad_hoy.toLocaleString();
-        document.getElementById('kpi-progreso').textContent  = resumen.progreso_pct + '%';
-        document.getElementById('kpi-usuarios').textContent  = resumen.total_usuarios_activos;
-
-        // Barra progreso
-        const pct = Math.min(resumen.progreso_pct, 100);
-        document.getElementById('progreso-bar').style.width = pct + '%';
-        document.getElementById('progreso-label').textContent =
-            `${resumen.total_cantidad_hoy.toLocaleString()} / ${resumen.meta.toLocaleString()} unidades`;
-
-        // Chart histórico
-        const ctxH = document.getElementById('chart-historico').getContext('2d');
-        if (chartHistorico) chartHistorico.destroy();
-        chartHistorico = new Chart(ctxH, {
-            type: 'line',
-            data: {
-                labels: historico.map(h => h.fecha),
-                datasets: [{
-                    label: 'Unidades',
-                    data: historico.map(h => h.cantidad),
-                    borderColor: '#3b82f6',
-                    backgroundColor: 'rgba(59,130,246,0.1)',
-                    tension: 0.4,
-                    fill: true
-                }]
-            },
-            options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+    function cerrarSesion() {
+        usuarioSesion = null;
+        tareasPendientes = [];
+        tiempoSeleccionado = 0;
+        actualizarLista();
+        document.getElementById("pantalla-login").classList.remove("hidden");
+        document.getElementById("app-principal").classList.add("hidden");
+        document.getElementById("login-codigo").value = "";
+        document.getElementById("login-pin").value = "";
+        document.getElementById("login-codigo").focus();
+        ["tab-dashboard","tab-progreso","tab-edicion","tab-usuarios"].forEach(id => {
+            document.getElementById(id).classList.add("hidden");
         });
+        document.getElementById("btn-excel").classList.add("hidden");
+        resetearBotonesTiempo();
+    }
 
-        // Chart turnos
-        const ctxT = document.getElementById('chart-turnos').getContext('2d');
-        if (chartTurnos) chartTurnos.destroy();
-        chartTurnos = new Chart(ctxT, {
-            type: 'doughnut',
-            data: {
-                labels: turnos.map(t => t.turno),
-                datasets: [{
-                    data: turnos.map(t => t.cantidad),
-                    backgroundColor: ['#3b82f6', '#06b6d4', '#8b5cf6']
-                }]
-            },
-            options: { plugins: { legend: { position: 'bottom' } } }
+    // ==================== INDICADOR DE TIEMPO ====================
+    async function actualizarIndicadorTiempo() {
+        if (!usuarioSesion) return;
+        try {
+            const resp = await fetch(`${API}/registros/${usuarioSesion.codigo}`);
+            if (!resp.ok) { actualizarTarjetaEstado(0); return; }
+            const registros = await resp.json();
+            const totalHoy = registros.filter(r => r.fecha === hoy).reduce((sum, r) => sum + r.tiempo_minutos, 0);
+            const totalPendiente = tareasPendientes.reduce((sum, t) => sum + t.tiempo_minutos, 0);
+            actualizarTarjetaEstado(totalHoy + totalPendiente);
+        } catch { actualizarTarjetaEstado(0); }
+    }
+
+    function actualizarTarjetaEstado(totalMinutos) {
+        const horas = Math.floor(totalMinutos / 60);
+        const mins = totalMinutos % 60;
+        const restante = Math.max(0, 480 - totalMinutos);
+        const restanteH = Math.floor(restante / 60);
+        const restanteM = restante % 60;
+        const porcentaje = Math.min((totalMinutos / 480) * 100, 100);
+        document.getElementById("estado-tiempo").textContent = `${horas}h ${mins}min`;
+        document.getElementById("estado-restante").textContent = restante > 0 ? `Faltan ${restanteH}h ${restanteM}min` : "✅ Jornada completa";
+        document.getElementById("estado-barra").style.width = `${porcentaje}%`;
+        const tarjeta = document.getElementById("tarjeta-estado");
+        if (porcentaje >= 100) tarjeta.className = "rounded-2xl p-5 mb-6 text-white bg-emerald-500";
+        else if (porcentaje >= 60) tarjeta.className = "rounded-2xl p-5 mb-6 text-white bg-blue-500";
+        else if (porcentaje >= 30) tarjeta.className = "rounded-2xl p-5 mb-6 text-white bg-amber-500";
+        else tarjeta.className = "rounded-2xl p-5 mb-6 text-white bg-slate-500";
+    }
+
+    // ==================== NAVEGACIÓN ====================
+    function mostrarPestana(nombre) {
+        if (usuarioSesion.rol !== "supervisor" && nombre !== "registro") {
+            alert("No tienes permisos para acceder a esta sección.");
+            return;
+        }
+        ["registro","dashboard","progreso","edicion","usuarios"].forEach(p => {
+            const pestana = document.getElementById(`pestana-${p}`);
+            const tab = document.getElementById(`tab-${p}`);
+            if (pestana) pestana.classList.add("hidden");
+            if (tab) tab.className = "px-4 py-2 rounded-lg font-medium text-sm bg-white text-slate-600 border";
         });
+        document.getElementById(`pestana-${nombre}`).classList.remove("hidden");
+        document.getElementById(`tab-${nombre}`).className = "px-4 py-2 rounded-lg font-medium text-sm bg-blue-600 text-white";
+        if (nombre === "progreso" || nombre === "edicion") cargarUsuariosFiltros();
+        if (nombre === "usuarios") cargarUsuariosGestion();
+        if (nombre === "dashboard") cargarDashboard();
+    }
 
-        // Top usuarios
-        const topEl = document.getElementById('top-usuarios');
-        topEl.innerHTML = porUsuario.length === 0
-            ? '<p class="text-gray-400 text-sm">Sin datos hoy</p>'
-            : porUsuario.map(u => `
-                <div class="flex items-center justify-between">
-                    <span class="text-sm text-gray-700">${u.usuario}</span>
-                    <span class="font-semibold text-blue-600">${u.cantidad.toLocaleString()}</span>
+    // ==================== SUBTAREAS ====================
+    function actualizarSubtareas() {
+        const principal = document.getElementById("tarea_principal").value;
+        const sel = document.getElementById("subtarea");
+        sel.innerHTML = "";
+        (subtareasPorTarea[principal] || []).forEach(sub => {
+            const o = document.createElement("option");
+            o.value = sub; o.textContent = sub;
+            sel.appendChild(o);
+        });
+    }
+
+    function actualizarSubtareasEdicion(subtareaSeleccionada = "") {
+        const principal = document.getElementById("edit-tarea-principal").value;
+        const sel = document.getElementById("edit-subtarea");
+        sel.innerHTML = "";
+        (subtareasPorTarea[principal] || []).forEach(sub => {
+            const o = document.createElement("option");
+            o.value = sub; o.textContent = sub;
+            if (sub === subtareaSeleccionada) o.selected = true;
+            sel.appendChild(o);
+        });
+    }
+
+    // ==================== BOTONES RÁPIDOS DE TIEMPO ====================
+    function seleccionarTiempo(minutos) {
+        tiempoSeleccionado = minutos;
+        document.getElementById("tiempo_minutos").value = minutos;
+        const etiquetas = { 15:"15 min", 30:"30 min", 45:"45 min", 60:"1 hora", 90:"1h 30min", 120:"2 horas", 180:"3 horas", 240:"4 horas" };
+        document.getElementById("tiempo-seleccionado").textContent = etiquetas[minutos] || `${minutos} min`;
+        document.querySelectorAll(".tiempo-btn").forEach(btn => {
+            btn.className = "tiempo-btn py-3 rounded-xl border-2 border-slate-200 text-sm font-bold text-slate-700 hover:border-blue-400 hover:bg-blue-50 transition";
+        });
+        const valores = [15,30,45,60,90,120,180,240];
+        const index = valores.indexOf(minutos);
+        if (index !== -1) {
+            document.querySelectorAll(".tiempo-btn")[index].className = "tiempo-btn py-3 rounded-xl border-2 border-blue-500 bg-blue-50 text-sm font-bold text-blue-700 transition";
+        }
+    }
+
+    function resetearBotonesTiempo() {
+        tiempoSeleccionado = 0;
+        document.getElementById("tiempo_minutos").value = 0;
+        document.getElementById("tiempo-seleccionado").textContent = "Ninguno";
+        document.querySelectorAll(".tiempo-btn").forEach(btn => {
+            btn.className = "tiempo-btn py-3 rounded-xl border-2 border-slate-200 text-sm font-bold text-slate-700 hover:border-blue-400 hover:bg-blue-50 transition";
+        });
+    }
+
+    // ==================== REGISTRO ====================
+    function añadirTarea() {
+        if (tiempoSeleccionado === 0) { alert("Por favor, selecciona el tiempo dedicado."); return; }
+        const principal = document.getElementById("tarea_principal").value;
+        const subtarea = document.getElementById("subtarea").value;
+        const tareaCompleta = `${principal} - ${subtarea}`;
+        const totalActual = tareasPendientes.reduce((sum, t) => sum + t.tiempo_minutos, 0);
+        if (totalActual + tiempoSeleccionado > 480) {
+            alert(`No puedes superar 8 horas. Te quedan ${480 - totalActual} minutos.`);
+            return;
+        }
+        tareasPendientes.push({
+            usuario: usuarioSesion.codigo,
+            fecha: document.getElementById("fecha").value,
+            tarea: tareaCompleta,
+            tiempo_minutos: tiempoSeleccionado,
+            proyecto: document.getElementById("proyecto").value || null,
+            comentarios: document.getElementById("comentarios").value || null
+        });
+        actualizarLista();
+        actualizarTarjetaEstado(tareasPendientes.reduce((s, t) => s + t.tiempo_minutos, 0));
+        resetearBotonesTiempo();
+        document.getElementById("proyecto").value = "";
+        document.getElementById("comentarios").value = "";
+    }
+
+    function eliminarTareaLista(index) {
+        tareasPendientes.splice(index, 1);
+        actualizarLista();
+        actualizarIndicadorTiempo();
+    }
+
+    function actualizarLista() {
+        const contenedor = document.getElementById("tareas");
+        contenedor.innerHTML = "";
+        let totalMinutos = 0;
+        if (tareasPendientes.length === 0) {
+            contenedor.innerHTML = `<p class="text-sm text-slate-400 text-center py-4 italic">No hay tareas añadidas todavía.</p>`;
+        } else {
+            tareasPendientes.forEach((t, index) => {
+                totalMinutos += t.tiempo_minutos;
+                const horas = Math.floor(t.tiempo_minutos / 60);
+                const mins = t.tiempo_minutos % 60;
+                const tiempoTexto = horas > 0 ? `${horas}h ${mins}min` : `${mins}min`;
+                const principal = t.tarea.split(" - ")[0];
+                const color = coloresTarea[principal] || coloresTarea["Otro"];
+                contenedor.innerHTML += `
+                    <div style="background-color:${color.light};border-left:4px solid ${color.bg}" class="p-3 rounded-lg flex justify-between items-center text-sm">
+                        <div>
+                            <span style="color:${color.text}" class="font-semibold">${t.tarea}</span>
+                            <span class="text-slate-500 ml-2">(${tiempoTexto})</span>
+                        </div>
+                        <button onclick="eliminarTareaLista(${index})" class="text-rose-500 hover:text-rose-700 font-bold px-2 py-1 text-lg">✕</button>
+                    </div>`;
+            });
+        }
+        document.getElementById("contador").textContent = `(${tareasPendientes.length})`;
+        document.getElementById("total").textContent = `Total: ${totalMinutos} min (${(totalMinutos/60).toFixed(2)}h)`;
+    }
+
+    async function guardarTodo() {
+        if (tareasPendientes.length === 0) { alert("No hay tareas en la lista."); return; }
+        let exito = 0, error = 0;
+        for (const tarea of tareasPendientes) {
+            try {
+                const r = await fetch(`${API}/registros/`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(tarea)
+                });
+                if (r.ok) exito++; else error++;
+            } catch { error++; }
+        }
+        if (error === 0) {
+            mostrarConfirmacion(exito);
+            limpiarLista();
+        } else {
+            const div = document.getElementById("respuesta");
+            div.style.display = "block";
+            div.className = "mt-4 p-3 rounded-lg text-sm bg-rose-100 text-rose-800";
+            div.innerHTML = `⚠️ ${exito} guardadas, ${error} fallaron.`;
+        }
+    }
+
+    
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro de Tareas</title>
+    <link rel="icon" href="data:,">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-slate-100 min-h-screen">
+
+<!-- ==================== PANTALLA DE LOGIN ==================== -->
+<div id="pantalla-login" class="flex items-center justify-center min-h-screen px-4">
+    <div class="bg-white shadow-xl rounded-2xl p-10 w-full max-w-sm text-center">
+        <h1 class="text-3xl font-bold text-slate-800 mb-1">Registro de Tareas</h1>
+        <p class="text-sm text-slate-500 mb-8">Identifícate para continuar</p>
+        <div class="bg-blue-50 border-2 border-dashed border-blue-300 rounded-xl p-4 mb-4">
+            <label class="block text-sm font-semibold text-blue-900 mb-2">Escanea tu código o escríbelo:</label>
+            <input type="text" id="login-codigo" class="w-full px-4 py-3 text-center text-xl font-bold border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white" placeholder="Código de usuario..." autocomplete="off" />
+        </div>
+        <div class="mb-6">
+            <label class="block text-sm font-medium text-slate-700 mb-1">PIN:</label>
+            <input type="password" id="login-pin" class="w-full px-4 py-3 text-center text-2xl tracking-widest border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="••••" maxlength="6" />
+        </div>
+        <button onclick="hacerLogin()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl text-xl transition duration-200">Entrar</button>
+        <div id="login-error" class="mt-4 p-3 rounded-lg text-sm bg-rose-100 text-rose-800 hidden"></div>
+    </div>
+</div>
+
+<!-- ==================== CONFIRMACIÓN GUARDADO ==================== -->
+<div id="pantalla-confirmacion" class="fixed inset-0 bg-emerald-500 hidden items-center justify-center z-50">
+    <div class="text-center text-white">
+        <div class="text-9xl mb-6">✅</div>
+        <h2 class="text-4xl font-bold mb-3">¡Guardado correctamente!</h2>
+        <p id="confirmacion-texto" class="text-xl opacity-90"></p>
+        <p class="text-lg opacity-75 mt-4">Volviendo al inicio en <span id="confirmacion-cuenta">3</span>s...</p>
+    </div>
+</div>
+
+<!-- ==================== APLICACIÓN PRINCIPAL ==================== -->
+<div id="app-principal" class="hidden">
+
+    <!-- Header -->
+    <div class="bg-white shadow px-6 py-3 flex justify-between items-center">
+        <div class="flex items-center gap-3">
+            <div id="header-avatar" class="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-lg"></div>
+            <div>
+                <div class="font-bold text-slate-800" id="header-nombre"></div>
+                <span id="header-rol" class="text-xs px-2 py-0.5 rounded-full font-medium"></span>
+            </div>
+        </div>
+        <div class="flex items-center gap-4">
+            <button onclick="descargarExcel()" id="btn-excel" class="hidden bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium py-2 px-4 rounded-lg">📊 Excel</button>
+            <button onclick="cerrarSesion()" class="text-sm text-rose-500 hover:text-rose-700 font-medium">Cerrar sesión</button>
+        </div>
+    </div>
+
+    <!-- Pestañas -->
+    <div class="bg-white border-b px-6 flex gap-2 py-2 overflow-x-auto">
+        <button onclick="mostrarPestana('registro')" id="tab-registro" class="px-4 py-2 rounded-lg font-medium text-sm bg-blue-600 text-white whitespace-nowrap">📋 Registro</button>
+        <button onclick="mostrarPestana('dashboard')" id="tab-dashboard" class="px-4 py-2 rounded-lg font-medium text-sm bg-white text-slate-600 border hidden whitespace-nowrap">🏠 Dashboard</button>
+        <button onclick="mostrarPestana('historico')" id="tab-historico" class="px-4 py-2 rounded-lg font-medium text-sm bg-white text-slate-600 border hidden whitespace-nowrap">📅 Histórico</button>
+        <button onclick="mostrarPestana('progreso')" id="tab-progreso" class="px-4 py-2 rounded-lg font-medium text-sm bg-white text-slate-600 border hidden whitespace-nowrap">📊 Progreso</button>
+        <button onclick="mostrarPestana('volumen')" id="tab-volumen" class="px-4 py-2 rounded-lg font-medium text-sm bg-white text-slate-600 border hidden whitespace-nowrap">📈 Volumen</button>
+        <button onclick="mostrarPestana('plantillas')" id="tab-plantillas" class="px-4 py-2 rounded-lg font-medium text-sm bg-white text-slate-600 border hidden whitespace-nowrap">📋 Plantillas</button>
+        <button onclick="mostrarPestana('edicion')" id="tab-edicion" class="px-4 py-2 rounded-lg font-medium text-sm bg-white text-slate-600 border hidden whitespace-nowrap">✏️ Editar</button>
+        <button onclick="mostrarPestana('usuarios')" id="tab-usuarios" class="px-4 py-2 rounded-lg font-medium text-sm bg-white text-slate-600 border hidden whitespace-nowrap">👥 Usuarios</button>
+    </div>
+
+    <div class="max-w-4xl mx-auto px-4 py-6">
+
+    <!-- PESTAÑA REGISTRO -->
+    <div id="pestana-registro">
+        <div id="tarjeta-estado" class="rounded-2xl p-5 mb-6 text-white bg-slate-500">
+            <div class="flex justify-between items-start">
+                <div>
+                    <p class="text-sm opacity-80 mb-1">Registrando como:</p>
+                    <p id="estado-nombre" class="text-2xl font-bold"></p>
+                    <p id="estado-fecha" class="text-sm opacity-80 mt-1"></p>
                 </div>
-            `).join('');
+                <div class="text-right">
+                    <p class="text-sm opacity-80 mb-1">Tiempo hoy:</p>
+                    <p id="estado-tiempo" class="text-3xl font-bold">0h 0min</p>
+                    <p id="estado-restante" class="text-sm opacity-80"></p>
+                </div>
+            </div>
+            <div class="mt-4 bg-white bg-opacity-30 rounded-full h-3">
+                <div id="estado-barra" class="h-3 rounded-full bg-white transition-all duration-500" style="width:0%"></div>
+            </div>
+        </div>
 
-    } catch(e) {
-        console.error('Error cargando dashboard:', e);
-    }
-}
+        <div class="bg-white rounded-xl shadow p-4 mb-4 flex items-center gap-4">
+            <label class="text-sm font-medium text-slate-700 whitespace-nowrap">📅 Fecha:</label>
+            <input type="date" id="fecha" class="flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg" />
+        </div>
+
+        <div class="bg-white rounded-xl shadow p-5 mb-4">
+            <h3 class="text-lg font-semibold text-slate-800 mb-4">Selecciona la tarea</h3>
+            <div class="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Tarea principal:</label>
+                    <select id="tarea_principal" onchange="actualizarSubtareas()" class="w-full px-3 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-base">
+                        <option value="Picking">Picking</option>
+                        <option value="Packing">Packing</option>
+                        <option value="Inbound">Inbound</option>
+                        <option value="Shipping">Shipping</option>
+                        <option value="Ecommerce">Ecommerce</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Subtarea:</label>
+                    <select id="subtarea" class="w-full px-3 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-base"></select>
+                </div>
+            </div>
+            <label class="block text-sm font-medium text-slate-700 mb-2">Tiempo dedicado:</label>
+            <div class="grid grid-cols-4 gap-2 mb-3">
+                <button onclick="seleccionarTiempo(15)" class="tiempo-btn py-3 rounded-xl border-2 border-slate-200 text-sm font-bold text-slate-700 hover:border-blue-400 hover:bg-blue-50 transition">15 min</button>
+                <button onclick="seleccionarTiempo(30)" class="tiempo-btn py-3 rounded-xl border-2 border-slate-200 text-sm font-bold text-slate-700 hover:border-blue-400 hover:bg-blue-50 transition">30 min</button>
+                <button onclick="seleccionarTiempo(45)" class="tiempo-btn py-3 rounded-xl border-2 border-slate-200 text-sm font-bold text-slate-700 hover:border-blue-400 hover:bg-blue-50 transition">45 min</button>
+                <button onclick="seleccionarTiempo(60)" class="tiempo-btn py-3 rounded-xl border-2 border-slate-200 text-sm font-bold text-slate-700 hover:border-blue-400 hover:bg-blue-50 transition">1 hora</button>
+                <button onclick="seleccionarTiempo(90)" class="tiempo-btn py-3 rounded-xl border-2 border-slate-200 text-sm font-bold text-slate-700 hover:border-blue-400 hover:bg-blue-50 transition">1h 30m</button>
+                <button onclick="seleccionarTiempo(120)" class="tiempo-btn py-3 rounded-xl border-2 border-slate-200 text-sm font-bold text-slate-700 hover:border-blue-400 hover:bg-blue-50 transition">2 horas</button>
+                <button onclick="seleccionarTiempo(180)" class="tiempo-btn py-3 rounded-xl border-2 border-slate-200 text-sm font-bold text-slate-700 hover:border-blue-400 hover:bg-blue-50 transition">3 horas</button>
+                <button onclick="seleccionarTiempo(240)" class="tiempo-btn py-3 rounded-xl border-2 border-slate-200 text-sm font-bold text-slate-700 hover:border-blue-400 hover:bg-blue-50 transition">4 horas</button>
+            </div>
+            <div class="text-center text-sm text-slate-500 mb-3">Tiempo seleccionado: <span id="tiempo-seleccionado" class="font-bold text-blue-600">Ninguno</span></div>
+            <input type="hidden" id="tiempo_minutos" value="0" />
+            <div class="grid grid-cols-2 gap-3 mt-3">
+                <div>
+                    <label class="block text-xs font-medium text-slate-500 mb-1">Proyecto (opcional):</label>
+                    <input type="text" id="proyecto" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-500 mb-1">Comentarios (opcional):</label>
+                    <input type="text" id="comentarios" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
+                </div>
+            </div>
+        </div>
+
+        <div class="flex gap-3 mb-4">
+            <button onclick="añadirTarea()" class="flex-1 bg-slate-800 hover:bg-slate-900 text-white font-bold py-4 rounded-xl text-lg transition duration-200">+ Añadir a la lista</button>
+            <button onclick="mostrarPestana('plantillas')" class="bg-violet-100 hover:bg-violet-200 text-violet-700 font-bold py-4 px-5 rounded-xl transition duration-200">📋</button>
+        </div>
+
+        <div class="bg-white rounded-xl shadow p-5 mb-4">
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="font-semibold text-slate-800">Tareas pendientes <span id="contador" class="text-sm font-normal text-slate-400">(0)</span></h3>
+                <div class="flex items-center gap-3">
+                    <span id="total" class="text-sm font-bold text-blue-600">Total: 0 min</span>
+                    <button onclick="guardarComoPlantilla()" class="text-xs bg-violet-100 hover:bg-violet-200 text-violet-700 font-medium px-3 py-1.5 rounded-lg">💾 Guardar plantilla</button>
+                </div>
+            </div>
+            <div id="tareas" class="space-y-2 max-h-64 overflow-y-auto">
+                <p class="text-sm text-slate-400 text-center py-4 italic">No hay tareas añadidas todavía.</p>
+            </div>
+        </div>
+
+        <div class="flex gap-3">
+            <button onclick="guardarTodo()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl text-lg transition duration-200">💾 Guardar todo</button>
+            <button onclick="limpiarLista()" class="bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold py-4 px-6 rounded-xl transition duration-200">🗑️</button>
+        </div>
+        <div id="respuesta" class="mt-4 p-3 rounded-lg text-sm hidden"></div>
+    </div>
+    <!-- PESTAÑA DASHBOARD -->
+    <div id="pestana-dashboard" class="hidden">
+        <h2 class="text-2xl font-bold text-slate-800 mb-6">Dashboard</h2>
+
+        <!-- KPIs -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div class="bg-white rounded-xl shadow p-4 text-center">
+                <div class="text-3xl font-bold text-blue-600" id="kpi-registros">—</div>
+                <div class="text-xs text-slate-500 mt-1">Registros hoy</div>
+            </div>
+            <div class="bg-white rounded-xl shadow p-4 text-center">
+                <div class="text-3xl font-bold text-violet-600" id="kpi-usuarios">—</div>
+                <div class="text-xs text-slate-500 mt-1">Usuarios activos hoy</div>
+            </div>
+            <div class="bg-white rounded-xl shadow p-4 text-center">
+                <div class="text-3xl font-bold text-amber-500" id="kpi-horas">—</div>
+                <div class="text-xs text-slate-500 mt-1">Horas totales hoy</div>
+            </div>
+            <div class="bg-white rounded-xl shadow p-4 text-center">
+                <div class="text-3xl font-bold text-emerald-500" id="kpi-media">—</div>
+                <div class="text-xs text-slate-500 mt-1">% jornada media</div>
+            </div>
+        </div>
+
+        <!-- Productividad por usuario -->
+        <div class="bg-white rounded-xl shadow p-6 mb-6">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="font-bold text-slate-800">Productividad por usuario</h3>
+                <input type="date" id="dashboard-fecha" onchange="cargarDashboard()" class="px-3 py-1 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div id="dashboard-productividad" class="space-y-3">
+                <p class="text-sm text-slate-400 text-center py-4 italic">Cargando...</p>
+            </div>
+        </div>
+
+        <!-- Comparación hoy vs ayer -->
+        <div class="bg-white rounded-xl shadow p-6 mb-6">
+            <h3 class="font-bold text-slate-800 mb-4">Comparación hoy vs ayer</h3>
+            <div id="dashboard-comparacion" class="space-y-3">
+                <p class="text-sm text-slate-400 text-center py-4 italic">Cargando...</p>
+            </div>
+        </div>
+
+        <!-- Top tareas y media -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div class="bg-white rounded-xl shadow p-6">
+                <h3 class="font-bold text-slate-800 mb-4">Top 5 tareas más frecuentes</h3>
+                <div id="dashboard-top-tareas">
+                    <p class="text-sm text-slate-400 text-center py-4 italic">Cargando...</p>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl shadow p-6">
+                <h3 class="font-bold text-slate-800 mb-4">Tiempo medio por tarea</h3>
+                <canvas id="dashboard-grafico-media"></canvas>
+            </div>
+        </div>
+
+        <!-- Gráficos -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-white rounded-xl shadow p-6">
+                <h3 class="font-bold text-slate-800 mb-4">Distribución de tareas hoy</h3>
+                <canvas id="dashboard-grafico-tareas"></canvas>
+            </div>
+            <div class="bg-white rounded-xl shadow p-6">
+                <h3 class="font-bold text-slate-800 mb-4">Horas por usuario hoy</h3>
+                <canvas id="dashboard-grafico-usuarios"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- PESTAÑA HISTÓRICO -->
+    <div id="pestana-historico" class="hidden">
+        <div class="bg-white shadow-lg rounded-xl p-8">
+            <div class="border-b pb-4 mb-6">
+                <h1 class="text-2xl font-bold text-slate-800">Histórico</h1>
+                <p class="text-sm text-slate-500">Consulta el histórico por semana o mes</p>
+            </div>
+            <div class="flex gap-2 mb-6">
+                <button onclick="cambiarPeriodo('semana')" id="btn-periodo-semana" class="px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white">Por semana</button>
+                <button onclick="cambiarPeriodo('mes')" id="btn-periodo-mes" class="px-4 py-2 rounded-lg text-sm font-medium bg-white text-slate-600 border">Por mes</button>
+            </div>
+            <div id="filtros-semana" class="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Usuario:</label>
+                    <select id="historico-usuario-semana" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm">
+                        <option value="">-- Todos --</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Fecha de referencia:</label>
+                    <input type="date" id="historico-fecha-semana" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
+                </div>
+            </div>
+            <div id="filtros-mes" class="grid grid-cols-3 gap-4 mb-4 hidden">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Usuario:</label>
+                    <select id="historico-usuario-mes" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm">
+                        <option value="">-- Todos --</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Año:</label>
+                    <input type="number" id="historico-anyo" min="2024" max="2030" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Mes:</label>
+                    <select id="historico-mes" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm">
+                        <option value="1">Enero</option>
+                        <option value="2">Febrero</option>
+                        <option value="3">Marzo</option>
+                        <option value="4">Abril</option>
+                        <option value="5">Mayo</option>
+                        <option value="6">Junio</option>
+                        <option value="7">Julio</option>
+                        <option value="8">Agosto</option>
+                        <option value="9">Septiembre</option>
+                        <option value="10">Octubre</option>
+                        <option value="11">Noviembre</option>
+                        <option value="12">Diciembre</option>
+                    </select>
+                </div>
+            </div>
+            <button onclick="cargarHistorico()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-lg mb-6">Consultar</button>
+            <div id="historico-resultado">
+                <p class="text-sm text-slate-400 text-center py-8 italic">Selecciona un periodo y consulta.</p>
+            </div>
+            <div id="historico-grafico-contenedor" class="hidden mt-6">
+                <h3 class="text-sm font-semibold text-slate-700 mb-3">Evolución de horas</h3>
+                <canvas id="historico-grafico"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- PESTAÑA PROGRESO -->
+    <div id="pestana-progreso" class="hidden">
+        <div class="bg-white shadow-lg rounded-xl p-8">
+            <div class="border-b pb-4 mb-6">
+                <h1 class="text-2xl font-bold text-slate-800">Progreso por Usuario</h1>
+                <p class="text-sm text-slate-500">Visualización de horas registradas con gráficos</p>
+            </div>
+            <div class="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Usuario:</label>
+                    <select id="filtro-usuario" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                        <option value="">-- Selecciona usuario --</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Fecha:</label>
+                    <input type="date" id="filtro-fecha" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                </div>
+            </div>
+            <button onclick="cargarProgreso()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-lg mb-6">Consultar Progreso</button>
+            <div id="progreso-resultado"><p class="text-sm text-slate-400 text-center py-8 italic">Selecciona usuario y fecha.</p></div>
+            <div id="graficos-contenedor" class="hidden mt-6 space-y-8">
+                <div>
+                    <h3 class="text-sm font-semibold text-slate-700 mb-2">Distribución de la jornada</h3>
+                    <div id="barra-segmentada" style="height:32px;" class="w-full bg-slate-200 rounded-lg overflow-hidden flex gap-0.5"></div>
+                    <div id="leyenda-barra" class="mt-3 space-y-2"></div>
+                </div>
+                <div>
+                    <div class="flex justify-between text-xs text-slate-500 mb-1">
+                        <span>Jornada completada</span>
+                        <span id="porcentaje-label">0%</span>
+                    </div>
+                    <div class="w-full bg-slate-200 rounded-full h-3">
+                        <div id="barra-total" class="h-3 rounded-full transition-all duration-500 bg-blue-600" style="width:0%"></div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-slate-50 rounded-xl p-4">
+                        <h3 class="text-sm font-semibold text-slate-700 mb-3">Distribución por tarea</h3>
+                        <canvas id="grafico-tarta"></canvas>
+                    </div>
+                    <div class="bg-slate-50 rounded-xl p-4">
+                        <h3 class="text-sm font-semibold text-slate-700 mb-3">Minutos por subtarea</h3>
+                        <canvas id="grafico-barras"></canvas>
+                    </div>
+                </div>
+                <div class="bg-slate-50 rounded-xl p-4">
+                    <h3 class="text-sm font-semibold text-slate-700 mb-3">Evolución semanal (horas por día)</h3>
+                    <canvas id="grafico-semanal"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PESTAÑA VOLUMEN & MÉTRICAS -->
+    <div id="pestana-volumen" class="hidden">
+        <div class="bg-white shadow-lg rounded-xl p-8 mb-6">
+            <div class="border-b pb-4 mb-6">
+                <h1 class="text-2xl font-bold text-slate-800">Volumen & Métricas</h1>
+                <p class="text-sm text-slate-500">Introduce datos de volumen y compara con las horas reales de los operarios</p>
+            </div>
+
+            <!-- Formulario añadir volumen -->
+            <div class="bg-slate-50 rounded-xl p-5 mb-6">
+                <h3 class="text-sm font-bold text-slate-700 mb-4">Añadir datos de volumen</h3>
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-3">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Fecha:</label>
+                        <input type="date" id="vol-fecha" class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Tarea principal:</label>
+                        <select id="vol-tarea" class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                            <option value="Picking">Picking</option>
+                            <option value="Packing">Packing</option>
+                            <option value="Inbound">Inbound</option>
+                            <option value="Shipping">Shipping</option>
+                            <option value="Ecommerce">Ecommerce</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Unidades procesadas:</label>
+                        <input type="number" id="vol-unidades" min="0" placeholder="Ej: 500" class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Horas teóricas:</label>
+                        <input type="number" id="vol-horas" min="0" step="0.5" placeholder="Ej: 4.5" class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Comentarios (opcional):</label>
+                        <input type="text" id="vol-comentarios" placeholder="Ej: Campaña Black Friday" class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    </div>
+                </div>
+                <button onclick="crearVolumen()" class="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2.5 rounded-lg">+ Añadir datos de volumen</button>
+                <div id="vol-mensaje" class="mt-2 text-sm hidden"></div>
+            </div>
+
+            <!-- Filtros métricas -->
+            <div class="border-t pt-6">
+                <h3 class="text-sm font-bold text-slate-700 mb-4">Consultar métricas</h3>
+                <div class="grid grid-cols-2 gap-3 mb-4">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Desde:</label>
+                        <input type="date" id="vol-desde" class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Hasta:</label>
+                        <input type="date" id="vol-hasta" class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    </div>
+                </div>
+                <button onclick="cargarMetricas()" class="w-full bg-slate-700 hover:bg-slate-800 text-white text-sm font-medium py-2.5 rounded-lg mb-6">Consultar métricas</button>
+
+                <!-- KPIs métricas -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6" id="vol-kpis" style="display:none;">
+                    <div class="bg-blue-50 rounded-xl p-4 text-center">
+                        <div class="text-2xl font-bold text-blue-700" id="vol-kpi-unidades">—</div>
+                        <div class="text-xs text-slate-500 mt-1">Total unidades</div>
+                    </div>
+                    <div class="bg-violet-50 rounded-xl p-4 text-center">
+                        <div class="text-2xl font-bold text-violet-700" id="vol-kpi-horas-teo">—</div>
+                        <div class="text-xs text-slate-500 mt-1">Horas teóricas</div>
+                    </div>
+                    <div class="bg-amber-50 rounded-xl p-4 text-center">
+                        <div class="text-2xl font-bold text-amber-700" id="vol-kpi-horas-real">—</div>
+                        <div class="text-xs text-slate-500 mt-1">Horas reales</div>
+                    </div>
+                    <div class="bg-emerald-50 rounded-xl p-4 text-center">
+                        <div class="text-2xl font-bold text-emerald-700" id="vol-kpi-eficiencia">—</div>
+                        <div class="text-xs text-slate-500 mt-1">Eficiencia media</div>
+                    </div>
+                </div>
+
+                <!-- Gráficos métricas -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6" id="vol-graficos" style="display:none;">
+                    <div class="bg-slate-50 rounded-xl p-4">
+                        <h3 class="text-sm font-semibold text-slate-700 mb-3">Eficiencia por tarea (%)</h3>
+                        <canvas id="vol-grafico-eficiencia"></canvas>
+                    </div>
+                    <div class="bg-slate-50 rounded-xl p-4">
+                        <h3 class="text-sm font-semibold text-slate-700 mb-3">Horas teóricas vs reales</h3>
+                        <canvas id="vol-grafico-comparativa"></canvas>
+                    </div>
+                </div>
+
+                <!-- Tabla métricas -->
+                <div id="vol-tabla">
+                    <p class="text-sm text-slate-400 text-center py-8 italic">Selecciona un rango de fechas y consulta.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PESTAÑA PLANTILLAS -->
+    <div id="pestana-plantillas" class="hidden">
+        <div class="bg-white shadow-lg rounded-xl p-8">
+            <div class="border-b pb-4 mb-6">
+                <h1 class="text-2xl font-bold text-slate-800">Plantillas de Tareas</h1>
+                <p class="text-sm text-slate-500">Guarda y carga conjuntos de tareas frecuentes</p>
+            </div>
+            <div id="lista-plantillas">
+                <p class="text-sm text-slate-400 text-center py-8 italic">Cargando plantillas...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- PESTAÑA EDICIÓN -->
+    <div id="pestana-edicion" class="hidden">
+        <div class="bg-white shadow-lg rounded-xl p-8">
+            <div class="border-b pb-4 mb-6">
+                <h1 class="text-2xl font-bold text-slate-800">Editar Registros</h1>
+                <p class="text-sm text-slate-500">Consulta, edita, duplica o elimina registros guardados</p>
+            </div>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1">Usuario:</label>
+                    <select id="edicion-usuario" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm">
+                        <option value="">-- Todos --</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1">Tarea principal:</label>
+                    <select id="edicion-tarea" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm">
+                        <option value="">-- Todas --</option>
+                        <option value="Picking">Picking</option>
+                        <option value="Packing">Packing</option>
+                        <option value="Inbound">Inbound</option>
+                        <option value="Shipping">Shipping</option>
+                        <option value="Ecommerce">Ecommerce</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1">Desde:</label>
+                    <input type="date" id="edicion-fecha-desde" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1">Hasta:</label>
+                    <input type="date" id="edicion-fecha-hasta" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
+                </div>
+            </div>
+            <button onclick="cargarEdicion()" class="w-full bg-slate-700 hover:bg-slate-800 text-white font-medium py-2.5 rounded-lg mb-6">Buscar Registros</button>
+            <div id="edicion-resultado"><p class="text-sm text-slate-400 text-center py-8 italic">Usa los filtros para buscar registros.</p></div>
+        </div>
+    </div>
+
+    <!-- PESTAÑA USUARIOS -->
+    <div id="pestana-usuarios" class="hidden">
+        <div class="bg-white shadow-lg rounded-xl p-8">
+            <div class="border-b pb-4 mb-6">
+                <h1 class="text-2xl font-bold text-slate-800">Gestión de Usuarios</h1>
+                <p class="text-sm text-slate-500">Añade o elimina usuarios del sistema</p>
+            </div>
+            <div class="bg-slate-50 rounded-xl p-4 mb-6">
+                <h3 class="text-sm font-bold text-slate-700 mb-3">Añadir nuevo usuario</h3>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Nombre:</label>
+                        <input type="text" id="nuevo-nombre" placeholder="Ej: Ana Gómez" class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Código:</label>
+                        <input type="text" id="nuevo-codigo" placeholder="Ej: EMP001" class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">PIN:</label>
+                        <input type="password" id="nuevo-pin" placeholder="••••" maxlength="6" class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Rol:</label>
+                        <select id="nuevo-rol" class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                            <option value="operario">Operario</option>
+                            <option value="supervisor">Supervisor</option>
+                        </select>
+                    </div>
+                </div>
+                <button onclick="crearUsuario()" class="mt-3 w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 rounded-lg">+ Añadir Usuario</button>
+                <div id="usuarios-mensaje" class="mt-2 text-sm hidden"></div>
+            </div>
+            <div id="lista-usuarios"><p class="text-sm text-slate-400 text-center py-4 italic">Cargando usuarios...</p></div>
+        </div>
+    </div>
+
+    </div><!-- fin max-w -->
+
+    <!-- Modal edición -->
+    <div id="modal-edicion" style="display:none;" class="fixed inset-0 bg-black bg-opacity-50 items-center justify-center z-50">
+        <div class="bg-white rounded-xl p-6 w-full max-w-md mx-auto mt-10 shadow-xl">
+            <h3 class="text-lg font-bold text-slate-800 mb-4">Editar Registro</h3>
+            <input type="hidden" id="edit-id" />
+            <label class="block text-sm font-medium text-slate-700 mb-1">Usuario:</label>
+            <input type="text" id="edit-usuario" class="w-full px-3 py-2 border rounded-lg mb-3" />
+            <label class="block text-sm font-medium text-slate-700 mb-1">Fecha:</label>
+            <input type="date" id="edit-fecha" class="w-full px-3 py-2 border rounded-lg mb-3" />
+            <label class="block text-sm font-medium text-slate-700 mb-1">Tarea principal:</label>
+            <select id="edit-tarea-principal" onchange="actualizarSubtareasEdicion()" class="w-full px-3 py-2 border rounded-lg mb-3 bg-white">
+                <option value="Picking">Picking</option>
+                <option value="Packing">Packing</option>
+                <option value="Inbound">Inbound</option>
+                <option value="Shipping">Shipping</option>
+                <option value="Ecommerce">Ecommerce</option>
+            </select>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Subtarea:</label>
+            <select id="edit-subtarea" class="w-full px-3 py-2 border rounded-lg mb-3 bg-white"></select>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Tiempo:</label>
+            <select id="edit-tiempo" class="w-full px-3 py-2 border rounded-lg mb-3 bg-white">
+                <option value="15">15 minutos</option>
+                <option value="30">30 minutos</option>
+                <option value="45">45 minutos</option>
+                <option value="60">1 hora</option>
+                <option value="90">1h 30min</option>
+                <option value="120">2 horas</option>
+                <option value="180">3 horas</option>
+                <option value="240">4 horas</option>
+                <option value="480">8 horas</option>
+            </select>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Proyecto:</label>
+            <input type="text" id="edit-proyecto" class="w-full px-3 py-2 border rounded-lg mb-3" />
+            <label class="block text-sm font-medium text-slate-700 mb-1">Comentarios:</label>
+            <input type="text" id="edit-comentarios" class="w-full px-3 py-2 border rounded-lg mb-4" />
+            <div class="flex gap-3">
+                <button onclick="guardarEdicion()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded-
+            <div class="flex gap-3">
+                <button onclick="guardarEdicion()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded-lg">Guardar cambios</button>
+                <button onclick="cerrarModal()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-2 px-4 rounded-lg">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal guardar plantilla -->
+    <div id="modal-plantilla" style="display:none;" class="fixed inset-0 bg-black bg-opacity-50 items-center justify-center z-50">
+        <div class="bg-white rounded-xl p-6 w-full max-w-sm mx-auto mt-20 shadow-xl">
+            <h3 class="text-lg font-bold text-slate-800 mb-4">Guardar como plantilla</h3>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Nombre de la plantilla:</label>
+            <input type="text" id="plantilla-nombre" placeholder="Ej: Turno mañana almacén" class="w-full px-3 py-2 border rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            <div class="flex gap-3">
+                <button onclick="confirmarGuardarPlantilla()" class="flex-1 bg-violet-600 hover:bg-violet-700 text-white font-medium py-2 rounded-lg">Guardar</button>
+                <button onclick="cerrarModalPlantilla()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-2 px-4 rounded-lg">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+</div><!-- fin app-principal -->
 <script>
-// ─── VOLÚMENES ────────────────────────────────────────────────────────────────
-async function cargarVolumenes() {
-    const fecha = document.getElementById('filtro-fecha-vol').value;
-    const turno = document.getElementById('filtro-turno-vol').value;
-    let url = '/api/volumenes?';
-    if (fecha) url += `fecha=${fecha}&`;
-    if (turno) url += `turno=${turno}&`;
+    const API = "";
+    const hoy = new Date().toISOString().split('T')[0];
 
-    try {
-        const data = await fetch(url).then(r => r.json());
-        const tbody = document.getElementById('tabla-volumenes');
-        tbody.innerHTML = data.length === 0
-            ? '<tr><td colspan="6" class="px-4 py-6 text-center text-gray-400">Sin volúmenes</td></tr>'
-            : data.map(v => `
-                <tr class="hover:bg-gray-50">
-                    <td class="px-4 py-3">${v.fecha}</td>
-                    <td class="px-4 py-3 capitalize">${v.turno}</td>
-                    <td class="px-4 py-3">${v.categoria}</td>
-                    <td class="px-4 py-3">${v.cantidad.toLocaleString()}</td>
-                    <td class="px-4 py-3">${v.notas || '—'}</td>
-                    <td class="px-4 py-3">
-                        <button class="btn-danger text-xs" onclick="eliminarVolumen(${v.id})">Eliminar</button>
-                    </td>
-                </tr>
-            `).join('');
-    } catch(e) {
-        console.error('Error cargando volúmenes:', e);
-    }
-}
+    let usuarioSesion = null;
+    let tareasPendientes = [];
+    let tiempoSeleccionado = 0;
+    let periodoHistorico = "semana";
+    let graficaTarta = null;
+    let graficaBarras = null;
+    let graficaSemanal = null;
+    let dashboardGraficoTareas = null;
+    let dashboardGraficoUsuarios = null;
+    let dashboardGraficoMedia = null;
+    let historicoGrafico = null;
+    let volGraficoEficiencia = null;
+    let volGraficoComparativa = null;
 
-function limpiarFiltrosVol() {
-    document.getElementById('filtro-fecha-vol').value = '';
-    document.getElementById('filtro-turno-vol').value = '';
-    cargarVolumenes();
-}
-
-function abrirModalVolumen() {
-    document.getElementById('vol-categoria').value = '';
-    document.getElementById('vol-cantidad').value  = '';
-    document.getElementById('vol-turno').value     = 'mañana';
-    document.getElementById('vol-fecha').value     = new Date().toISOString().split('T')[0];
-    document.getElementById('vol-notas').value     = '';
-    document.getElementById('modal-volumen').classList.remove('hidden');
-}
-
-async function guardarVolumen() {
-    const body = {
-        categoria: document.getElementById('vol-categoria').value.trim(),
-        cantidad:  parseFloat(document.getElementById('vol-cantidad').value) || 0,
-        turno:     document.getElementById('vol-turno').value,
-        fecha:     document.getElementById('vol-fecha').value,
-        notas:     document.getElementById('vol-notas').value.trim() || null
+    const coloresTarea = {
+        "Picking":   { bg: "#3b82f6", light: "#eff6ff", text: "#1d4ed8" },
+        "Packing":   { bg: "#8b5cf6", light: "#f5f3ff", text: "#6d28d9" },
+        "Inbound":   { bg: "#f59e0b", light: "#fffbeb", text: "#b45309" },
+        "Shipping":  { bg: "#10b981", light: "#ecfdf5", text: "#065f46" },
+        "Ecommerce": { bg: "#ef4444", light: "#fef2f2", text: "#b91c1c" },
+        "Otro":      { bg: "#94a3b8", light: "#f8fafc", text: "#475569" }
     };
-    if (!body.categoria) return alert('La categoría es obligatoria');
 
-    try {
-        const res = await fetch('/api/volumenes', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body)
-        });
-        if (!res.ok) throw new Error();
-        cerrarModal('modal-volumen');
-        cargarVolumenes();
-    } catch {
-        alert('Error al guardar el volumen');
-    }
-}
-
-async function eliminarVolumen(id) {
-    if (!confirm('¿Eliminar este volumen?')) return;
-    await fetch(`/api/volumenes/${id}`, { method: 'DELETE' });
-    cargarVolumenes();
-}
-
-// ─── PLANTILLAS ───────────────────────────────────────────────────────────────
-async function cargarPlantillas() {
-    try {
-        const data = await fetch('/api/plantillas').then(r => r.json());
-        const grid = document.getElementById('grid-plantillas');
-        grid.innerHTML = data.length === 0
-            ? '<p class="text-gray-400 col-span-3">Sin plantillas creadas</p>'
-            : data.map(p => `
-                <div class="card p-5">
-                    <h4 class="font-semibold text-gray-800 mb-1">${p.nombre}</h4>
-                    <p class="text-sm text-gray-500 mb-4">${p.descripcion || 'Sin descripción'}</p>
-                    <button class="btn-danger text-xs w-full" onclick="eliminarPlantilla(${p.id})">Eliminar</button>
-                </div>
-            `).join('');
-    } catch(e) {
-        console.error('Error cargando plantillas:', e);
-    }
-}
-
-function abrirModalPlantilla() {
-    document.getElementById('pla-nombre').value      = '';
-    document.getElementById('pla-descripcion').value = '';
-    document.getElementById('modal-plantilla').classList.remove('hidden');
-}
-
-async function guardarPlantilla() {
-    const body = {
-        nombre:      document.getElementById('pla-nombre').value.trim(),
-        descripcion: document.getElementById('pla-descripcion').value.trim() || null
+    const subtareasPorTarea = {
+        "Picking":   ["Picking RF", "Picking Manual", "Picking Lote", "Revisión de Picking"],
+        "Packing":   ["Embalaje Estándar", "Embalaje Frágil", "Etiquetado", "Precintado"],
+        "Inbound":   ["Recepción de mercancía", "Desconsolidación", "Control de calidad", "Ubicación en estantería"],
+        "Shipping":  ["Carga de camión", "Validación de albaranes", "Expedición urgente"],
+        "Ecommerce": ["Preparación de pedidos B2C", "Gestión de devoluciones", "Embalaje especial E-commerce"]
     };
-    if (!body.nombre) return alert('El nombre es obligatorio');
 
-    try {
-        const res = await fetch('/api/plantillas', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body)
+    const avatarColores = ["#3b82f6","#8b5cf6","#f59e0b","#10b981","#ef4444","#ec4899","#06b6d4"];
+
+    window.onload = function() {
+        document.getElementById("login-codigo").focus();
+        document.getElementById("fecha").value = hoy;
+        document.getElementById("filtro-fecha").value = hoy;
+        document.getElementById("edicion-fecha-desde").value = hoy;
+        document.getElementById("edicion-fecha-hasta").value = hoy;
+        document.getElementById("dashboard-fecha").value = hoy;
+        document.getElementById("historico-fecha-semana").value = hoy;
+        document.getElementById("vol-fecha").value = hoy;
+        document.getElementById("vol-desde").value = hoy;
+        document.getElementById("vol-hasta").value = hoy;
+        const fechaActual = new Date();
+        document.getElementById("historico-anyo").value = fechaActual.getFullYear();
+        document.getElementById("historico-mes").value = fechaActual.getMonth() + 1;
+        actualizarSubtareas();
+        document.getElementById("login-codigo").addEventListener("keydown", function(e) {
+            if (e.key === "Enter") document.getElementById("login-pin").focus();
         });
-        if (!res.ok) throw new Error();
-        cerrarModal('modal-plantilla');
+        document.getElementById("login-pin").addEventListener("keydown", function(e) {
+            if (e.key === "Enter") hacerLogin();
+        });
+    };
+
+    // ==================== LOGIN ====================
+    async function hacerLogin() {
+        const codigo = document.getElementById("login-codigo").value.trim();
+        const pin = document.getElementById("login-pin").value.trim();
+        const errorDiv = document.getElementById("login-error");
+        if (!codigo || !pin) {
+            errorDiv.textContent = "Introduce tu código y PIN.";
+            errorDiv.classList.remove("hidden");
+            return;
+        }
+        try {
+            const resp = await fetch(`${API}/login/`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ codigo, pin })
+            });
+            if (!resp.ok) {
+                errorDiv.textContent = "Código o PIN incorrectos.";
+                errorDiv.classList.remove("hidden");
+                document.getElementById("login-pin").value = "";
+                return;
+            }
+            usuarioSesion = await resp.json();
+            errorDiv.classList.add("hidden");
+            iniciarSesion();
+        } catch {
+            errorDiv.textContent = "No se pudo conectar con el servidor.";
+            errorDiv.classList.remove("hidden");
+        }
+    }
+
+    function iniciarSesion() {
+        document.getElementById("pantalla-login").classList.add("hidden");
+        document.getElementById("app-principal").classList.remove("hidden");
+
+        const avatar = document.getElementById("header-avatar");
+        avatar.style.backgroundColor = avatarColores[usuarioSesion.id % avatarColores.length];
+        avatar.textContent = usuarioSesion.nombre.charAt(0).toUpperCase();
+        document.getElementById("header-nombre").textContent = usuarioSesion.nombre;
+
+        const rolBadge = document.getElementById("header-rol");
+        if (usuarioSesion.rol === "supervisor") {
+            rolBadge.textContent = "Supervisor";
+            rolBadge.className = "text-xs px-2 py-0.5 rounded-full font-medium bg-violet-100 text-violet-700";
+            ["tab-dashboard","tab-historico","tab-progreso","tab-volumen","tab-plantillas","tab-edicion","tab-usuarios"].forEach(id => {
+                document.getElementById(id).classList.remove("hidden");
+            });
+            document.getElementById("btn-excel").classList.remove("hidden");
+            cargarUsuariosGestion();
+            cargarDashboard();
+        } else {
+            rolBadge.textContent = "Operario";
+            rolBadge.className = "text-xs px-2 py-0.5 rounded-full font-medium bg-blue-100 text-blue-700";
+            document.getElementById("tab-plantillas").classList.remove("hidden");
+        }
+
+        document.getElementById("estado-nombre").textContent = usuarioSesion.nombre;
+        document.getElementById("estado-fecha").textContent = new Date().toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" });
+
+        actualizarIndicadorTiempo();
+        cargarUsuariosFiltros();
         cargarPlantillas();
-    } catch {
-        alert('Error al guardar la plantilla');
+        mostrarPestana("registro");
     }
-}
 
-async function eliminarPlantilla(id) {
-    if (!confirm('¿Eliminar esta plantilla?')) return;
-    await fetch(`/api/plantillas/${id}`, { method: 'DELETE' });
-    cargarPlantillas();
-}
-
-// ─── OBJETIVOS ────────────────────────────────────────────────────────────────
-async function cargarObjetivos() {
-    try {
-        const data = await fetch('/api/objetivos').then(r => r.json());
-        const grid = document.getElementById('grid-objetivos');
-        grid.innerHTML = data.length === 0
-            ? '<p class="text-gray-400 col-span-3">Sin objetivos creados</p>'
-            : data.map(o => `
-                <div class="card p-5">
-                    <h4 class="font-semibold text-gray-800 mb-1">${o.nombre}</h4>
-                    <p class="text-2xl font-bold text-blue-600 my-2">${o.meta.toLocaleString()} <span class="text-sm font-normal text-gray-500">${o.unidad}</span></p>
-                    <button class="btn-danger text-xs w-full" onclick="eliminarObjetivo(${o.id})">Eliminar</button>
-                </div>
-            `).join('');
-    } catch(e) {
-        console.error('Error cargando objetivos:', e);
-    }
-}
-
-function abrirModalObjetivo() {
-    document.getElementById('obj-nombre').value = '';
-    document.getElementById('obj-meta').value   = '';
-    document.getElementById('obj-unidad').value = 'unidades';
-    document.getElementById('modal-objetivo').classList.remove('hidden');
-}
-
-async function guardarObjetivo() {
-    const body = {
-        nombre: document.getElementById('obj-nombre').value.trim(),
-        meta:   parseFloat(document.getElementById('obj-meta').value) || 0,
-        unidad: document.getElementById('obj-unidad').value.trim() || 'unidades'
-    };
-    if (!body.nombre) return alert('El nombre es obligatorio');
-
-    try {
-        const res = await fetch('/api/objetivos', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body)
+    function cerrarSesion() {
+        usuarioSesion = null;
+        tareasPendientes = [];
+        tiempoSeleccionado = 0;
+        actualizarLista();
+        document.getElementById("pantalla-login").classList.remove("hidden");
+        document.getElementById("app-principal").classList.add("hidden");
+        document.getElementById("login-codigo").value = "";
+        document.getElementById("login-pin").value = "";
+        document.getElementById("login-codigo").focus();
+        ["tab-dashboard","tab-historico","tab-progreso","tab-volumen","tab-plantillas","tab-edicion","tab-usuarios"].forEach(id => {
+            document.getElementById(id).classList.add("hidden");
         });
-        if (!res.ok) throw new Error();
-        cerrarModal('modal-objetivo');
-        cargarObjetivos();
-    } catch {
-        alert('Error al guardar el objetivo');
+        document.getElementById("btn-excel").classList.add("hidden");
+        resetearBotonesTiempo();
     }
-}
 
-async function eliminarObjetivo(id) {
-    if (!confirm('¿Eliminar este objetivo?')) return;
-    await fetch(`/api/objetivos/${id}`, { method: 'DELETE' });
-    cargarObjetivos();
-}
-
-// ─── USUARIOS ────────────────────────────────────────────────────────────────
-async function cargarUsuarios() {
-    try {
-        const data = await fetch('/api/usuarios').then(r => r.json());
-        const tbody = document.getElementById('tabla-usuarios');
-        tbody.innerHTML = data.length === 0
-            ? '<tr><td colspan="5" class="px-4 py-6 text-center text-gray-400">Sin usuarios</td></tr>'
-            : data.map(u => `
-                <tr class="hover:bg-gray-50">
-                    <td class="px-4 py-3 font-mono font-semibold">${u.codigo}</td>
-                    <td class="px-4 py-3">${u.nombre}</td>
-                    <td class="px-4 py-3">
-                        <span class="${u.rol === 'supervisor' ? 'badge-supervisor' : 'badge-operario'}">${u.rol}</span>
-                    </td>
-                    <td class="px-4 py-3">
-                        <span class="${u.activo ? 'text-green-600' : 'text-red-400'} font-semibold">
-                            ${u.activo ? 'Activo' : 'Inactivo'}
-                        </span>
-                    </td>
-                    <td class="px-4 py-3">
-                        ${u.codigo !== 'ADMIN' ? `
-                            <button class="btn-danger text-xs" onclick="desactivarUsuario(${u.id})">
-                                ${u.activo ? 'Desactivar' : 'Activar'}
-                            </button>
-                        ` : '—'}
-                    </td>
-                </tr>
-            `).join('');
-    } catch(e) {
-        console.error('Error cargando usuarios:', e);
+    // ==================== INDICADOR TIEMPO ====================
+    async function actualizarIndicadorTiempo() {
+        if (!usuarioSesion) return;
+        try {
+            const resp = await fetch(`${API}/registros/${usuarioSesion.codigo}`);
+            if (!resp.ok) { actualizarTarjetaEstado(0); return; }
+            const registros = await resp.json();
+            const totalHoy = registros.filter(r => r.fecha === hoy).reduce((sum, r) => sum + r.tiempo_minutos, 0);
+            const totalPendiente = tareasPendientes.reduce((sum, t) => sum + t.tiempo_minutos, 0);
+            actualizarTarjetaEstado(totalHoy + totalPendiente);
+        } catch { actualizarTarjetaEstado(0); }
     }
-}
 
-function abrirModalUsuario() {
-    document.getElementById('usu-codigo').value = '';
-    document.getElementById('usu-nombre').value = '';
-    document.getElementById('usu-pin').value    = '';
-    document.getElementById('usu-rol').value    = 'operario';
-    document.getElementById('modal-usuario').classList.remove('hidden');
-}
+    function actualizarTarjetaEstado(totalMinutos) {
+        const horas = Math.floor(totalMinutos / 60);
+        const mins = totalMinutos % 60;
+        const restante = Math.max(0, 480 - totalMinutos);
+        const restanteH = Math.floor(restante / 60);
+        const restanteM = restante % 60;
+        const porcentaje = Math.min((totalMinutos / 480) * 100, 100);
+        document.getElementById("estado-tiempo").textContent = `${horas}h ${mins}min`;
+        document.getElementById("estado-restante").textContent = restante > 0 ? `Faltan ${restanteH}h ${restanteM}min` : "✅ Jornada completa";
+        document.getElementById("estado-barra").style.width = `${porcentaje}%`;
+        const tarjeta = document.getElementById("tarjeta-estado");
+        if (porcentaje >= 100) tarjeta.className = "rounded-2xl p-5 mb-6 text-white bg-emerald-500";
+        else if (porcentaje >= 60) tarjeta.className = "rounded-2xl p-5 mb-6 text-white bg-blue-500";
+        else if (porcentaje >= 30) tarjeta.className = "rounded-2xl p-5 mb-6 text-white bg-amber-500";
+        else tarjeta.className = "rounded-2xl p-5 mb-6 text-white bg-slate-500";
+    }
 
-async function guardarUsuario() {
-    const body = {
-        codigo: document.getElementById('usu-codigo').value.trim().toUpperCase(),
-        nombre: document.getElementById('usu-nombre').value.trim(),
-        pin:    document.getElementById('usu-pin').value.trim(),
-        rol:    document.getElementById('usu-rol').value
-    };
-    if (!body.codigo || !body.nombre || !body.pin) return alert('Todos los campos son obligatorios');
-
-    try {
-        const res = await fetch('/api/usuarios', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body)
-        });
-        if (!res.ok) {
-            const err = await res.json();
-            return alert(err.detail || 'Error al crear usuario');
+    // ==================== NAVEGACIÓN ====================
+    function mostrarPestana(nombre) {
+        const pestanasPermitidas = usuarioSesion.rol === "supervisor"
+            ? ["registro","dashboard","historico","progreso","volumen","plantillas","edicion","usuarios"]
+            : ["registro","plantillas"];
+        if (!pestanasPermitidas.includes(nombre)) {
+            alert("No tienes permisos para acceder a esta sección.");
+            return;
         }
-        cerrarModal('modal-usuario');
-        cargarUsuarios();
-    } catch {
-        alert('Error al guardar el usuario');
+        ["registro","dashboard","historico","progreso","volumen","plantillas","edicion","usuarios"].forEach(p => {
+            const pestana = document.getElementById(`pestana-${p}`);
+            const tab = document.getElementById(`tab-${p}`);
+            if (pestana) pestana.classList.add("hidden");
+            if (tab) {
+                tab.className = tab.className
+                    .replace("bg-blue-600 text-white", "bg-white text-slate-600 border")
+                    .replace("bg-blue-600", "bg-white");
+            }
+        });
+        document.getElementById(`pestana-${nombre}`).classList.remove("hidden");
+        const tabActivo = document.getElementById(`tab-${nombre}`);
+        if (tabActivo) {
+            tabActivo.className = tabActivo.className
+                .replace("bg-white text-slate-600 border", "bg-blue-600 text-white")
+                .replace("bg-white", "bg-blue-600");
+        }
+        if (nombre === "progreso" || nombre === "edicion") cargarUsuariosFiltros();
+        if (nombre === "usuarios") cargarUsuariosGestion();
+        if (nombre === "dashboard") cargarDashboard();
+        if (nombre === "plantillas") cargarPlantillas();
+        if (nombre === "historico") cargarUsuariosHistorico();
+        if (nombre === "volumen") {
+            document.getElementById("vol-fecha").value = hoy;
+            document.getElementById("vol-desde").value = hoy;
+            document.getElementById("vol-hasta").value = hoy;
+        }
     }
-}
 
-async function desactivarUsuario(id) {
-    if (!confirm('¿Cambiar estado de este usuario?')) return;
-    const usuarios = await fetch('/api/usuarios').then(r => r.json());
-    const u = usuarios.find(x => x.id === id);
-    if (!u) return;
-    await fetch(`/api/usuarios/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ activo: !u.activo })
-    });
-    cargarUsuarios();
-}
+    // ==================== SUBTAREAS ====================
+    function actualizarSubtareas() {
+        const principal = document.getElementById("tarea_principal").value;
+        const sel = document.getElementById("subtarea");
+        sel.innerHTML = "";
+        (subtareasPorTarea[principal] || []).forEach(sub => {
+            const o = document.createElement("option");
+            o.value = sub; o.textContent = sub;
+            sel.appendChild(o);
+        });
+    }
 
-// ─── UTILIDADES ──────────────────────────────────────────────────────────────
-function cerrarModal(id) {
-    document.getElementById(id).classList.add('hidden');
-}
+    function actualizarSubtareasEdicion(subtareaSeleccionada = "") {
+        const principal = document.getElementById("edit-tarea-principal").value;
+        const sel = document.getElementById("edit-subtarea");
+        sel.innerHTML = "";
+        (subtareasPorTarea[principal] || []).forEach(sub => {
+            const o = document.createElement("option");
+            o.value = sub; o.textContent = sub;
+            if (sub === subtareaSeleccionada) o.selected = true;
+            sel.appendChild(o);
+        });
+    }
 
-// Cerrar modal al hacer clic fuera
-document.querySelectorAll('[id^="modal-"]').forEach(modal => {
-    modal.addEventListener('click', e => {
-        if (e.target === modal) cerrarModal(modal.id);
-    });
-});
+    // ==================== BOTONES DE TIEMPO ====================
+    function seleccionarTiempo(minutos) {
+        tiempoSeleccionado = minutos;
+        document.getElementById("tiempo_minutos").value = minutos;
+        const etiquetas = { 15:"15 min", 30:"30 min", 45:"45 min", 60:"1 hora", 90:"1h 30min", 120:"2 horas", 180:"3 horas", 240:"4 horas" };
+        document.getElementById("tiempo-seleccionado").textContent = etiquetas[minutos] || `${minutos} min`;
+        document.querySelectorAll(".tiempo-btn").forEach(btn => {
+            btn.className = "tiempo-btn py-3 rounded-xl border-2 border-slate-200 text-sm font-bold text-slate-700 hover:border-blue-400 hover:bg-blue-50 transition";
+        });
+        const valores = [15,30,45,60,90,120,180,240];
+        const index = valores.indexOf(minutos);
+        if (index !== -1) {
+            document.querySelectorAll(".tiempo-btn")[index].className = "tiempo-btn py-3 rounded-xl border-2 border-blue-500 bg-blue-50 text-sm font-bold text-blue-700 transition";
+        }
+    }
+
+    function resetearBotonesTiempo() {
+        tiempoSeleccionado = 0;
+        document.getElementById("tiempo_minutos").value = 0;
+        document.getElementById("tiempo-seleccionado").textContent = "Ninguno";
+        document.querySelectorAll(".tiempo-btn").forEach(btn => {
+            btn.className = "tiempo-btn py-3 rounded-xl border-2 border-slate-200 text-sm font-bold text-slate-700 hover:border-blue-400 hover:bg-blue-50 transition";
+        });
+    }
+
+    // ==================== REGISTRO ====================
+    function añadirTarea() {
+        if (tiempoSeleccionado === 0) { alert("Por favor, selecciona el tiempo dedicado."); return; }
+        const tarea_principal = document.getElementById("tarea_principal").value;
+        const subtarea = document.getElementById("subtarea").value;
+        const totalActual = tareasPendientes.reduce((sum, t) => sum + t.tiempo_minutos, 0);
+        if (totalActual + tiempoSeleccionado > 480) {
+            alert(`No puedes superar 8 horas. Te quedan ${480 - totalActual} minutos.`);
+            return;
+        }
+        tareasPendientes.push({
+            usuario: usuarioSesion.codigo,
+            fecha: document.getElementById("fecha").value,
+            tarea_principal,
+            subtarea,
+            tiempo_minutos: tiempoSeleccionado,
+            proyecto: document.getElementById("proyecto").value || null,
+            comentarios: document.getElementById("comentarios").value || null
+        });
+        actualizarLista();
+        actualizarTarjetaEstado(tareasPendientes.reduce((s, t) => s + t.tiempo_minutos, 0));
+        resetearBotonesTiempo();
+        document.getElementById("proyecto").value = "";
+        document.getElementById("comentarios").value = "";
+    }
+
+    function eliminarTareaLista(index) {
+        tareasPendientes.splice(index, 1);
+        actualizarLista();
+        actualizarIndicadorTiempo();
+    }
+
+    function actualizarLista() {
+        const contenedor = document.getElementById("tareas");
+        contenedor.innerHTML = "";
+        let totalMinutos = 0;
+        if (tareasPendientes.length === 0) {
+            contenedor.innerHTML = `<p class="text-sm text-slate-400 text-center py-4 italic">No hay tareas añadidas todavía.</p>`;
+        } else {
+            tareasPendientes.forEach((t, index) => {
+                totalMinutos += t.tiempo_minutos;
+                const horas = Math.floor(t.tiempo_minutos / 60);
+                const mins = t.tiempo_minutos % 60;
+                const tiempoTexto = horas > 0 ? `${horas}h ${mins}min` : `${mins}min`;
+                const color = coloresTarea[t.tarea_principal] || coloresTarea["Otro"];
+                contenedor.innerHTML += `
+                    <div style="background-color:${color.light};border-left:4px solid ${color.bg}" class="p-3 rounded-lg flex justify-between items-center text-sm">
+                        <div>
+                            <span style="color:${color.text}" class="font-semibold">${t.tarea_principal} - ${t.subtarea}</span>
+                            <span class="text-slate-500 ml-2">(${tiempoTexto})</span>
+                        </div>
+                        <button onclick="eliminarTareaLista(${index})" class="text-rose-500 hover:text-rose-700 font-bold px-2 py-1 text-lg">✕</button>
+                    </div>`;
+            });
+        }
+        document.getElementById("contador").textContent = `(${tareasPendientes.length})`;
+        document.getElementById("total").textContent = `Total: ${totalMinutos} min (${(totalMinutos/60).toFixed(2)}h)`;
+    }
+
+    async function guardarTodo() {
+        if (tareasPendientes.length === 0) { alert("No hay tareas en la lista."); return; }
+        let exito = 0, error = 0;
+        for (const tarea of tareasPendientes) {
+            try {
+                const r = await fetch(`${API}/registros/`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(tarea)
+                });
+                if (r.ok) exito++; else error++;
+            } catch { error++; }
+        }
+        if (error === 0) {
+            mostrarConfirmacion(exito);
+            limpiarLista();
+        } else {
+            const div = document.getElementById("respuesta");
+            div.style.display = "block";
+            div.className = "mt-4 p-3 rounded-lg text-sm bg-rose-100 text-rose-800";
+            div.innerHTML = `⚠️ ${exito} guardadas, ${error} fallaron.`;
+        }
+    }
+
+    function mostrarConfirmacion(numTareas) {
+        const pantalla = document.getElementById("pantalla-confirmacion");
+        document.getElementById("confirmacion-texto").textContent = `${numTareas} tarea(s) registradas para ${usuarioSesion.nombre}`;
+        pantalla.classList.remove("hidden");
+        pantalla.style.display = "flex";
+        let cuenta = 3;
+        document.getElementById("confirmacion-cuenta").textContent = cuenta;
+        const intervalo = setInterval(() => {
+            cuenta--;
+            document.getElementById("confirmacion-cuenta").textContent = cuenta;
+            if (cuenta <= 0) {
+                clearInterval(intervalo);
+                pantalla.style.display = "none";
+                pantalla.classList.add("hidden");
+                actualizarIndicadorTiempo();
+            }
+        }, 1000);
+    }
+
+    function limpiarLista() { tareasPendientes = []; actualizarLista(); actualizarIndicadorTiempo(); }
+    function descargarExcel() { window.open(`${API}/exportar-excel/`, "_blank"); }
+
+    // ==================== PLANTILLAS ====================
+    function guardarComoPlantilla() {
+        if (tareasPendientes.length === 0) { alert("Añade tareas a la lista antes de guardar una plantilla."); return; }
+        document.getElementById("plantilla-nombre").value = "";
+        document.getElementById("modal-plantilla").style.display = "flex";
+    }
+
+    function cerrarModalPlantilla() {
+        document.getElementById("modal-plantilla").style.display = "none";
+    }
+
+    async function confirmarGuardarPlantilla() {
+        const nombre = document.getElementById("plantilla-nombre").value.trim();
+        if (!nombre) { alert("Introduce un nombre para la plantilla."); return; }
+        const plantilla = {
+            nombre,
+            usuario: usuarioSesion.codigo,
+            items: tareasPendientes.map(t => ({
+                tarea_principal: t.tarea_principal,
+                subtarea: t.subtarea,
+                tiempo_minutos: t.tiempo_minutos,
+                proyecto: t.proyecto,
+                comentarios: t.comentarios
+            }))
+        };
+        try {
+            const resp = await fetch(`${API}/plantillas/`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(plantilla)
+            });
+            if (resp.ok) {
+                cerrarModalPlantilla();
+                alert("Plantilla guardada correctamente.");
+                cargarPlantillas();
+            } else {
+                alert("Error al guardar la plantilla.");
+            }
+        } catch { alert("Error de conexión."); }
+    }
+
+    async function cargarPlantillas() {
+        try {
+            const resp = await fetch(`${API}/plantillas/?usuario=${usuarioSesion.codigo}`);
+            const plantillas = await resp.json();
+            const contenedor = document.getElementById("lista-plantillas");
+            if (plantillas.length === 0) {
+                contenedor.innerHTML = `<p class="text-sm text-slate-400 text-center py-8 italic">No tienes plantillas guardadas. Añade tareas y guárdalas como plantilla desde la pestaña de Registro.</p>`;
+                return;
+            }
+            contenedor.innerHTML = `<div class="space-y-4">` + plantillas.map(p => `
+                <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 class="font-bold text-slate-800">${p.nombre}</h3>
+                        <div class="flex gap-2">
+                            <button onclick="usarPlantilla(${p.id})" class="text-xs bg-blue-600 hover:bg-blue-700 text-white font-medium px-3 py-1.5 rounded-lg">Cargar</button>
+                            <button onclick="eliminarPlantilla(${p.id})" class="text-xs bg-rose-100 hover:bg-rose-200 text-rose-700 font-medium px-3 py-1.5 rounded-lg">Eliminar</button>
+                        </div>
+                    </div>
+                    <div class="space-y-1">
+                        ${p.items.map(i => {
+                            const color = coloresTarea[i.tarea_principal] || coloresTarea["Otro"];
+                            const h = Math.floor(i.tiempo_minutos/60);
+                            const m = i.tiempo_minutos%60;
+                            return `<div class="flex justify-between text-sm p-2 rounded-lg" style="background-color:${color.light}">
+                                <span style="color:${color.text}" class="font-medium">${i.tarea_principal} - ${i.subtarea}</span>
+                                <span class="text-slate-500">${h > 0 ? h+"h " : ""}${m}min</span>
+                            </div>`;
+                        }).join("")}
+                    </div>
+                    <div class="mt-2 text-xs text-slate-400">Total: ${p.items.reduce((s,i) => s+i.tiempo_minutos, 0)} min</div>
+                </div>
+            `).join("") + `</div>`;
+        } catch {
+            document.getElementById("lista-plantillas").innerHTML = `<p class="text-sm text-rose-500 text-center py-4">Error cargando plantillas.</p>`;
+        }
+    }
+
+    async function usarPlantilla(id) {
+        try {
+            const resp = await fetch(`${API}/plantillas/?usuario=${usuarioSesion.codigo}`);
+            const plantillas = await resp.json();
+            const plantilla = plantillas.find(p => p.id === id);
+            if (!plantilla) return;
+            if (tareasPendientes.length > 0) {
+                if (!confirm("Se reemplazará la lista actual con la plantilla. ¿Continuar?")) return;
+            }
+            tareasPendientes = plantilla.items.map(i => ({
+                usuario: usuarioSesion.codigo,
+                fecha: document.getElementById("fecha").value,
+                tarea_principal: i.tarea_principal,
+                subtarea: i.subtarea,
+                tiempo_minutos: i.tiempo_minutos,
+                proyecto: i.proyecto,
+                comentarios: i.comentarios
+            }));
+            actualizarLista();
+            actualizarTarjetaEstado(tareasPendientes.reduce((s,t) => s+t.tiempo_minutos, 0));
+            mostrarPestana("registro");
+        } catch { alert("Error cargando plantilla."); }
+    }
+
+    async function eliminarPlantilla(id) {
+        if (!confirm("¿Seguro que quieres eliminar esta plantilla?")) return;
+        try {
+            const resp = await fetch(`${API}/plantillas/${id}`, { method: "DELETE" });
+            if (resp.ok) cargarPlantillas();
+            else alert("Error al eliminar la plantilla.");
+        } catch { alert("Error de conexión."); }
+    }
+
+    // ==================== USUARIOS FILTROS ====================
+    async function cargarUsuariosFiltros() {
+        try {
+            const resp = await fetch(`${API}/usuarios/`);
+            const usuarios = await resp.json();
+            ["filtro-usuario","edicion-usuario"].forEach(id => {
+                const select = document.getElementById(id);
+                if (!select) return;
+                const def = id === "filtro-usuario"
+                    ? `<option value="">-- Selecciona usuario --</option>`
+                    : `<option value="">-- Todos --</option>`;
+                select.innerHTML = def;
+                usuarios.forEach(u => {
+                    const o = document.createElement("option");
+                    o.value = u.codigo; o.textContent = u.nombre;
+                    select.appendChild(o);
+                });
+            });
+        } catch {}
+    }
+
+    async function cargarUsuariosHistorico() {
+        try {
+            const resp = await fetch(`${API}/usuarios/`);
+            const usuarios = await resp.json();
+            ["historico-usuario-semana","historico-usuario-mes"].forEach(id => {
+                const select = document.getElementById(id);
+                if (!select) return;
+                select.innerHTML = `<option value="">-- Todos --</option>`;
+                usuarios.forEach(u => {
+                    const o = document.createElement("option");
+                    o.value = u.codigo; o.textContent = u.nombre;
+                    select.appendChild(o);
+                });
+            });
+        } catch {}
+    }
+    // ==================== DASHBOARD ====================
+    async function cargarDashboard() {
+        const fecha = document.getElementById("dashboard-fecha").value || hoy;
+        try {
+            const respProd = await fetch(`${API}/estadisticas/productividad/?fecha_ref=${fecha}`);
+            const prod = await respProd.json();
+            const contProd = document.getElementById("dashboard-productividad");
+            contProd.innerHTML = "";
+            let totalMinsHoy = 0, usuariosActivosCount = 0;
+
+            prod.forEach(p => {
+                totalMinsHoy += p.minutos_hoy;
+                if (p.minutos_hoy > 0) usuariosActivosCount++;
+                const color = p.porcentaje_jornada >= 100 ? "bg-emerald-500" : p.porcentaje_jornada >= 60 ? "bg-blue-500" : p.porcentaje_jornada >= 30 ? "bg-amber-400" : "bg-slate-300";
+                const horasH = Math.floor(p.minutos_hoy / 60);
+                const minsH = p.minutos_hoy % 60;
+                contProd.innerHTML += `
+                    <div class="flex items-center gap-4 p-3 bg-slate-50 rounded-xl">
+                        <div class="flex-1">
+                            <div class="flex justify-between text-sm mb-1">
+                                <span class="font-medium text-slate-700">${p.nombre} (${p.usuario})</span>
+                                <span class="text-slate-500">${horasH}h ${minsH}min (${p.porcentaje_jornada}%)</span>
+                            </div>
+                            <div class="w-full bg-slate-200 rounded-full h-2">
+                                <div class="${color} h-2 rounded-full transition-all duration-500" style="width:${Math.min(p.porcentaje_jornada,100)}%"></div>
+                            </div>
+                        </div>
+                    </div>`;
+            });
+            if (prod.length === 0) contProd.innerHTML = `<p class="text-sm text-slate-400 text-center py-4 italic">No hay operarios.</p>`;
+
+            document.getElementById("kpi-registros").textContent = prod.filter(p => p.minutos_hoy > 0).length;
+            document.getElementById("kpi-usuarios").textContent = usuariosActivosCount;
+            document.getElementById("kpi-horas").textContent = `${(totalMinsHoy/60).toFixed(1)}h`;
+            document.getElementById("kpi-media").textContent = prod.length > 0
+                ? `${Math.round(prod.reduce((s,p) => s+p.porcentaje_jornada, 0) / prod.length)}%`
+                : "0%";
+
+            const contComp = document.getElementById("dashboard-comparacion");
+            contComp.innerHTML = prod.length > 0 ? prod.map(p => {
+                const diff = p.variacion_minutos;
+                const signo = diff > 0 ? "+" : "";
+                const colorDiff = diff > 0 ? "text-emerald-600" : diff < 0 ? "text-rose-600" : "text-slate-500";
+                return `<div class="flex justify-between items-center p-3 bg-slate-50 rounded-xl text-sm">
+                    <span class="font-medium text-slate-700">${p.nombre}</span>
+                    <div class="flex gap-4">
+                        <span class="text-slate-500">Hoy: ${Math.floor(p.minutos_hoy/60)}h ${p.minutos_hoy%60}m</span>
+                        <span class="text-slate-500">Ayer: ${Math.floor(p.minutos_ayer/60)}h ${p.minutos_ayer%60}m</span>
+                        <span class="font-bold ${colorDiff}">${signo}${diff}min</span>
+                    </div>
+                </div>`;
+            }).join("") : `<p class="text-sm text-slate-400 text-center py-4 italic">Sin datos.</p>`;
+
+            const respTop = await fetch(`${API}/estadisticas/top-tareas/`);
+            const topTareas = await respTop.json();
+            const contTop = document.getElementById("dashboard-top-tareas");
+            contTop.innerHTML = topTareas.slice(0,5).map((t, idx) => {
+                const tarea = t.tarea.split(" - ")[0];
+                const color = (coloresTarea[tarea] || coloresTarea["Otro"]).bg;
+                return `<div class="flex justify-between items-center p-2.5 rounded-lg text-sm mb-2" style="border-left:3px solid ${color};background:#f8fafc">
+                    <span class="font-medium text-slate-700">${idx+1}. ${t.tarea}</span>
+                    <span class="text-slate-500 font-bold">${Math.floor(t.minutos_totales/60)}h (${t.count}x)</span>
+                </div>`;
+            }).join("") || `<p class="text-sm text-slate-400 text-center py-4 italic">Sin datos.</p>`;
+
+            const respMedia = await fetch(`${API}/estadisticas/media-por-tarea/`);
+            const dataMedia = await respMedia.json();
+            if (dashboardGraficoMedia) dashboardGraficoMedia.destroy();
+            dashboardGraficoMedia = new Chart(document.getElementById("dashboard-grafico-media").getContext("2d"), {
+                type: "bar",
+                data: {
+                    labels: dataMedia.map(d => d.tarea),
+                    datasets: [{ label: "Media (min)", data: dataMedia.map(d => d.media_minutos), backgroundColor: dataMedia.map(d => (coloresTarea[d.tarea]||coloresTarea["Otro"]).bg), borderRadius: 6 }]
+                },
+                options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+            });
+
+            const respReg = await fetch(`${API}/registros/rango/?desde=${fecha}&hasta=${fecha}`);
+            const registrosHoy = await respReg.json();
+
+            const tareaCount = {};
+            registrosHoy.forEach(r => {
+                tareaCount[r.tarea_principal] = (tareaCount[r.tarea_principal] || 0) + r.tiempo_minutos;
+            });
+            if (dashboardGraficoTareas) dashboardGraficoTareas.destroy();
+            dashboardGraficoTareas = new Chart(document.getElementById("dashboard-grafico-tareas").getContext("2d"), {
+                type: "doughnut",
+                data: {
+                    labels: Object.keys(tareaCount),
+                    datasets: [{ data: Object.values(tareaCount), backgroundColor: Object.keys(tareaCount).map(l => (coloresTarea[l]||coloresTarea["Otro"]).bg) }]
+                },
+                options: { responsive: true, plugins: { legend: { position: "bottom" } } }
+            });
+
+            const userMins = {};
+            registrosHoy.forEach(r => {
+                userMins[r.usuario] = (userMins[r.usuario] || 0) + r.tiempo_minutos;
+            });
+            if (dashboardGraficoUsuarios) dashboardGraficoUsuarios.destroy();
+            dashboardGraficoUsuarios = new Chart(document.getElementById("dashboard-grafico-usuarios").getContext("2d"), {
+                type: "bar",
+                data: {
+                    labels: Object.keys(userMins),
+                    datasets: [{ label: "Horas", data: Object.values(userMins).map(m => parseFloat((m/60).toFixed(2))), backgroundColor: avatarColores, borderRadius: 6 }]
+                },
+                options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, max: 8 } } }
+            });
+
+        } catch(e) { console.error("Error dashboard:", e); }
+    }
+
+    // ==================== HISTÓRICO ====================
+    function cambiarPeriodo(tipo) {
+        periodoHistorico = tipo;
+        document.getElementById("btn-periodo-semana").className = tipo === "semana"
+            ? "px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white"
+            : "px-4 py-2 rounded-lg text-sm font-medium bg-white text-slate-600 border";
+        document.getElementById("btn-periodo-mes").className = tipo === "mes"
+            ? "px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white"
+            : "px-4 py-2 rounded-lg text-sm font-medium bg-white text-slate-600 border";
+        if (tipo === "semana") {
+            document.getElementById("filtros-semana").classList.remove("hidden");
+            document.getElementById("filtros-mes").classList.add("hidden");
+        } else {
+            document.getElementById("filtros-semana").classList.add("hidden");
+            document.getElementById("filtros-mes").classList.remove("hidden");
+        }
+    }
+
+    async function cargarHistorico() {
+        const contenedor = document.getElementById("historico-resultado");
+        const contenedorGrafico = document.getElementById("historico-grafico-contenedor");
+        if (periodoHistorico === "semana") {
+            const usuario = document.getElementById("historico-usuario-semana").value;
+            const fechaRef = document.getElementById("historico-fecha-semana").value || hoy;
+            let url = `${API}/registros/resumen-semanal/?fecha_ref=${fechaRef}`;
+            if (usuario) url += `&usuario=${usuario}`;
+            try {
+                const resp = await fetch(url);
+                const data = await resp.json();
+                let html = `<div class="mb-4 p-3 bg-blue-50 rounded-lg text-sm text-slate-600">
+                    Semana del <b>${data.inicio}</b> al <b>${data.fin}</b> |
+                    Total: <b>${(data.total_minutos/60).toFixed(1)} horas</b>
+                </div><div class="space-y-3">`;
+                const labels = [], valores = [];
+                Object.entries(data.dias).sort().forEach(([dia, info]) => {
+                    labels.push(dia);
+                    valores.push(parseFloat((info.total_minutos/60).toFixed(2)));
+                    const pct = Math.min((info.total_minutos/480)*100, 100);
+                    const color = pct >= 100 ? "bg-emerald-500" : pct >= 60 ? "bg-blue-500" : pct >= 30 ? "bg-amber-400" : "bg-slate-300";
+                    html += `<div class="p-3 bg-slate-50 rounded-xl">
+                        <div class="flex justify-between text-sm mb-2">
+                            <span class="font-medium text-slate-700">${dia}</span>
+                            <span class="font-bold text-blue-600">${(info.total_minutos/60).toFixed(1)}h</span>
+                        </div>
+                        <div class="w-full bg-slate-200 rounded-full h-2">
+                            <div class="${color} h-2 rounded-full" style="width:${pct}%"></div>
+                        </div>
+                    </div>`;
+                });
+                html += `</div>`;
+                contenedor.innerHTML = html;
+                if (historicoGrafico) historicoGrafico.destroy();
+                historicoGrafico = new Chart(document.getElementById("historico-grafico").getContext("2d"), {
+                    type: "bar",
+                    data: { labels, datasets: [{ label: "Horas", data: valores, backgroundColor: "#3b82f6", borderRadius: 6 }] },
+                    options: { responsive: true, scales: { y: { beginAtZero: true, max: 8, title: { display: true, text: "Horas" } } } }
+                });
+                contenedorGrafico.classList.remove("hidden");
+            } catch { contenedor.innerHTML = `<p class="text-sm text-rose-500 text-center py-8">Error cargando histórico semanal.</p>`; }
+        } else {
+            const usuario = document.getElementById("historico-usuario-mes").value;
+            const anyo = document.getElementById("historico-anyo").value;
+            const mes = document.getElementById("historico-mes").value;
+            let url = `${API}/registros/resumen-mensual/?anyo=${anyo}&mes=${mes}`;
+            if (usuario) url += `&usuario=${usuario}`;
+            try {
+                const resp = await fetch(url);
+                const data = await resp.json();
+                let html = `<div class="mb-4 p-3 bg-blue-50 rounded-lg text-sm text-slate-600">
+                    Mes: <b>${mes}/${anyo}</b> | Registros: <b>${data.total_registros}</b> | Total: <b>${(data.total_minutos/60).toFixed(1)} horas</b>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="bg-slate-50 p-4 rounded-xl">
+                        <h4 class="font-bold text-slate-700 mb-3">Por Tarea</h4>
+                        ${Object.entries(data.por_tarea).map(([t, m]) => {
+                            const color = (coloresTarea[t]||coloresTarea["Otro"]).bg;
+                            return `<div class="flex justify-between items-center text-sm py-2 border-b border-slate-200">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-3 h-3 rounded-full" style="background-color:${color}"></div>
+                                    <span>${t}</span>
+                                </div>
+                                <span class="font-bold text-slate-700">${(m/60).toFixed(1)}h</span>
+                            </div>`;
+                        }).join("")}
+                    </div>
+                    <div class="bg-slate-50 p-4 rounded-xl">
+                        <h4 class="font-bold text-slate-700 mb-3">Por Usuario</h4>
+                        ${Object.entries(data.por_usuario).map(([u, m]) => `
+                            <div class="flex justify-between items-center text-sm py-2 border-b border-slate-200">
+                                <span>${u}</span>
+                                <span class="font-bold text-slate-700">${(m/60).toFixed(1)}h</span>
+                            </div>`).join("")}
+                    </div>
+                </div>`;
+                contenedor.innerHTML = html;
+                contenedorGrafico.classList.add("hidden");
+            } catch { contenedor.innerHTML = `<p class="text-sm text-rose-500 text-center py-8">Error cargando histórico mensual.</p>`; }
+        }
+    }
+
+    // ==================== PROGRESO ====================
+    async function cargarProgreso() {
+        const usuario = document.getElementById("filtro-usuario").value;
+        const fecha = document.getElementById("filtro-fecha").value;
+        if (!usuario || !fecha) { alert("Selecciona usuario y fecha."); return; }
+        try {
+            const resp = await fetch(`${API}/registros/${usuario}`);
+            const todos = await resp.json();
+            const registros = todos.filter(r => r.fecha === fecha);
+            const contenedor = document.getElementById("progreso-resultado");
+            const graficos = document.getElementById("graficos-contenedor");
+
+            if (registros.length === 0) {
+                contenedor.innerHTML = `<p class="text-sm text-slate-400 text-center py-8 italic">No hay registros para esta fecha.</p>`;
+                graficos.classList.add("hidden");
+                return;
+            }
+
+            const totalMinutos = registros.reduce((s, r) => s + r.tiempo_minutos, 0);
+            const porcentaje = Math.min((totalMinutos / 480) * 100, 100);
+            const horas = Math.floor(totalMinutos / 60);
+            const mins = totalMinutos % 60;
+
+            contenedor.innerHTML = `
+                <div class="grid grid-cols-3 gap-4 mb-4">
+                    <div class="bg-blue-50 rounded-xl p-4 text-center">
+                        <div class="text-2xl font-bold text-blue-700">${registros.length}</div>
+                        <div class="text-xs text-slate-500 mt-1">Registros</div>
+                    </div>
+                    <div class="bg-violet-50 rounded-xl p-4 text-center">
+                        <div class="text-2xl font-bold text-violet-700">${horas}h ${mins}min</div>
+                        <div class="text-xs text-slate-500 mt-1">Tiempo total</div>
+                    </div>
+                    <div class="bg-emerald-50 rounded-xl p-4 text-center">
+                        <div class="text-2xl font-bold text-emerald-700">${porcentaje.toFixed(0)}%</div>
+                        <div class="text-xs text-slate-500 mt-1">Jornada</div>
+                    </div>
+                </div>`;
+
+            const barraSeg = document.getElementById("barra-segmentada");
+            const leyenda = document.getElementById("leyenda-barra");
+            barraSeg.innerHTML = ""; leyenda.innerHTML = "";
+            const agrupado = {};
+            registros.forEach(r => {
+                agrupado[r.tarea_principal] = (agrupado[r.tarea_principal] || 0) + r.tiempo_minutos;
+            });
+            Object.entries(agrupado).forEach(([tarea, minutos]) => {
+                const pct = (minutos / 480) * 100;
+                const color = (coloresTarea[tarea] || coloresTarea["Otro"]).bg;
+                barraSeg.innerHTML += `<div style="width:${pct}%;background-color:${color}" title="${tarea}: ${minutos}min" class="h-full"></div>`;
+                leyenda.innerHTML += `
+                    <div class="flex justify-between items-center text-sm">
+                        <div class="flex items-center gap-2">
+                            <div class="w-3 h-3 rounded-full" style="background-color:${color}"></div>
+                            <span class="text-slate-700">${tarea}</span>
+                        </div>
+                        <span class="font-medium text-slate-600">${minutos} min (${Math.floor(minutos/60)}h ${minutos%60}m)</span>
+                    </div>`;
+            });
+
+            document.getElementById("barra-total").style.width = `${porcentaje}%`;
+            document.getElementById("porcentaje-label").textContent = `${porcentaje.toFixed(0)}%`;
+
+            const labelsP = Object.keys(agrupado);
+            const dataP = Object.values(agrupado);
+            const bgP = labelsP.map(l => (coloresTarea[l] || coloresTarea["Otro"]).bg);
+            if (graficaTarta) graficaTarta.destroy();
+            graficaTarta = new Chart(document.getElementById("grafico-tarta").getContext("2d"), {
+                type: "pie",
+                data: { labels: labelsP, datasets: [{ data: dataP, backgroundColor: bgP }] },
+                options: { responsive: true, plugins: { legend: { position: "bottom" } } }
+            });
+
+            const labelsB = registros.map(r => r.subtarea);
+            const dataB = registros.map(r => r.tiempo_minutos);
+            const bgB = registros.map(r => (coloresTarea[r.tarea_principal] || coloresTarea["Otro"]).bg);
+            if (graficaBarras) graficaBarras.destroy();
+            graficaBarras = new Chart(document.getElementById("grafico-barras").getContext("2d"), {
+                type: "bar",
+                data: { labels: labelsB, datasets: [{ label: "Minutos", data: dataB, backgroundColor: bgB, borderRadius: 6 }] },
+                options: { responsive: true, indexAxis: "y", plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true } } }
+            });
+
+            const diasSemana = [];
+            for (let i = 6; i >= 0; i--) {
+                const d = new Date(fecha);
+                d.setDate(d.getDate() - i);
+                diasSemana.push(d.toISOString().split("T")[0]);
+            }
+            const horasSemana = diasSemana.map(dia => {
+                const mins = todos.filter(r => r.fecha === dia).reduce((s, r) => s + r.tiempo_minutos, 0);
+                return parseFloat((mins / 60).toFixed(2));
+            });
+            if (graficaSemanal) graficaSemanal.destroy();
+            graficaSemanal = new Chart(document.getElementById("grafico-semanal").getContext("2d"), {
+                type: "line",
+                data: {
+                    labels: diasSemana.map(d => new Date(d + "T00:00:00").toLocaleDateString("es-ES", { weekday: "short", day: "numeric" })),
+                    datasets: [{
+                        label: "Horas",
+                        data: horasSemana,
+                        borderColor: "#3b82f6",
+                        backgroundColor: "rgba(59,130,246,0.1)",
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4,
+                        pointBackgroundColor: "#3b82f6"
+                    }]
+                },
+                options: { responsive: true, scales: { y: { beginAtZero: true, max: 8 } } }
+            });
+
+            graficos.classList.remove("hidden");
+        } catch(e) {
+            document.getElementById("progreso-resultado").innerHTML = `<p class="text-sm text-rose-500 text-center py-8">Error cargando progreso.</p>`;
+        }
+    }
+
+    // ==================== VOLUMEN & MÉTRICAS ====================
+    async function crearVolumen() {
+        const fecha = document.getElementById("vol-fecha").value;
+        const tarea_principal = document.getElementById("vol-tarea").value;
+        const unidades = parseInt(document.getElementById("vol-unidades").value);
+        const horas_teoricas = parseFloat(document.getElementById("vol-horas").value);
+        const comentarios = document.getElementById("vol-comentarios").value || null;
+        const msg = document.getElementById("vol-mensaje");
+
+        if (!fecha || !unidades || !horas_teoricas) {
+            msg.textContent = "Rellena todos los campos obligatorios.";
+            msg.className = "mt-2 text-sm text-rose-600";
+            msg.classList.remove("hidden");
+            return;
+        }
+        try {
+            const resp = await fetch(`${API}/volumenes/`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    fecha,
+                    tarea_principal,
+                    unidades,
+                    horas_teoricas,
+                    creado_por: usuarioSesion.codigo,
+                    comentarios
+                })
+            });
+            if (resp.ok) {
+                msg.textContent = "Datos de volumen guardados correctamente.";
+                msg.className = "mt-2 text-sm text-emerald-600";
+                msg.classList.remove("hidden");
+                document.getElementById("vol-unidades").value = "";
+                document.getElementById("vol-horas").value = "";
+                document.getElementById("vol-comentarios").value = "";
+                setTimeout(() => msg.classList.add("hidden"), 3000);
+            } else {
+                msg.textContent = "Error al guardar los datos.";
+                msg.className = "mt-2 text-sm text-rose-600";
+                msg.classList.remove("hidden");
+            }
+        } catch {
+            msg.textContent = "Error de conexión.";
+            msg.className = "mt-2 text-sm text-rose-600";
+            msg.classList.remove("hidden");
+        }
+    }
+
+    async function cargarMetricas() {
+        const desde = document.getElementById("vol-desde").value;
+        const hasta = document.getElementById("vol-hasta").value;
+        if (!desde || !hasta) { alert("Selecciona un rango de fechas."); return; }
+        try {
+            const resp = await fetch(`${API}/volumenes/metricas/?desde=${desde}&hasta=${hasta}`);
+            const metricas = await resp.json();
+            const tablaContenedor = document.getElementById("vol-tabla");
+
+            if (metricas.length === 0) {
+                tablaContenedor.innerHTML = `<p class="text-sm text-slate-400 text-center py-8 italic">No hay datos de volumen para este periodo. Añade datos primero.</p>`;
+                document.getElementById("vol-kpis").style.display = "none";
+                document.getElementById("vol-graficos").style.display = "none";
+                return;
+            }
+
+            // KPIs
+            const totalUnidades = metricas.reduce((s, m) => s + m.unidades, 0);
+            const totalHorasTeo = metricas.reduce((s, m) => s + m.horas_teoricas, 0);
+            const totalHorasReal = metricas.reduce((s, m) => s + m.horas_reales, 0);
+            const eficiencias = metricas.filter(m => m.eficiencia_pct !== null).map(m => m.eficiencia_pct);
+            const mediaEficiencia = eficiencias.length > 0
+                ? Math.round(eficiencias.reduce((s, e) => s + e, 0) / eficiencias.length)
+                : 0;
+
+            document.getElementById("vol-kpi-unidades").textContent = totalUnidades.toLocaleString();
+            document.getElementById("vol-kpi-horas-teo").textContent = `${totalHorasTeo.toFixed(1)}h`;
+            document.getElementById("vol-kpi-horas-real").textContent = `${totalHorasReal.toFixed(1)}h`;
+            document.getElementById("vol-kpi-eficiencia").textContent = `${mediaEficiencia}%`;
+            document.getElementById("vol-kpis").style.display = "grid";
+
+            // Gráfico eficiencia por tarea
+            const eficienciaPorTarea = {};
+            metricas.forEach(m => {
+                if (!eficienciaPorTarea[m.tarea_principal]) {
+                    eficienciaPorTarea[m.tarea_principal] = { sum: 0, count: 0 };
+                }
+                if (m.eficiencia_pct !== null) {
+                    eficienciaPorTarea[m.tarea_principal].sum += m.eficiencia_pct;
+                    eficienciaPorTarea[m.tarea_principal].count++;
+                }
+            });
+            const labelsEf = Object.keys(eficienciaPorTarea);
+            const dataEf = labelsEf.map(t => eficienciaPorTarea[t].count > 0
+                ? Math.round(eficienciaPorTarea[t].sum / eficienciaPorTarea[t].count)
+                : 0);
+            const bgEf = labelsEf.map(l => (coloresTarea[l] || coloresTarea["Otro"]).bg);
+
+            if (volGraficoEficiencia) volGraficoEficiencia.destroy();
+            volGraficoEficiencia = new Chart(document.getElementById("vol-grafico-eficiencia").getContext("2d"), {
+                type: "bar",
+                data: {
+                    labels: labelsEf,
+                    datasets: [{
+                        label: "Eficiencia %",
+                        data: dataEf,
+                        backgroundColor: bgEf,
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 150,
+                            title: { display: true, text: "%" },
+                            ticks: {
+                                callback: v => v + "%"
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Gráfico comparativa teóricas vs reales
+            const fechasUnicas = [...new Set(metricas.map(m => m.fecha))].sort();
+            const horasTeoPorFecha = fechasUnicas.map(f =>
+                parseFloat(metricas.filter(m => m.fecha === f).reduce((s, m) => s + m.horas_teoricas, 0).toFixed(2))
+            );
+            const horasRealPorFecha = fechasUnicas.map(f =>
+                parseFloat(metricas.filter(m => m.fecha === f).reduce((s, m) => s + m.horas_reales, 0).toFixed(2))
+            );
+
+            if (volGraficoComparativa) volGraficoComparativa.destroy();
+            volGraficoComparativa = new Chart(document.getElementById("vol-grafico-comparativa").getContext("2d"), {
+                type: "line",
+                data: {
+                    labels: fechasUnicas,
+                    datasets: [
+                        {
+                            label: "Horas teóricas",
+                            data: horasTeoPorFecha,
+                            borderColor: "#8b5cf6",
+                            backgroundColor: "rgba(139,92,246,0.1)",
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.4,
+                            pointBackgroundColor: "#8b5cf6"
+                        },
+                        {
+                            label: "Horas reales",
+                            data: horasRealPorFecha,
+                            borderColor: "#3b82f6",
+                            backgroundColor: "rgba(59,130,246,0.1)",
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.4,
+                            pointBackgroundColor: "#3b82f6"
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { position: "bottom" } },
+                    scales: { y: { beginAtZero: true, title: { display: true, text: "Horas" } } }
+                }
+            });
+
+            document.getElementById("vol-graficos").style.display = "grid";
+
+            // Tabla detallada
+            let html = `
+                <div class="overflow-x-auto mt-4">
+                <table class="w-full text-sm">
+                    <thead class="bg-slate-800 text-white">
+                        <tr>
+                            <th class="px-3 py-2 text-
+                            <th class="px-3 py-2 text-left">Fecha</th>
+                            <th class="px-3 py-2 text-left">Tarea</th>
+                            <th class="px-3 py-2 text-right">Unidades</th>
+                            <th class="px-3 py-2 text-right">H. Teóricas</th>
+                            <th class="px-3 py-2 text-right">H. Reales</th>
+                            <th class="px-3 py-2 text-right">Eficiencia</th>
+                            <th class="px-3 py-2 text-right">Uds/H Real</th>
+                            <th class="px-3 py-2 text-right">Desviación</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">`;
+
+            metricas.forEach(m => {
+                const color = (coloresTarea[m.tarea_principal] || coloresTarea["Otro"]).bg;
+                const efColor = m.eficiencia_pct === null ? "text-slate-400" : m.eficiencia_pct >= 90 ? "text-emerald-600 font-bold" : m.eficiencia_pct >= 70 ? "text-amber-600 font-bold" : "text-rose-600 font-bold";
+                const desColor = m.desviacion_horas <= 0 ? "text-emerald-600" : "text-rose-600";
+                html += `
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="px-3 py-2 text-slate-600">${m.fecha}</td>
+                        <td class="px-3 py-2">
+                            <span class="inline-flex items-center gap-1">
+                                <span class="w-2 h-2 rounded-full" style="background-color:${color}"></span>
+                                ${m.tarea_principal}
+                            </span>
+                        </td>
+                        <td class="px-3 py-2 text-right font-medium">${m.unidades.toLocaleString()}</td>
+                        <td class="px-3 py-2 text-right text-violet-600">${m.horas_teoricas}h</td>
+                        <td class="px-3 py-2 text-right text-blue-600">${m.horas_reales}h</td>
+                        <td class="px-3 py-2 text-right ${efColor}">${m.eficiencia_pct !== null ? m.eficiencia_pct + "%" : "—"}</td>
+                        <td class="px-3 py-2 text-right text-slate-600">${m.uds_hora_real !== null ? m.uds_hora_real : "—"}</td>
+                        <td class="px-3 py-2 text-right ${desColor}">${m.desviacion_horas > 0 ? "+" : ""}${m.desviacion_horas}h</td>
+                    </tr>`;
+            });
+
+            html += `</tbody></table></div>`;
+            tablaContenedor.innerHTML = html;
+
+        } catch(e) {
+            document.getElementById("vol-tabla").innerHTML = `<p class="text-sm text-rose-500 text-center py-8">Error cargando métricas.</p>`;
+        }
+    }
+    // ==================== EDICIÓN ====================
+    async function cargarEdicion() {
+        const usuario = document.getElementById("edicion-usuario").value;
+        const tarea = document.getElementById("edicion-tarea").value;
+        const desde = document.getElementById("edicion-fecha-desde").value;
+        const hasta = document.getElementById("edicion-fecha-hasta").value;
+        try {
+            let url = `${API}/registros/`;
+            if (desde && hasta) {
+                url = `${API}/registros/rango/?desde=${desde}&hasta=${hasta}`;
+                if (usuario) url += `&usuario=${usuario}`;
+            }
+            const resp = await fetch(url);
+            let registros = await resp.json();
+            if (!desde && usuario) registros = registros.filter(r => r.usuario === usuario);
+            if (tarea) registros = registros.filter(r => r.tarea_principal === tarea);
+            registros.sort((a, b) => b.fecha.localeCompare(a.fecha));
+
+            const contenedor = document.getElementById("edicion-resultado");
+            if (registros.length === 0) {
+                contenedor.innerHTML = `<p class="text-sm text-slate-400 text-center py-8 italic">No se encontraron registros.</p>`;
+                return;
+            }
+
+            const totalMin = registros.reduce((s, r) => s + r.tiempo_minutos, 0);
+            let html = `
+                <div class="flex justify-between items-center mb-3 text-sm">
+                    <span class="text-slate-500">${registros.length} registro(s) encontrado(s)</span>
+                    <span class="font-bold text-blue-600">Total: ${(totalMin/60).toFixed(1)}h</span>
+                </div>
+                <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead class="bg-slate-50 text-slate-600">
+                        <tr>
+                            <th class="px-3 py-2 text-left rounded-tl-lg">Usuario</th>
+                            <th class="px-3 py-2 text-left">Fecha</th>
+                            <th class="px-3 py-2 text-left">Tarea</th>
+                            <th class="px-3 py-2 text-left">Tiempo</th>
+                            <th class="px-3 py-2 text-left rounded-tr-lg">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">`;
+
+            registros.forEach(r => {
+                const color = (coloresTarea[r.tarea_principal] || coloresTarea["Otro"]).bg;
+                const h = Math.floor(r.tiempo_minutos / 60);
+                const m = r.tiempo_minutos % 60;
+                html += `
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="px-3 py-2 font-medium text-slate-700">${r.usuario}</td>
+                        <td class="px-3 py-2 text-slate-500">${r.fecha}</td>
+                        <td class="px-3 py-2">
+                            <span class="inline-flex items-center gap-1">
+                                <span class="w-2 h-2 rounded-full inline-block" style="background-color:${color}"></span>
+                                ${r.tarea_principal} - ${r.subtarea}
+                            </span>
+                        </td>
+                        <td class="px-3 py-2 text-slate-600">${h > 0 ? h + "h " : ""}${m}min</td>
+                        <td class="px-3 py-2">
+                            <div class="flex gap-2">
+                                <button onclick='abrirModal(${JSON.stringify(r)})' class="text-blue-600 hover:text-blue-800 text-xs font-medium px-2 py-1 bg-blue-50 rounded-lg">✏️</button>
+                                <button onclick='duplicarRegistro(${r.id})' class="text-violet-600 hover:text-violet-800 text-xs font-medium px-2 py-1 bg-violet-50 rounded-lg">📋</button>
+                                <button onclick="eliminarRegistro(${r.id})" class="text-rose-600 hover:text-rose-800 text-xs font-medium px-2 py-1 bg-rose-50 rounded-lg">🗑️</button>
+                            </div>
+                        </td>
+                    </tr>`;
+            });
+            html += `</tbody></table></div>`;
+            contenedor.innerHTML = html;
+        } catch(e) {
+            document.getElementById("edicion-resultado").innerHTML = `<p class="text-sm text-rose-500 text-center py-8">Error cargando registros.</p>`;
+        }
+    }
+
+    function abrirModal(registro) {
+        document.getElementById("edit-id").value = registro.id;
+        document.getElementById("edit-usuario").value = registro.usuario;
+        document.getElementById("edit-fecha").value = registro.fecha;
+        document.getElementById("edit-tarea-principal").value = registro.tarea_principal;
+        actualizarSubtareasEdicion(registro.subtarea);
+        document.getElementById("edit-tiempo").value = registro.tiempo_minutos;
+        document.getElementById("edit-proyecto").value = registro.proyecto || "";
+        document.getElementById("edit-comentarios").value = registro.comentarios || "";
+        document.getElementById("modal-edicion").style.display = "flex";
+    }
+
+    function cerrarModal() {
+        document.getElementById("modal-edicion").style.display = "none";
+    }
+
+    async function guardarEdicion() {
+        const id = document.getElementById("edit-id").value;
+        const datos = {
+            usuario: document.getElementById("edit-usuario").value,
+            fecha: document.getElementById("edit-fecha").value,
+            tarea_principal: document.getElementById("edit-tarea-principal").value,
+            subtarea: document.getElementById("edit-subtarea").value,
+            tiempo_minutos: parseInt(document.getElementById("edit-tiempo").value),
+            proyecto: document.getElementById("edit-proyecto").value || null,
+            comentarios: document.getElementById("edit-comentarios").value || null
+        };
+        try {
+            const resp = await fetch(`${API}/registros/${id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(datos)
+            });
+            if (resp.ok) { cerrarModal(); cargarEdicion(); }
+            else {
+                const err = await resp.json();
+                alert(err.detail || "Error al guardar los cambios.");
+            }
+        } catch { alert("Error de conexión."); }
+    }
+
+    async function duplicarRegistro(id) {
+        try {
+            const resp = await fetch(`${API}/registros/${id}/duplicar`, { method: "POST" });
+            if (resp.ok) {
+                alert("Registro duplicado correctamente.");
+                cargarEdicion();
+            } else {
+                const err = await resp.json();
+                alert(err.detail || "Error al duplicar.");
+            }
+        } catch { alert("Error de conexión."); }
+    }
+
+    async function eliminarRegistro(id) {
+        if (!confirm("¿Seguro que quieres eliminar este registro?")) return;
+        try {
+            const resp = await fetch(`${API}/registros/${id}`, { method: "DELETE" });
+            if (resp.ok) cargarEdicion();
+            else alert("Error al eliminar.");
+        } catch { alert("Error de conexión."); }
+    }
+
+    // ==================== USUARIOS GESTIÓN ====================
+    async function cargarUsuariosGestion() {
+        try {
+            const resp = await fetch(`${API}/usuarios/`);
+            const usuarios = await resp.json();
+            const contenedor = document.getElementById("lista-usuarios");
+            if (usuarios.length === 0) {
+                contenedor.innerHTML = `<p class="text-sm text-slate-400 text-center py-4 italic">No hay usuarios.</p>`;
+                return;
+            }
+            let html = `<div class="space-y-2">`;
+            usuarios.forEach(u => {
+                const rolColor = u.rol === "supervisor"
+                    ? "bg-violet-100 text-violet-700"
+                    : "bg-blue-100 text-blue-700";
+                html += `
+                    <div class="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold" style="background-color:${avatarColores[u.id % avatarColores.length]}">${u.nombre.charAt(0)}</div>
+                            <div>
+                                <div class="font-medium text-slate-800 text-sm">${u.nombre}</div>
+                                <div class="text-xs text-slate-500">${u.codigo}</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs px-2 py-0.5 rounded-full font-medium ${rolColor}">${u.rol}</span>
+                            <button onclick="eliminarUsuario(${u.id})" class="text-rose-500 hover:text-rose-700 text-xs font-medium px-2 py-1 bg-rose-50 rounded-lg">Eliminar</button>
+                        </div>
+                    </div>`;
+            });
+            html += `</div>`;
+            contenedor.innerHTML = html;
+        } catch {
+            document.getElementById("lista-usuarios").innerHTML = `<p class="text-sm text-rose-500 text-center py-4">Error cargando usuarios.</p>`;
+        }
+    }
+
+    async function crearUsuario() {
+        const nombre = document.getElementById("nuevo-nombre").value.trim();
+        const codigo = document.getElementById("nuevo-codigo").value.trim();
+        const pin = document.getElementById("nuevo-pin").value.trim();
+        const rol = document.getElementById("nuevo-rol").value;
+        const msg = document.getElementById("usuarios-mensaje");
+        if (!nombre || !codigo || !pin) {
+            msg.textContent = "Rellena todos los campos.";
+            msg.className = "mt-2 text-sm text-rose-600";
+            msg.classList.remove("hidden");
+            return;
+        }
+        try {
+            const resp = await fetch(`${API}/usuarios/`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ nombre, codigo, pin, rol })
+            });
+            if (resp.ok) {
+                msg.textContent = "Usuario creado correctamente.";
+                msg.className = "mt-2 text-sm text-emerald-600";
+                msg.classList.remove("hidden");
+                document.getElementById("nuevo-nombre").value = "";
+                document.getElementById("nuevo-codigo").value = "";
+                document.getElementById("nuevo-pin").value = "";
+                cargarUsuariosGestion();
+                setTimeout(() => msg.classList.add("hidden"), 3000);
+            } else {
+                const err = await resp.json();
+                msg.textContent = err.detail || "Error al crear usuario.";
+                msg.className = "mt-2 text-sm text-rose-600";
+                msg.classList.remove("hidden");
+            }
+        } catch {
+            msg.textContent = "Error de conexión.";
+            msg.className = "mt-2 text-sm text-rose-600";
+            msg.classList.remove("hidden");
+        }
+    }
+
+    async function eliminarUsuario(id) {
+        if (!confirm("¿Seguro que quieres eliminar este usuario?")) return;
+        try {
+            const resp = await fetch(`${API}/usuarios/${id}`, { method: "DELETE" });
+            if (resp.ok) cargarUsuariosGestion();
+            else alert("Error al eliminar usuario.");
+        } catch { alert("Error de conexión."); }
+    }
+
 </script>
-
 </body>
 </html>
-    
