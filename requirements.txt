@@ -1,2 +1,5 @@
 fastapi
 uvicorn
+sqlalchemy
+openpyxl
+pydantic
