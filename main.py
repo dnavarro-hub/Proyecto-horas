@@ -37,7 +37,7 @@ class Usuario(Base):
     codigo = Column(String, unique=True, index=True)
     nombre = Column(String)
     pin = Column(String)
-    rol = Column(String, default="operario")  # operario / supervisor
+    rol = Column(String, default="operario")
     activo = Column(Boolean, default=True)
     fecha_creacion = Column(DateTime, default=datetime.utcnow)
     registros = relationship("Registro", back_populates="usuario")
@@ -83,8 +83,8 @@ class Objetivo(Base):
     __tablename__ = "objetivos"
     id = Column(Integer, primary_key=True, index=True)
     tarea = Column(String)
-    periodo = Column(String)  # diario / semanal / mensual
-    metrica = Column(String)  # horas / unidades / registros
+    periodo = Column(String)
+    metrica = Column(String)
     valor_objetivo = Column(Float)
     usuario_id = Column(Integer, ForeignKey("usuarios.id"), nullable=True)
     fecha_inicio = Column(Date, nullable=True)
@@ -99,7 +99,7 @@ class Incidencia(Base):
     tipo = Column(String)
     descripcion = Column(Text)
     impacto_minutos = Column(Integer, default=0)
-    estado = Column(String, default="abierta")  # abierta / resuelta
+    estado = Column(String, default="abierta")
     created_at = Column(DateTime, default=datetime.utcnow)
 
 class TurnoUsuario(Base):
@@ -107,8 +107,8 @@ class TurnoUsuario(Base):
     id = Column(Integer, primary_key=True, index=True)
     usuario_id = Column(Integer, ForeignKey("usuarios.id"))
     fecha = Column(Date, default=date.today)
-    turno = Column(String)   # mañana / tarde / noche
-    estado = Column(String, default="trabaja")  # trabaja / descanso / vacaciones / baja
+    turno = Column(String)
+    estado = Column(String, default="trabaja")
     notas = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     usuario = relationship("Usuario", back_populates="turnos")
@@ -118,7 +118,7 @@ class Auditoria(Base):
     id = Column(Integer, primary_key=True, index=True)
     usuario_id = Column(Integer, ForeignKey("usuarios.id"), nullable=True)
     usuario_codigo = Column(String, nullable=True)
-    accion = Column(String)   # LOGIN / CREAR / EDITAR / ELIMINAR
+    accion = Column(String)
     entidad = Column(String, nullable=True)
     entidad_id = Column(Integer, nullable=True)
     detalle = Column(Text, nullable=True)
@@ -157,9 +157,15 @@ def get_db():
     finally:
         db.close()
 
-def registrar_auditoria(db: Session, accion: str, entidad: str = None,
-                         entidad_id: int = None, detalle: str = None,
-                         usuario_id: int = None, usuario_codigo: str = None):
+def registrar_auditoria(
+    db: Session,
+    accion: str,
+    entidad: str = None,
+    entidad_id: int = None,
+    detalle: str = None,
+    usuario_id: int = None,
+    usuario_codigo: str = None
+):
     log = Auditoria(
         usuario_id=usuario_id,
         usuario_codigo=usuario_codigo,
@@ -170,7 +176,6 @@ def registrar_auditoria(db: Session, accion: str, entidad: str = None,
     )
     db.add(log)
     db.commit()
-
 # ==================== SCHEMAS ====================
 class UsuarioCreate(BaseModel):
     codigo: str
@@ -315,6 +320,7 @@ class AuditoriaOut(BaseModel):
     detalle: Optional[str]
     timestamp: datetime
     class Config: from_attributes = True
+
 # ==================== ENDPOINTS: AUTH & USUARIOS ====================
 @app.post("/login/")
 def login(req: LoginRequest, db: Session = Depends(get_db)):
@@ -325,8 +331,10 @@ def login(req: LoginRequest, db: Session = Depends(get_db)):
     ).first()
     if not user:
         raise HTTPException(status_code=401, detail="Credenciales incorrectas")
-    registrar_auditoria(db, "LOGIN", "usuarios", user.id,
-                        f"Login de {user.codigo}", user.id, user.codigo)
+    registrar_auditoria(
+        db, "LOGIN", "usuarios", user.id,
+        f"Login de {user.codigo}", user.id, user.codigo
+    )
     return {"id": user.id, "codigo": user.codigo, "nombre": user.nombre, "rol": user.rol}
 
 @app.get("/usuarios/", response_model=List[UsuarioOut])
@@ -348,8 +356,10 @@ def crear_usuario(u: UsuarioCreate, db: Session = Depends(get_db)):
     db.add(nuevo)
     db.commit()
     db.refresh(nuevo)
-    registrar_auditoria(db, "CREAR", "usuarios", nuevo.id,
-                        f"Usuario {nuevo.codigo} creado")
+    registrar_auditoria(
+        db, "CREAR", "usuarios", nuevo.id,
+        f"Usuario {nuevo.codigo} creado"
+    )
     return nuevo
 
 @app.delete("/usuarios/{usuario_id}")
@@ -359,8 +369,10 @@ def eliminar_usuario(usuario_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     user.activo = False
     db.commit()
-    registrar_auditoria(db, "ELIMINAR", "usuarios", usuario_id,
-                        f"Usuario {user.codigo} desactivado")
+    registrar_auditoria(
+        db, "ELIMINAR", "usuarios", usuario_id,
+        f"Usuario {user.codigo} desactivado"
+    )
     return {"ok": True}
 
 # ==================== ENDPOINTS: REGISTROS ====================
@@ -401,9 +413,11 @@ def crear_registro(r: RegistroCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(nuevo)
     user = db.query(Usuario).filter(Usuario.id == r.usuario_id).first()
-    registrar_auditoria(db, "CREAR", "registros", nuevo.id,
-                        f"{user.codigo if user else '?'} registró {r.tarea} {r.minutos}min",
-                        r.usuario_id, user.codigo if user else None)
+    registrar_auditoria(
+        db, "CREAR", "registros", nuevo.id,
+        f"{user.codigo if user else '?'} registró {r.tarea} {r.minutos}min",
+        r.usuario_id, user.codigo if user else None
+    )
     return nuevo
 
 @app.put("/registros/{registro_id}", response_model=RegistroOut)
@@ -419,8 +433,10 @@ def editar_registro(registro_id: int, r: RegistroCreate, db: Session = Depends(g
     reg.turno = r.turno
     db.commit()
     db.refresh(reg)
-    registrar_auditoria(db, "EDITAR", "registros", registro_id,
-                        f"Editado registro {registro_id}")
+    registrar_auditoria(
+        db, "EDITAR", "registros", registro_id,
+        f"Editado registro {registro_id}"
+    )
     return reg
 
 @app.delete("/registros/{registro_id}")
@@ -430,8 +446,10 @@ def eliminar_registro(registro_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Registro no encontrado")
     db.delete(reg)
     db.commit()
-    registrar_auditoria(db, "ELIMINAR", "registros", registro_id,
-                        f"Eliminado registro {registro_id}")
+    registrar_auditoria(
+        db, "ELIMINAR", "registros", registro_id,
+        f"Eliminado registro {registro_id}"
+    )
     return {"ok": True}
 
 # ==================== ENDPOINTS: PLANTILLAS ====================
@@ -458,7 +476,6 @@ def eliminar_plantilla(plantilla_id: int, db: Session = Depends(get_db)):
     db.delete(p)
     db.commit()
     return {"ok": True}
-
 # ==================== ENDPOINTS: VOLÚMENES ====================
 @app.get("/volumenes/", response_model=List[VolumenOut])
 def get_volumenes(
@@ -494,9 +511,11 @@ def crear_volumen(v: VolumenCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(nuevo)
     user = db.query(Usuario).filter(Usuario.id == v.usuario_id).first()
-    registrar_auditoria(db, "CREAR", "volumenes", nuevo.id,
-                        f"{user.codigo if user else '?'} registró {v.unidades} uds en {v.tarea}",
-                        v.usuario_id, user.codigo if user else None)
+    registrar_auditoria(
+        db, "CREAR", "volumenes", nuevo.id,
+        f"{user.codigo if user else '?'} registró {v.unidades} uds en {v.tarea}",
+        v.usuario_id, user.codigo if user else None
+    )
     return nuevo
 
 @app.delete("/volumenes/{volumen_id}")
@@ -507,6 +526,7 @@ def eliminar_volumen(volumen_id: int, db: Session = Depends(get_db)):
     db.delete(v)
     db.commit()
     return {"ok": True}
+
 # ==================== ENDPOINTS: INCIDENCIAS ====================
 @app.get("/incidencias/", response_model=List[IncidenciaOut])
 def get_incidencias(
@@ -541,9 +561,11 @@ def crear_incidencia(inc: IncidenciaCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(nueva)
     user = db.query(Usuario).filter(Usuario.id == inc.usuario_id).first()
-    registrar_auditoria(db, "CREAR", "incidencias", nueva.id,
-                        f"{user.codigo if user else '?'} registró incidencia: {inc.tipo}",
-                        inc.usuario_id, user.codigo if user else None)
+    registrar_auditoria(
+        db, "CREAR", "incidencias", nueva.id,
+        f"{user.codigo if user else '?'} registró incidencia: {inc.tipo}",
+        inc.usuario_id, user.codigo if user else None
+    )
     return nueva
 
 @app.put("/incidencias/{incidencia_id}")
@@ -553,8 +575,10 @@ def actualizar_incidencia(incidencia_id: int, estado: str, db: Session = Depends
         raise HTTPException(status_code=404, detail="Incidencia no encontrada")
     inc.estado = estado
     db.commit()
-    registrar_auditoria(db, "EDITAR", "incidencias", incidencia_id,
-                        f"Incidencia {incidencia_id} → {estado}")
+    registrar_auditoria(
+        db, "EDITAR", "incidencias", incidencia_id,
+        f"Incidencia {incidencia_id} → {estado}"
+    )
     return {"ok": True}
 
 @app.delete("/incidencias/{incidencia_id}")
@@ -612,9 +636,11 @@ def crear_turno(t: TurnoCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(nuevo)
     user = db.query(Usuario).filter(Usuario.id == t.usuario_id).first()
-    registrar_auditoria(db, "CREAR", "turnos", nuevo.id,
-                        f"Turno {t.turno} asignado a {user.codigo if user else '?'}",
-                        t.usuario_id, user.codigo if user else None)
+    registrar_auditoria(
+        db, "CREAR", "turnos", nuevo.id,
+        f"Turno {t.turno} asignado a {user.codigo if user else '?'}",
+        t.usuario_id, user.codigo if user else None
+    )
     return TurnoOut(
         id=nuevo.id,
         usuario_id=nuevo.usuario_id,
@@ -624,116 +650,73 @@ def crear_turno(t: TurnoCreate, db: Session = Depends(get_db)):
         notas=nuevo.notas,
         usuario_codigo=user.codigo if user else None
     )
-
-@app.delete("/turnos/{turno_id}")
-def eliminar_turno(turno_id: int, db: Session = Depends(get_db)):
-    t = db.query(TurnoUsuario).filter(TurnoUsuario.id == turno_id).first()
-    if not t:
-        raise HTTPException(status_code=404, detail="Turno no encontrado")
-    db.delete(t)
-    db.commit()
-    return {"ok": True}
-
 # ==================== ENDPOINTS: OBJETIVOS ====================
 @app.get("/objetivos/", response_model=List[ObjetivoOut])
 def get_objetivos(db: Session = Depends(get_db)):
-    objetivos = db.query(Objetivo).all()
+    objs = db.query(Objetivo).all()
     result = []
-    for obj in objetivos:
-        valor_real = 0.0
-        if obj.metrica == "horas":
-            q = db.query(func.sum(Registro.minutos)).filter(Registro.tarea == obj.tarea)
-            if obj.usuario_id:
-                q = q.filter(Registro.usuario_id == obj.usuario_id)
-            if obj.fecha_inicio:
-                q = q.filter(Registro.fecha >= obj.fecha_inicio)
-            if obj.fecha_fin:
-                q = q.filter(Registro.fecha <= obj.fecha_fin)
-            total_min = q.scalar() or 0
-            valor_real = round(total_min / 60, 2)
-        elif obj.metrica == "unidades":
-            q = db.query(func.sum(Volumen.unidades)).filter(Volumen.tarea == obj.tarea)
-            if obj.usuario_id:
-                q = q.filter(Volumen.usuario_id == obj.usuario_id)
-            if obj.fecha_inicio:
-                q = q.filter(Volumen.fecha >= obj.fecha_inicio)
-            if obj.fecha_fin:
-                q = q.filter(Volumen.fecha <= obj.fecha_fin)
-            valor_real = float(q.scalar() or 0)
-        elif obj.metrica == "registros":
-            q = db.query(func.count(Registro.id)).filter(Registro.tarea == obj.tarea)
-            if obj.usuario_id:
-                q = q.filter(Registro.usuario_id == obj.usuario_id)
-            if obj.fecha_inicio:
-                q = q.filter(Registro.fecha >= obj.fecha_inicio)
-            if obj.fecha_fin:
-                q = q.filter(Registro.fecha <= obj.fecha_fin)
-            valor_real = float(q.scalar() or 0)
-        progreso = round((valor_real / obj.valor_objetivo) * 100, 1) if obj.valor_objetivo else 0
+    for o in objs:
         result.append(ObjetivoOut(
-            id=obj.id, tarea=obj.tarea, periodo=obj.periodo,
-            metrica=obj.metrica, valor_objetivo=obj.valor_objetivo,
-            usuario_id=obj.usuario_id, fecha_inicio=obj.fecha_inicio,
-            fecha_fin=obj.fecha_fin, valor_real=valor_real, progreso=progreso
+            id=o.id,
+            tarea=o.tarea,
+            periodo=o.periodo,
+            metrica=o.metrica,
+            valor_objetivo=o.valor_objetivo,
+            usuario_id=o.usuario_id,
+            fecha_inicio=o.fecha_inicio,
+            fecha_fin=o.fecha_fin,
+            valor_real=0,
+            progreso=0
         ))
     return result
 
 @app.post("/objetivos/", response_model=ObjetivoOut)
 def crear_objetivo(o: ObjetivoCreate, db: Session = Depends(get_db)):
     nuevo = Objetivo(
-        tarea=o.tarea, periodo=o.periodo, metrica=o.metrica,
-        valor_objetivo=o.valor_objetivo, usuario_id=o.usuario_id,
+        tarea=o.tarea,
+        periodo=o.periodo,
+        metrica=o.metrica,
+        valor_objetivo=o.valor_objetivo,
+        usuario_id=o.usuario_id,
         fecha_inicio=date.fromisoformat(o.fecha_inicio) if o.fecha_inicio else None,
         fecha_fin=date.fromisoformat(o.fecha_fin) if o.fecha_fin else None
     )
     db.add(nuevo)
     db.commit()
     db.refresh(nuevo)
-    registrar_auditoria(db, "CREAR", "objetivos", nuevo.id,
-                        f"Objetivo creado: {o.tarea} {o.valor_objetivo} {o.metrica}")
+    registrar_auditoria(
+        db, "CREAR", "objetivos", nuevo.id,
+        f"Objetivo creado: {nuevo.tarea} → {nuevo.valor_objetivo} {nuevo.metrica}"
+    )
     return ObjetivoOut(
-        id=nuevo.id, tarea=nuevo.tarea, periodo=nuevo.periodo,
-        metrica=nuevo.metrica, valor_objetivo=nuevo.valor_objetivo,
-        usuario_id=nuevo.usuario_id, fecha_inicio=nuevo.fecha_inicio,
-        fecha_fin=nuevo.fecha_fin, valor_real=0, progreso=0
+        id=nuevo.id,
+        tarea=nuevo.tarea,
+        periodo=nuevo.periodo,
+        metrica=nuevo.metrica,
+        valor_objetivo=nuevo.valor_objetivo,
+        usuario_id=nuevo.usuario_id,
+        fecha_inicio=nuevo.fecha_inicio,
+        fecha_fin=nuevo.fecha_fin,
+        valor_real=0,
+        progreso=0
     )
 
 @app.delete("/objetivos/{objetivo_id}")
-def eliminar_objetivo(objetivo_id: int, db: Session = Depends(get_db
-@app.delete("/objetivos/{objetivo_id}")
 def eliminar_objetivo(objetivo_id: int, db: Session = Depends(get_db)):
-    obj = db.query(Objetivo).filter(Objetivo.id == objetivo_id).first()
-    if not obj:
+    o = db.query(Objetivo).filter(Objetivo.id == objetivo_id).first()
+    if not o:
         raise HTTPException(status_code=404, detail="Objetivo no encontrado")
-    db.delete(obj)
+    db.delete(o)
     db.commit()
-    registrar_auditoria(db, "ELIMINAR", "objetivos", objetivo_id,
-                        f"Objetivo {objetivo_id} eliminado")
+    registrar_auditoria(
+        db, "ELIMINAR", "objetivos", objetivo_id,
+        f"Objetivo {objetivo_id} eliminado"
+    )
     return {"ok": True}
 
-# ==================== ENDPOINTS: AUDITORÍA ====================
-@app.get("/auditoria/", response_model=List[AuditoriaOut])
-def get_auditoria(
-    usuario_codigo: Optional[str] = None,
-    accion: Optional[str] = None,
-    fecha_inicio: Optional[str] = None,
-    fecha_fin: Optional[str] = None,
-    limit: int = 200,
-    db: Session = Depends(get_db)
-):
-    q = db.query(Auditoria)
-    if usuario_codigo:
-        q = q.filter(Auditoria.usuario_codigo == usuario_codigo)
-    if accion:
-        q = q.filter(Auditoria.accion == accion)
-    if fecha_inicio:
-        q = q.filter(Auditoria.timestamp >= datetime.fromisoformat(fecha_inicio))
-    if fecha_fin:
-        q = q.filter(Auditoria.timestamp <= datetime.fromisoformat(fecha_fin))
-    return q.order_by(Auditoria.timestamp.desc()).limit(limit).all()
 # ==================== ENDPOINTS: ESTADÍSTICAS ====================
-@app.get("/estadisticas/")
-def get_estadisticas(
+@app.get("/estadisticas/resumen/")
+def estadisticas_resumen(
     usuario_id: Optional[int] = None,
     fecha_inicio: Optional[str] = None,
     fecha_fin: Optional[str] = None,
@@ -746,254 +729,201 @@ def get_estadisticas(
         q = q.filter(Registro.fecha >= date.fromisoformat(fecha_inicio))
     if fecha_fin:
         q = q.filter(Registro.fecha <= date.fromisoformat(fecha_fin))
+
     registros = q.all()
-
     total_minutos = sum(r.minutos for r in registros)
-    por_tarea = {}
-    por_dia = {}
-    por_usuario = {}
 
+    por_tarea = {}
     for r in registros:
         por_tarea[r.tarea] = por_tarea.get(r.tarea, 0) + r.minutos
-        dia_str = str(r.fecha)
-        por_dia[dia_str] = por_dia.get(dia_str, 0) + r.minutos
-        por_usuario[r.usuario_id] = por_usuario.get(r.usuario_id, 0) + r.minutos
 
-    usuarios_detalle = []
-    for uid, mins in por_usuario.items():
-        user = db.query(Usuario).filter(Usuario.id == uid).first()
-        usuarios_detalle.append({
-            "usuario_id": uid,
-            "codigo": user.codigo if user else "?",
-            "nombre": user.nombre if user else "?",
-            "minutos": mins,
-            "horas": round(mins / 60, 2)
-        })
+    por_usuario = {}
+    for r in registros:
+        user = db.query(Usuario).filter(Usuario.id == r.usuario_id).first()
+        codigo = user.codigo if user else str(r.usuario_id)
+        por_usuario[codigo] = por_usuario.get(codigo, 0) + r.minutos
 
     return {
+        "total_registros": len(registros),
         "total_minutos": total_minutos,
         "total_horas": round(total_minutos / 60, 2),
-        "total_registros": len(registros),
-        "por_tarea": [{"tarea": k, "minutos": v, "horas": round(v/60,2)} for k, v in sorted(por_tarea.items(), key=lambda x: -x[1])],
-        "por_dia": [{"fecha": k, "minutos": v} for k, v in sorted(por_dia.items())],
-        "por_usuario": usuarios_detalle
+        "por_tarea": por_tarea,
+        "por_usuario": por_usuario
     }
 
-@app.get("/estadisticas/semanal/")
-def get_estadisticas_semanal(
-    usuario_id: Optional[int] = None,
-    db: Session = Depends(get_db)
-):
-    hoy = date.today()
-    inicio_semana = hoy - timedelta(days=hoy.weekday())
-    fin_semana = inicio_semana + timedelta(days=6)
-    return get_estadisticas(usuario_id=usuario_id,
-                             fecha_inicio=str(inicio_semana),
-                             fecha_fin=str(fin_semana), db=db)
-
-@app.get("/estadisticas/mensual/")
-def get_estadisticas_mensual(
-    usuario_id: Optional[int] = None,
-    db: Session = Depends(get_db)
-):
-    hoy = date.today()
-    inicio_mes = hoy.replace(day=1)
-    if hoy.month == 12:
-        fin_mes = date(hoy.year + 1, 1, 1) - timedelta(days=1)
-    else:
-        fin_mes = date(hoy.year, hoy.month + 1, 1) - timedelta(days=1)
-    return get_estadisticas(usuario_id=usuario_id,
-                             fecha_inicio=str(inicio_mes),
-                             fecha_fin=str(fin_mes), db=db)
-
-@app.get("/productividad/")
-def get_productividad(
+@app.get("/estadisticas/productividad/")
+def estadisticas_productividad(
     fecha_inicio: Optional[str] = None,
     fecha_fin: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
     usuarios = db.query(Usuario).filter(Usuario.activo == True).all()
-    result = []
-    for user in usuarios:
-        q = db.query(Registro).filter(Registro.usuario_id == user.id)
+    resultado = []
+    for u in usuarios:
+        q = db.query(Registro).filter(Registro.usuario_id == u.id)
         if fecha_inicio:
             q = q.filter(Registro.fecha >= date.fromisoformat(fecha_inicio))
         if fecha_fin:
             q = q.filter(Registro.fecha <= date.fromisoformat(fecha_fin))
-        registros = q.all()
-        total_min = sum(r.minutos for r in registros)
-
-        vol_q = db.query(func.sum(Volumen.unidades)).filter(Volumen.usuario_id == user.id)
-        if fecha_inicio:
-            vol_q = vol_q.filter(Volumen.fecha >= date.fromisoformat(fecha_inicio))
-        if fecha_fin:
-            vol_q = vol_q.filter(Volumen.fecha <= date.fromisoformat(fecha_fin))
-        total_unidades = vol_q.scalar() or 0
-
-        inc_q = db.query(func.count(Incidencia.id)).filter(Incidencia.usuario_id == user.id)
-        if fecha_inicio:
-            inc_q = inc_q.filter(Incidencia.fecha >= date.fromisoformat(fecha_inicio))
-        if fecha_fin:
-            inc_q = inc_q.filter(Incidencia.fecha <= date.fromisoformat(fecha_fin))
-        total_incidencias = inc_q.scalar() or 0
-
-        result.append({
-            "usuario_id": user.id,
-            "codigo": user.codigo,
-            "nombre": user.nombre,
+        regs = q.all()
+        total_min = sum(r.minutos for r in regs)
+        resultado.append({
+            "usuario_id": u.id,
+            "codigo": u.codigo,
+            "nombre": u.nombre,
+            "total_registros": len(regs),
             "total_minutos": total_min,
-            "total_horas": round(total_min / 60, 2),
-            "total_registros": len(registros),
-            "total_unidades": total_unidades,
-            "total_incidencias": total_incidencias,
-            "uds_por_hora": round(total_unidades / (total_min / 60), 2) if total_min > 0 else 0
+            "total_horas": round(total_min / 60, 2)
         })
-    return sorted(result, key=lambda x: -x["total_minutos"])
+    return resultado
+
+# ==================== ENDPOINTS: AUDITORÍA ====================
+@app.get("/auditoria/", response_model=List[AuditoriaOut])
+def get_auditoria(
+    usuario_id: Optional[int] = None,
+    fecha_inicio: Optional[str] = None,
+    fecha_fin: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    q = db.query(Auditoria)
+    if usuario_id:
+        q = q.filter(Auditoria.usuario_id == usuario_id)
+    if fecha_inicio:
+        q = q.filter(Auditoria.timestamp >= datetime.fromisoformat(fecha_inicio))
+    if fecha_fin:
+        q = q.filter(
+            Auditoria.timestamp <= datetime.fromisoformat(fecha_fin + " 23:59:59")
+        )
+    return q.order_by(Auditoria.timestamp.desc()).limit(200).all()
 
 # ==================== EXPORTACIÓN EXCEL ====================
-@app.get("/exportar-excel/")
+@app.get("/exportar/excel/")
 def exportar_excel(
-    usuario_id: Optional[int] = None,
     fecha_inicio: Optional[str] = None,
     fecha_fin: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
     wb = openpyxl.Workbook()
 
-    # Estilos
-    header_fill = PatternFill("solid", fgColor="1E3A5F")
+    header_fill = PatternFill(start_color="1E3A5F", end_color="1E3A5F", fill_type="solid")
     header_font = Font(color="FFFFFF", bold=True)
-    alt_fill = PatternFill("solid", fgColor="EBF1FF")
-    center = Alignment(horizontal="center")
-    thin = Side(style="thin", color="CCCCCC")
-    border = Border(left=thin, right=thin, top=thin, bottom=thin)
+    center = Alignment(horizontal="center", vertical="center")
+    thin = Border(
+        left=Side(style="thin"), right=Side(style="thin"),
+        top=Side(style="thin"), bottom=Side(style="thin")
+    )
 
-    def estilo_header(ws, headers):
-        for col, h in enumerate(headers, 1):
-            cell = ws.cell(row=1, column=col, value=h)
+    def estilizar_hoja(ws, headers):
+        ws.append(headers)
+        for col_num, _ in enumerate(headers, 1):
+            cell = ws.cell(row=1, column=col_num)
             cell.fill = header_fill
             cell.font = header_font
             cell.alignment = center
-            cell.border = border
-            ws.column_dimensions[get_column_letter(col)].width = max(15, len(h) + 4)
+            cell.border = thin
+        ws.row_dimensions[1].height = 20
 
-    def estilo_fila(ws, row_idx, values):
-        fill = alt_fill if row_idx % 2 == 0 else PatternFill()
-        for col, val in enumerate(values, 1):
-            cell = ws.cell(row=row_idx, column=col, value=val)
-            cell.fill = fill
-            cell.border = border
-            cell.alignment = center
+    def auto_ancho(ws):
+        for col in ws.columns:
+            max_len = max((len(str(c.value)) for c in col if c.value), default=10)
+            ws.column_dimensions[get_column_letter(col[0].column)].width = min(max_len + 4, 40)
 
-    # ── Hoja 1: Registros ──
+    # Hoja 1: Registros
     ws1 = wb.active
     ws1.title = "Registros"
-    headers1 = ["ID", "Usuario", "Fecha", "Tarea", "Subtarea", "Minutos", "Horas", "Turno", "Notas"]
-    estilo_header(ws1, headers1)
-    q = db.query(Registro)
-    if usuario_id:
-        q = q.filter(Registro.usuario_id == usuario_id)
+    estilizar_hoja(ws1, ["ID", "Usuario", "Fecha", "Tarea", "Subtarea", "Minutos", "Horas", "Turno", "Notas"])
+    q_reg = db.query(Registro)
     if fecha_inicio:
-        q = q.filter(Registro.fecha >= date.fromisoformat(fecha_inicio))
+        q_reg = q_reg.filter(Registro.fecha >= date.fromisoformat(fecha_inicio))
     if fecha_fin:
-        q = q.filter(Registro.fecha <= date.fromisoformat(fecha_fin))
-    for i, r in enumerate(q.order_by(Registro.fecha).all(), 2):
+        q_reg = q_reg.filter(Registro.fecha <= date.fromisoformat(fecha_fin))
+    for r in q_reg.order_by(Registro.fecha.desc()).all():
         user = db.query(Usuario).filter(Usuario.id == r.usuario_id).first()
-        estilo_fila(ws1, i, [
-            r.id, user.codigo if user else "?", str(r.fecha),
+        ws1.append([
+            r.id, user.codigo if user else "N/A", str(r.fecha),
             r.tarea, r.subtarea or "", r.minutos,
-            round(r.minutos/60, 2), r.turno or "", r.notas or ""
+            round(r.minutos / 60, 2), r.turno or "", r.notas or ""
         ])
+    auto_ancho(ws1)
 
-    # ── Hoja 2: Volúmenes ──
-    ws2 = wb.create_sheet("Volúmenes")
-    headers2 = ["ID", "Usuario", "Fecha", "Tarea", "Unidades", "Objetivo", "% Cumplimiento", "Turno", "Notas"]
-    estilo_header(ws2, headers2)
-    q2 = db.query(Volumen)
-    if usuario_id:
-        q2 = q2.filter(Volumen.usuario_id == usuario_id)
+    # Hoja 2: Volumen
+    ws2 = wb.create_sheet(title="Volumen")
+    estilizar_hoja(ws2, ["ID", "Usuario", "Fecha", "Tarea", "Unidades", "Objetivo", "Turno", "Notas"])
+    q_vol = db.query(Volumen)
     if fecha_inicio:
-        q2 = q2.filter(Volumen.fecha >= date.fromisoformat(fecha_inicio))
+        q_vol = q_vol.filter(Volumen.fecha >= date.fromisoformat(fecha_inicio))
     if fecha_fin:
-        q2 = q2.filter(Volumen.fecha <= date.fromisoformat(fecha_fin))
-    for i, v in enumerate(q2.order_by(Volumen.fecha).all(), 2):
+        q_vol = q_vol.filter(Volumen.fecha <= date.fromisoformat(fecha_fin))
+    for v in q_vol.order_by(Volumen.fecha.desc()).all():
         user = db.query(Usuario).filter(Usuario.id == v.usuario_id).first()
-        pct = round((v.unidades / v.objetivo_unidades) * 100, 1) if v.objetivo_unidades else 0
-        estilo_fila(ws2, i, [
-            v.id, user.codigo if user else "?", str(v.fecha),
+        ws2.append([
+            v.id, user.codigo if user else "N/A", str(v.fecha),
             v.tarea, v.unidades, v.objetivo_unidades,
-            f"{pct}%", v.turno or "", v.notas or ""
+            v.turno or "", v.notas or ""
         ])
+    auto_ancho(ws2)
 
-    # ── Hoja 3: Incidencias ──
-    ws3 = wb.create_sheet("Incidencias")
-    headers3 = ["ID", "Usuario", "Fecha", "Tipo", "Descripción", "Impacto (min)", "Estado"]
-    estilo_header(ws3, headers3)
-    q3 = db.query(Incidencia)
-    if usuario_id:
-        q3 = q3.filter(Incidencia.usuario_id == usuario_id)
+    # Hoja 3: Incidencias
+    ws3 = wb.create_sheet(title="Incidencias")
+    estilizar_hoja(ws3, ["ID", "Usuario", "Fecha", "Tipo", "Descripción", "Impacto (min)", "Estado"])
+    q_inc = db.query(Incidencia)
     if fecha_inicio:
-        q3 = q3.filter(Incidencia.fecha >= date.fromisoformat(fecha_inicio))
+        q_inc = q_inc.filter(Incidencia.fecha >= date.fromisoformat(fecha_inicio))
     if fecha_fin:
-        q3 = q3.filter(Incidencia.fecha <= date.fromisoformat(fecha_fin))
-    for i, inc in enumerate(q3.order_by(Incidencia.fecha).all(), 2):
-        user = db.query(Usuario).filter(Usuario.id == inc.usuario_id).first()
-        estilo_fila(ws3, i, [
-            inc.id, user.codigo if user else "?", str(inc.fecha),
-            inc.tipo, inc.descripcion, inc.impacto_minutos, inc.estado
+        q_inc = q_inc.filter(Incidencia.fecha <= date.fromisoformat(fecha_fin))
+    for i in q_inc.order_by(Incidencia.fecha.desc()).all():
+        user = db.query(Usuario).filter(Usuario.id == i.usuario_id).first()
+        ws3.append([
+            i.id, user.codigo if user else "N/A", str(i.fecha),
+            i.tipo, i.descripcion, i.impacto_minutos, i.estado
         ])
+    auto_ancho(ws3)
 
-    # ── Hoja 4: Productividad ──
-    ws4 = wb.create_sheet("Productividad")
-    headers4 = ["Usuario", "Nombre", "Total Horas", "Total Registros", "Total Unidades", "Incidencias", "Uds/Hora"]
-    estilo_header(ws4, headers4)
-    prod = get_productividad(fecha_inicio=fecha_inicio, fecha_fin=fecha_fin, db=db)
-    for i, p in enumerate(prod, 2):
-        estilo_fila(ws4, i, [
-            p["codigo"], p["nombre"], p["total_horas"],
-            p["total_registros"], p["total_unidades"],
-            p["total_incidencias"], p["uds_por_hora"]
-        ])
-
-    # ── Hoja 5: Turnos ──
-    ws5 = wb.create_sheet("Turnos")
-    headers5 = ["ID", "Usuario", "Fecha", "Turno", "Estado", "Notas"]
-    estilo_header(ws5, headers5)
-    q5 = db.query(TurnoUsuario)
-    if usuario_id:
-        q5 = q5.filter(TurnoUsuario.usuario_id == usuario_id)
+    # Hoja 4: Turnos
+    ws4 = wb.create_sheet(title="Turnos")
+    estilizar_hoja(ws4, ["ID", "Usuario", "Fecha", "Turno", "Estado", "Notas"])
+    q_tur = db.query(TurnoUsuario)
     if fecha_inicio:
-        q5 = q5.filter(TurnoUsuario.fecha >= date.fromisoformat(fecha_inicio))
+        q_tur = q_tur.filter(TurnoUsuario.fecha >= date.fromisoformat(fecha_inicio))
     if fecha_fin:
-        q5 = q5.filter(TurnoUsuario.fecha <= date.fromisoformat(fecha_fin))
-    for i, t in enumerate(q5.order_by(TurnoUsuario.fecha).all(), 2):
+        q_tur = q_tur.filter(TurnoUsuario.fecha <= date.fromisoformat(fecha_fin))
+    for t in q_tur.order_by(TurnoUsuario.fecha.desc()).all():
         user = db.query(Usuario).filter(Usuario.id == t.usuario_id).first()
-        estilo_fila(ws5, i, [
-            t.id, user.codigo if user else "?", str(t.fecha),
+        ws4.append([
+            t.id, user.codigo if user else "N/A", str(t.fecha),
             t.turno, t.estado, t.notas or ""
         ])
+    auto_ancho(ws4)
 
-    # ── Hoja 6: Auditoría ──
-    ws6 = wb.create_sheet("Auditoría")
-    headers6 = ["ID", "Usuario", "Acción", "Entidad", "Entidad ID", "Detalle", "Timestamp"]
-    estilo_header(ws6, headers6)
-    for i, a in enumerate(db.query(Auditoria).order_by(Auditoria.timestamp.desc()).limit(500).all(), 2):
-        estilo_fila(ws6, i, [
-            a.id, a.usuario_codigo or "?", a.accion,
-            a.entidad or "", a.entidad_id or "",
+    # Hoja 5: Auditoría
+    ws5 = wb.create_sheet(title="Auditoria")
+    estilizar_hoja(ws5, ["ID", "Usuario", "Acción", "Entidad", "Entidad ID", "Detalle", "Timestamp"])
+    for a in db.query(Auditoria).order_by(Auditoria.timestamp.desc()).limit(500).all():
+        ws5.append([
+            a.id, a.usuario_codigo or "sistema",
+            a.accion, a.entidad or "", a.entidad_id or "",
             a.detalle or "", str(a.timestamp)
         ])
+    auto_ancho(ws5)
 
-    # ── Stream de respuesta ──
     output = io.BytesIO()
     wb.save(output)
     output.seek(0)
-    filename = f"reporte_{date.today()}.xlsx"
+
     return StreamingResponse(
         output,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": f"attachment; filename={filename}"}
+        headers={"Content-Disposition": "attachment; filename=reporte_logistica.xlsx"}
     )
 
-# ==================== ARCHIVOS ESTÁTICOS ====================
-app.mount("/", StaticFiles(directory="static", html=True), name="static")
+# ==================== FRONTEND ====================
+@app.get("/")
+def serve_index():
+    if os.path.exists("index.html"):
+        return FileResponse("index.html")
+    return {"mensaje": "Backend activo. Sube index.html para el frontend."}
+
+# ==================== INICIO ====================
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
