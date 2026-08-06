@@ -62,6 +62,7 @@
         <button onclick="mostrarPestana('dashboard')" id="tab-dashboard" class="px-4 py-2 rounded-lg font-medium text-sm bg-white text-slate-600 border hidden whitespace-nowrap">🏠 Dashboard</button>
         <button onclick="mostrarPestana('historico')" id="tab-historico" class="px-4 py-2 rounded-lg font-medium text-sm bg-white text-slate-600 border hidden whitespace-nowrap">📅 Histórico</button>
         <button onclick="mostrarPestana('progreso')" id="tab-progreso" class="px-4 py-2 rounded-lg font-medium text-sm bg-white text-slate-600 border hidden whitespace-nowrap">📊 Progreso</button>
+        <button onclick="mostrarPestana('volumen')" id="tab-volumen" class="px-4 py-2 rounded-lg font-medium text-sm bg-white text-slate-600 border hidden whitespace-nowrap">📈 Volumen</button>
         <button onclick="mostrarPestana('plantillas')" id="tab-plantillas" class="px-4 py-2 rounded-lg font-medium text-sm bg-white text-slate-600 border hidden whitespace-nowrap">📋 Plantillas</button>
         <button onclick="mostrarPestana('edicion')" id="tab-edicion" class="px-4 py-2 rounded-lg font-medium text-sm bg-white text-slate-600 border hidden whitespace-nowrap">✏️ Editar</button>
         <button onclick="mostrarPestana('usuarios')" id="tab-usuarios" class="px-4 py-2 rounded-lg font-medium text-sm bg-white text-slate-600 border hidden whitespace-nowrap">👥 Usuarios</button>
@@ -204,7 +205,7 @@
             </div>
         </div>
 
-        <!-- Top tareas y media por tarea -->
+        <!-- Top tareas y media -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <div class="bg-white rounded-xl shadow p-6">
                 <h3 class="font-bold text-slate-800 mb-4">Top 5 tareas más frecuentes</h3>
@@ -218,7 +219,7 @@
             </div>
         </div>
 
-        <!-- Gráficos tareas y usuarios -->
+        <!-- Gráficos -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="bg-white rounded-xl shadow p-6">
                 <h3 class="font-bold text-slate-800 mb-4">Distribución de tareas hoy</h3>
@@ -238,14 +239,10 @@
                 <h1 class="text-2xl font-bold text-slate-800">Histórico</h1>
                 <p class="text-sm text-slate-500">Consulta el histórico por semana o mes</p>
             </div>
-
-            <!-- Selector de periodo -->
             <div class="flex gap-2 mb-6">
                 <button onclick="cambiarPeriodo('semana')" id="btn-periodo-semana" class="px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white">Por semana</button>
                 <button onclick="cambiarPeriodo('mes')" id="btn-periodo-mes" class="px-4 py-2 rounded-lg text-sm font-medium bg-white text-slate-600 border">Por mes</button>
             </div>
-
-            <!-- Filtros semana -->
             <div id="filtros-semana" class="grid grid-cols-2 gap-4 mb-4">
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-1">Usuario:</label>
@@ -258,8 +255,6 @@
                     <input type="date" id="historico-fecha-semana" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
                 </div>
             </div>
-
-            <!-- Filtros mes -->
             <div id="filtros-mes" class="grid grid-cols-3 gap-4 mb-4 hidden">
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-1">Usuario:</label>
@@ -289,7 +284,6 @@
                     </select>
                 </div>
             </div>
-
             <button onclick="cargarHistorico()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-lg mb-6">Consultar</button>
             <div id="historico-resultado">
                 <p class="text-sm text-slate-400 text-center py-8 italic">Selecciona un periodo y consulta.</p>
@@ -350,6 +344,104 @@
                 <div class="bg-slate-50 rounded-xl p-4">
                     <h3 class="text-sm font-semibold text-slate-700 mb-3">Evolución semanal (horas por día)</h3>
                     <canvas id="grafico-semanal"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PESTAÑA VOLUMEN & MÉTRICAS -->
+    <div id="pestana-volumen" class="hidden">
+        <div class="bg-white shadow-lg rounded-xl p-8 mb-6">
+            <div class="border-b pb-4 mb-6">
+                <h1 class="text-2xl font-bold text-slate-800">Volumen & Métricas</h1>
+                <p class="text-sm text-slate-500">Introduce datos de volumen y compara con las horas reales de los operarios</p>
+            </div>
+
+            <!-- Formulario añadir volumen -->
+            <div class="bg-slate-50 rounded-xl p-5 mb-6">
+                <h3 class="text-sm font-bold text-slate-700 mb-4">Añadir datos de volumen</h3>
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-3">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Fecha:</label>
+                        <input type="date" id="vol-fecha" class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Tarea principal:</label>
+                        <select id="vol-tarea" class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                            <option value="Picking">Picking</option>
+                            <option value="Packing">Packing</option>
+                            <option value="Inbound">Inbound</option>
+                            <option value="Shipping">Shipping</option>
+                            <option value="Ecommerce">Ecommerce</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Unidades procesadas:</label>
+                        <input type="number" id="vol-unidades" min="0" placeholder="Ej: 500" class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Horas teóricas:</label>
+                        <input type="number" id="vol-horas" min="0" step="0.5" placeholder="Ej: 4.5" class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Comentarios (opcional):</label>
+                        <input type="text" id="vol-comentarios" placeholder="Ej: Campaña Black Friday" class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    </div>
+                </div>
+                <button onclick="crearVolumen()" class="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2.5 rounded-lg">+ Añadir datos de volumen</button>
+                <div id="vol-mensaje" class="mt-2 text-sm hidden"></div>
+            </div>
+
+            <!-- Filtros métricas -->
+            <div class="border-t pt-6">
+                <h3 class="text-sm font-bold text-slate-700 mb-4">Consultar métricas</h3>
+                <div class="grid grid-cols-2 gap-3 mb-4">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Desde:</label>
+                        <input type="date" id="vol-desde" class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Hasta:</label>
+                        <input type="date" id="vol-hasta" class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    </div>
+                </div>
+                <button onclick="cargarMetricas()" class="w-full bg-slate-700 hover:bg-slate-800 text-white text-sm font-medium py-2.5 rounded-lg mb-6">Consultar métricas</button>
+
+                <!-- KPIs métricas -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6" id="vol-kpis" style="display:none;">
+                    <div class="bg-blue-50 rounded-xl p-4 text-center">
+                        <div class="text-2xl font-bold text-blue-700" id="vol-kpi-unidades">—</div>
+                        <div class="text-xs text-slate-500 mt-1">Total unidades</div>
+                    </div>
+                    <div class="bg-violet-50 rounded-xl p-4 text-center">
+                        <div class="text-2xl font-bold text-violet-700" id="vol-kpi-horas-teo">—</div>
+                        <div class="text-xs text-slate-500 mt-1">Horas teóricas</div>
+                    </div>
+                    <div class="bg-amber-50 rounded-xl p-4 text-center">
+                        <div class="text-2xl font-bold text-amber-700" id="vol-kpi-horas-real">—</div>
+                        <div class="text-xs text-slate-500 mt-1">Horas reales</div>
+                    </div>
+                    <div class="bg-emerald-50 rounded-xl p-4 text-center">
+                        <div class="text-2xl font-bold text-emerald-700" id="vol-kpi-eficiencia">—</div>
+                        <div class="text-xs text-slate-500 mt-1">Eficiencia media</div>
+                    </div>
+                </div>
+
+                <!-- Gráficos métricas -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6" id="vol-graficos" style="display:none;">
+                    <div class="bg-slate-50 rounded-xl p-4">
+                        <h3 class="text-sm font-semibold text-slate-700 mb-3">Eficiencia por tarea (%)</h3>
+                        <canvas id="vol-grafico-eficiencia"></canvas>
+                    </div>
+                    <div class="bg-slate-50 rounded-xl p-4">
+                        <h3 class="text-sm font-semibold text-slate-700 mb-3">Horas teóricas vs reales</h3>
+                        <canvas id="vol-grafico-comparativa"></canvas>
+                    </div>
+                </div>
+
+                <!-- Tabla métricas -->
+                <div id="vol-tabla">
+                    <p class="text-sm text-slate-400 text-center py-8 italic">Selecciona un rango de fechas y consulta.</p>
                 </div>
             </div>
         </div>
@@ -482,6 +574,8 @@
             <label class="block text-sm font-medium text-slate-700 mb-1">Comentarios:</label>
             <input type="text" id="edit-comentarios" class="w-full px-3 py-2 border rounded-lg mb-4" />
             <div class="flex gap-3">
+                <button onclick="guardarEdicion()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded-
+            <div class="flex gap-3">
                 <button onclick="guardarEdicion()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded-lg">Guardar cambios</button>
                 <button onclick="cerrarModal()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-2 px-4 rounded-lg">Cancelar</button>
             </div>
@@ -517,6 +611,8 @@
     let dashboardGraficoUsuarios = null;
     let dashboardGraficoMedia = null;
     let historicoGrafico = null;
+    let volGraficoEficiencia = null;
+    let volGraficoComparativa = null;
 
     const coloresTarea = {
         "Picking":   { bg: "#3b82f6", light: "#eff6ff", text: "#1d4ed8" },
@@ -545,6 +641,9 @@
         document.getElementById("edicion-fecha-hasta").value = hoy;
         document.getElementById("dashboard-fecha").value = hoy;
         document.getElementById("historico-fecha-semana").value = hoy;
+        document.getElementById("vol-fecha").value = hoy;
+        document.getElementById("vol-desde").value = hoy;
+        document.getElementById("vol-hasta").value = hoy;
         const fechaActual = new Date();
         document.getElementById("historico-anyo").value = fechaActual.getFullYear();
         document.getElementById("historico-mes").value = fechaActual.getMonth() + 1;
@@ -601,7 +700,7 @@
         if (usuarioSesion.rol === "supervisor") {
             rolBadge.textContent = "Supervisor";
             rolBadge.className = "text-xs px-2 py-0.5 rounded-full font-medium bg-violet-100 text-violet-700";
-            ["tab-dashboard","tab-historico","tab-progreso","tab-plantillas","tab-edicion","tab-usuarios"].forEach(id => {
+            ["tab-dashboard","tab-historico","tab-progreso","tab-volumen","tab-plantillas","tab-edicion","tab-usuarios"].forEach(id => {
                 document.getElementById(id).classList.remove("hidden");
             });
             document.getElementById("btn-excel").classList.remove("hidden");
@@ -632,14 +731,14 @@
         document.getElementById("login-codigo").value = "";
         document.getElementById("login-pin").value = "";
         document.getElementById("login-codigo").focus();
-        ["tab-dashboard","tab-historico","tab-progreso","tab-plantillas","tab-edicion","tab-usuarios"].forEach(id => {
+        ["tab-dashboard","tab-historico","tab-progreso","tab-volumen","tab-plantillas","tab-edicion","tab-usuarios"].forEach(id => {
             document.getElementById(id).classList.add("hidden");
         });
         document.getElementById("btn-excel").classList.add("hidden");
         resetearBotonesTiempo();
     }
 
-    // ==================== INDICADOR DE TIEMPO ====================
+    // ==================== INDICADOR TIEMPO ====================
     async function actualizarIndicadorTiempo() {
         if (!usuarioSesion) return;
         try {
@@ -672,26 +771,39 @@
     // ==================== NAVEGACIÓN ====================
     function mostrarPestana(nombre) {
         const pestanasPermitidas = usuarioSesion.rol === "supervisor"
-            ? ["registro","dashboard","historico","progreso","plantillas","edicion","usuarios"]
+            ? ["registro","dashboard","historico","progreso","volumen","plantillas","edicion","usuarios"]
             : ["registro","plantillas"];
         if (!pestanasPermitidas.includes(nombre)) {
             alert("No tienes permisos para acceder a esta sección.");
             return;
         }
-        ["registro","dashboard","historico","progreso","plantillas","edicion","usuarios"].forEach(p => {
+        ["registro","dashboard","historico","progreso","volumen","plantillas","edicion","usuarios"].forEach(p => {
             const pestana = document.getElementById(`pestana-${p}`);
             const tab = document.getElementById(`tab-${p}`);
             if (pestana) pestana.classList.add("hidden");
-            if (tab) tab.className = tab.className.replace("bg-blue-600 text-white", "bg-white text-slate-600 border");
+            if (tab) {
+                tab.className = tab.className
+                    .replace("bg-blue-600 text-white", "bg-white text-slate-600 border")
+                    .replace("bg-blue-600", "bg-white");
+            }
         });
         document.getElementById(`pestana-${nombre}`).classList.remove("hidden");
         const tabActivo = document.getElementById(`tab-${nombre}`);
-        if (tabActivo) tabActivo.className = tabActivo.className.replace("bg-white text-slate-600 border", "bg-blue-600 text-white");
+        if (tabActivo) {
+            tabActivo.className = tabActivo.className
+                .replace("bg-white text-slate-600 border", "bg-blue-600 text-white")
+                .replace("bg-white", "bg-blue-600");
+        }
         if (nombre === "progreso" || nombre === "edicion") cargarUsuariosFiltros();
         if (nombre === "usuarios") cargarUsuariosGestion();
         if (nombre === "dashboard") cargarDashboard();
         if (nombre === "plantillas") cargarPlantillas();
         if (nombre === "historico") cargarUsuariosHistorico();
+        if (nombre === "volumen") {
+            document.getElementById("vol-fecha").value = hoy;
+            document.getElementById("vol-desde").value = hoy;
+            document.getElementById("vol-hasta").value = hoy;
+        }
     }
 
     // ==================== SUBTAREAS ====================
@@ -918,9 +1030,7 @@
                             </div>`;
                         }).join("")}
                     </div>
-                    <div class="mt-2 text-xs text-slate-400">
-                        Total: ${p.items.reduce((s,i) => s+i.tiempo_minutos, 0)} min
-                    </div>
+                    <div class="mt-2 text-xs text-slate-400">Total: ${p.items.reduce((s,i) => s+i.tiempo_minutos, 0)} min</div>
                 </div>
             `).join("") + `</div>`;
         } catch {
@@ -1002,17 +1112,15 @@
     async function cargarDashboard() {
         const fecha = document.getElementById("dashboard-fecha").value || hoy;
         try {
-            // Productividad
             const respProd = await fetch(`${API}/estadisticas/productividad/?fecha_ref=${fecha}`);
             const prod = await respProd.json();
             const contProd = document.getElementById("dashboard-productividad");
             contProd.innerHTML = "";
-            let totalRegHoy = 0, usuariosActivosCount = 0, totalMinsHoy = 0;
+            let totalMinsHoy = 0, usuariosActivosCount = 0;
 
             prod.forEach(p => {
                 totalMinsHoy += p.minutos_hoy;
                 if (p.minutos_hoy > 0) usuariosActivosCount++;
-                totalRegHoy += (p.minutos_hoy > 0 ? 1 : 0);
                 const color = p.porcentaje_jornada >= 100 ? "bg-emerald-500" : p.porcentaje_jornada >= 60 ? "bg-blue-500" : p.porcentaje_jornada >= 30 ? "bg-amber-400" : "bg-slate-300";
                 const horasH = Math.floor(p.minutos_hoy / 60);
                 const minsH = p.minutos_hoy % 60;
@@ -1024,47 +1132,47 @@
                                 <span class="text-slate-500">${horasH}h ${minsH}min (${p.porcentaje_jornada}%)</span>
                             </div>
                             <div class="w-full bg-slate-200 rounded-full h-2">
-                                <div class="${color} h-2 rounded-full transition-all duration-500" style="width:${Math.min(p.porcentaje_jornada, 100)}%"></div>
+                                <div class="${color} h-2 rounded-full transition-all duration-500" style="width:${Math.min(p.porcentaje_jornada,100)}%"></div>
                             </div>
                         </div>
                     </div>`;
             });
             if (prod.length === 0) contProd.innerHTML = `<p class="text-sm text-slate-400 text-center py-4 italic">No hay operarios.</p>`;
 
-            // KPIs
-            document.getElementById("kpi-registros").textContent = totalRegHoy;
+            document.getElementById("kpi-registros").textContent = prod.filter(p => p.minutos_hoy > 0).length;
             document.getElementById("kpi-usuarios").textContent = usuariosActivosCount;
             document.getElementById("kpi-horas").textContent = `${(totalMinsHoy/60).toFixed(1)}h`;
-            document.getElementById("kpi-media").textContent = prod.length > 0 ? `${Math.round(prod.reduce((s,p)=>s+p.porcentaje_jornada,0)/prod.length)}%` : "0%";
+            document.getElementById("kpi-media").textContent = prod.length > 0
+                ? `${Math.round(prod.reduce((s,p) => s+p.porcentaje_jornada, 0) / prod.length)}%`
+                : "0%";
 
-            // Comparación hoy vs ayer
             const contComp = document.getElementById("dashboard-comparacion");
-            contComp.innerHTML = prod.map(p => {
+            contComp.innerHTML = prod.length > 0 ? prod.map(p => {
                 const diff = p.variacion_minutos;
                 const signo = diff > 0 ? "+" : "";
                 const colorDiff = diff > 0 ? "text-emerald-600" : diff < 0 ? "text-rose-600" : "text-slate-500";
                 return `<div class="flex justify-between items-center p-3 bg-slate-50 rounded-xl text-sm">
                     <span class="font-medium text-slate-700">${p.nombre}</span>
-                    <div>
-                        <span class="text-slate-500 mr-4">Hoy: ${Math.floor(p.minutos_hoy/60)}h ${p.minutos_hoy%60}m</span>
-                        <span class="text-slate-500 mr-4">Ayer: ${Math.floor(p.minutos_ayer/60)}h ${p.minutos_ayer%60}m</span>
-                        <span class="font-bold ${colorDiff}">${signo}${diff} min</span>
+                    <div class="flex gap-4">
+                        <span class="text-slate-500">Hoy: ${Math.floor(p.minutos_hoy/60)}h ${p.minutos_hoy%60}m</span>
+                        <span class="text-slate-500">Ayer: ${Math.floor(p.minutos_ayer/60)}h ${p.minutos_ayer%60}m</span>
+                        <span class="font-bold ${colorDiff}">${signo}${diff}min</span>
                     </div>
                 </div>`;
-            }).join("");
+            }).join("") : `<p class="text-sm text-slate-400 text-center py-4 italic">Sin datos.</p>`;
 
-            // Top tareas
             const respTop = await fetch(`${API}/estadisticas/top-tareas/`);
             const topTareas = await respTop.json();
             const contTop = document.getElementById("dashboard-top-tareas");
-            contTop.innerHTML = topTareas.slice(0,5).map((t, idx) => `
-                <div class="flex justify-between items-center p-2.5 bg-slate-50 rounded-lg text-sm mb-2">
+            contTop.innerHTML = topTareas.slice(0,5).map((t, idx) => {
+                const tarea = t.tarea.split(" - ")[0];
+                const color = (coloresTarea[tarea] || coloresTarea["Otro"]).bg;
+                return `<div class="flex justify-between items-center p-2.5 rounded-lg text-sm mb-2" style="border-left:3px solid ${color};background:#f8fafc">
                     <span class="font-medium text-slate-700">${idx+1}. ${t.tarea}</span>
-                    <span class="text-slate-500 font-bold">${Math.floor(t.minutos_totales/60)}h (${t.count} veces)</span>
-                </div>
-            `).join("") || `<p class="text-sm text-slate-400 text-center py-4 italic">Sin datos.</p>`;
+                    <span class="text-slate-500 font-bold">${Math.floor(t.minutos_totales/60)}h (${t.count}x)</span>
+                </div>`;
+            }).join("") || `<p class="text-sm text-slate-400 text-center py-4 italic">Sin datos.</p>`;
 
-            // Gráfico media por tarea
             const respMedia = await fetch(`${API}/estadisticas/media-por-tarea/`);
             const dataMedia = await respMedia.json();
             if (dashboardGraficoMedia) dashboardGraficoMedia.destroy();
@@ -1072,12 +1180,11 @@
                 type: "bar",
                 data: {
                     labels: dataMedia.map(d => d.tarea),
-                    datasets: [{ label: "Media (min)", data: dataMedia.map(d => d.media_minutos), backgroundColor: "#8b5cf6", borderRadius: 6 }]
+                    datasets: [{ label: "Media (min)", data: dataMedia.map(d => d.media_minutos), backgroundColor: dataMedia.map(d => (coloresTarea[d.tarea]||coloresTarea["Otro"]).bg), borderRadius: 6 }]
                 },
                 options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
             });
 
-            // Gráficos circulares de hoy
             const respReg = await fetch(`${API}/registros/rango/?desde=${fecha}&hasta=${fecha}`);
             const registrosHoy = await respReg.json();
 
@@ -1109,14 +1216,18 @@
                 options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, max: 8 } } }
             });
 
-        } catch(e) { console.error(e); }
+        } catch(e) { console.error("Error dashboard:", e); }
     }
 
     // ==================== HISTÓRICO ====================
     function cambiarPeriodo(tipo) {
         periodoHistorico = tipo;
-        document.getElementById("btn-periodo-semana").className = tipo === "semana" ? "px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white" : "px-4 py-2 rounded-lg text-sm font-medium bg-white text-slate-600 border";
-        document.getElementById("btn-periodo-mes").className = tipo === "mes" ? "px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white" : "px-4 py-2 rounded-lg text-sm font-medium bg-white text-slate-600 border";
+        document.getElementById("btn-periodo-semana").className = tipo === "semana"
+            ? "px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white"
+            : "px-4 py-2 rounded-lg text-sm font-medium bg-white text-slate-600 border";
+        document.getElementById("btn-periodo-mes").className = tipo === "mes"
+            ? "px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white"
+            : "px-4 py-2 rounded-lg text-sm font-medium bg-white text-slate-600 border";
         if (tipo === "semana") {
             document.getElementById("filtros-semana").classList.remove("hidden");
             document.getElementById("filtros-mes").classList.add("hidden");
@@ -1137,28 +1248,36 @@
             try {
                 const resp = await fetch(url);
                 const data = await resp.json();
-                let html = `<div class="mb-4 text-sm text-slate-600">Semana del <b>${data.inicio}</b> al <b>${data.fin}</b> | Total: <b>${(data.total_minutos/60).toFixed(1)} horas</b></div>`;
-                html += `<div class="space-y-3">`;
+                let html = `<div class="mb-4 p-3 bg-blue-50 rounded-lg text-sm text-slate-600">
+                    Semana del <b>${data.inicio}</b> al <b>${data.fin}</b> |
+                    Total: <b>${(data.total_minutos/60).toFixed(1)} horas</b>
+                </div><div class="space-y-3">`;
                 const labels = [], valores = [];
-                Object.entries(data.dias).forEach(([dia, info]) => {
+                Object.entries(data.dias).sort().forEach(([dia, info]) => {
                     labels.push(dia);
                     valores.push(parseFloat((info.total_minutos/60).toFixed(2)));
-                    html += `<div class="p-3 bg-slate-50 rounded-xl flex justify-between items-center text-sm">
-                        <span class="font-medium text-slate-700">${dia}</span>
-                        <span class="font-bold text-blue-600">${(info.total_minutos/60).toFixed(1)}h</span>
+                    const pct = Math.min((info.total_minutos/480)*100, 100);
+                    const color = pct >= 100 ? "bg-emerald-500" : pct >= 60 ? "bg-blue-500" : pct >= 30 ? "bg-amber-400" : "bg-slate-300";
+                    html += `<div class="p-3 bg-slate-50 rounded-xl">
+                        <div class="flex justify-between text-sm mb-2">
+                            <span class="font-medium text-slate-700">${dia}</span>
+                            <span class="font-bold text-blue-600">${(info.total_minutos/60).toFixed(1)}h</span>
+                        </div>
+                        <div class="w-full bg-slate-200 rounded-full h-2">
+                            <div class="${color} h-2 rounded-full" style="width:${pct}%"></div>
+                        </div>
                     </div>`;
                 });
                 html += `</div>`;
                 contenedor.innerHTML = html;
-
                 if (historicoGrafico) historicoGrafico.destroy();
                 historicoGrafico = new Chart(document.getElementById("historico-grafico").getContext("2d"), {
                     type: "bar",
                     data: { labels, datasets: [{ label: "Horas", data: valores, backgroundColor: "#3b82f6", borderRadius: 6 }] },
-                    options: { responsive: true, scales: { y: { beginAtZero: true, max: 8 } } }
+                    options: { responsive: true, scales: { y: { beginAtZero: true, max: 8, title: { display: true, text: "Horas" } } } }
                 });
                 contenedorGrafico.classList.remove("hidden");
-            } catch { contenedor.innerHTML = `<p class="text-sm text-rose-500">Error cargando histórico semanal.</p>`; }
+            } catch { contenedor.innerHTML = `<p class="text-sm text-rose-500 text-center py-8">Error cargando histórico semanal.</p>`; }
         } else {
             const usuario = document.getElementById("historico-usuario-mes").value;
             const anyo = document.getElementById("historico-anyo").value;
@@ -1168,20 +1287,35 @@
             try {
                 const resp = await fetch(url);
                 const data = await resp.json();
-                let html = `<div class="mb-4 text-sm text-slate-600">Mes: <b>${mes}/${anyo}</b> | Registros: <b>${data.total_registros}</b> | Total: <b>${(data.total_minutos/60).toFixed(1)} horas</b></div>`;
-                html += `<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                let html = `<div class="mb-4 p-3 bg-blue-50 rounded-lg text-sm text-slate-600">
+                    Mes: <b>${mes}/${anyo}</b> | Registros: <b>${data.total_registros}</b> | Total: <b>${(data.total_minutos/60).toFixed(1)} horas</b>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div class="bg-slate-50 p-4 rounded-xl">
-                        <h4 class="font-bold text-slate-700 mb-2">Por Tarea</h4>
-                        ${Object.entries(data.por_tarea).map(([t, m]) => `<div class="flex justify-between text-sm py-1"><span>${t}</span><span class="font-bold">${(m/60).toFixed(1)}h</span></div>`).join("")}
+                        <h4 class="font-bold text-slate-700 mb-3">Por Tarea</h4>
+                        ${Object.entries(data.por_tarea).map(([t, m]) => {
+                            const color = (coloresTarea[t]||coloresTarea["Otro"]).bg;
+                            return `<div class="flex justify-between items-center text-sm py-2 border-b border-slate-200">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-3 h-3 rounded-full" style="background-color:${color}"></div>
+                                    <span>${t}</span>
+                                </div>
+                                <span class="font-bold text-slate-700">${(m/60).toFixed(1)}h</span>
+                            </div>`;
+                        }).join("")}
                     </div>
                     <div class="bg-slate-50 p-4 rounded-xl">
-                        <h4 class="font-bold text-slate-700 mb-2">Por Usuario</h4>
-                        ${Object.entries(data.por_usuario).map(([u, m]) => `<div class="flex justify-between text-sm py-1"><span>${u}</span><span class="font-bold">${(m/60).toFixed(1)}h</span></div>`).join("")}
+                        <h4 class="font-bold text-slate-700 mb-3">Por Usuario</h4>
+                        ${Object.entries(data.por_usuario).map(([u, m]) => `
+                            <div class="flex justify-between items-center text-sm py-2 border-b border-slate-200">
+                                <span>${u}</span>
+                                <span class="font-bold text-slate-700">${(m/60).toFixed(1)}h</span>
+                            </div>`).join("")}
                     </div>
                 </div>`;
                 contenedor.innerHTML = html;
                 contenedorGrafico.classList.add("hidden");
-            } catch { contenedor.innerHTML = `<p class="text-sm text-rose-500">Error cargando histórico mensual.</p>`; }
+            } catch { contenedor.innerHTML = `<p class="text-sm text-rose-500 text-center py-8">Error cargando histórico mensual.</p>`; }
         }
     }
 
@@ -1234,7 +1368,7 @@
             Object.entries(agrupado).forEach(([tarea, minutos]) => {
                 const pct = (minutos / 480) * 100;
                 const color = (coloresTarea[tarea] || coloresTarea["Otro"]).bg;
-                barraSeg.innerHTML += `<div style="width:${pct}%;background-color:${color}" title="${tarea}: ${minutos}min" class="h-full first:rounded-l-lg last:rounded-r-lg"></div>`;
+                barraSeg.innerHTML += `<div style="width:${pct}%;background-color:${color}" title="${tarea}: ${minutos}min" class="h-full"></div>`;
                 leyenda.innerHTML += `
                     <div class="flex justify-between items-center text-sm">
                         <div class="flex items-center gap-2">
@@ -1303,6 +1437,224 @@
         }
     }
 
+    // ==================== VOLUMEN & MÉTRICAS ====================
+    async function crearVolumen() {
+        const fecha = document.getElementById("vol-fecha").value;
+        const tarea_principal = document.getElementById("vol-tarea").value;
+        const unidades = parseInt(document.getElementById("vol-unidades").value);
+        const horas_teoricas = parseFloat(document.getElementById("vol-horas").value);
+        const comentarios = document.getElementById("vol-comentarios").value || null;
+        const msg = document.getElementById("vol-mensaje");
+
+        if (!fecha || !unidades || !horas_teoricas) {
+            msg.textContent = "Rellena todos los campos obligatorios.";
+            msg.className = "mt-2 text-sm text-rose-600";
+            msg.classList.remove("hidden");
+            return;
+        }
+        try {
+            const resp = await fetch(`${API}/volumenes/`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    fecha,
+                    tarea_principal,
+                    unidades,
+                    horas_teoricas,
+                    creado_por: usuarioSesion.codigo,
+                    comentarios
+                })
+            });
+            if (resp.ok) {
+                msg.textContent = "Datos de volumen guardados correctamente.";
+                msg.className = "mt-2 text-sm text-emerald-600";
+                msg.classList.remove("hidden");
+                document.getElementById("vol-unidades").value = "";
+                document.getElementById("vol-horas").value = "";
+                document.getElementById("vol-comentarios").value = "";
+                setTimeout(() => msg.classList.add("hidden"), 3000);
+            } else {
+                msg.textContent = "Error al guardar los datos.";
+                msg.className = "mt-2 text-sm text-rose-600";
+                msg.classList.remove("hidden");
+            }
+        } catch {
+            msg.textContent = "Error de conexión.";
+            msg.className = "mt-2 text-sm text-rose-600";
+            msg.classList.remove("hidden");
+        }
+    }
+
+    async function cargarMetricas() {
+        const desde = document.getElementById("vol-desde").value;
+        const hasta = document.getElementById("vol-hasta").value;
+        if (!desde || !hasta) { alert("Selecciona un rango de fechas."); return; }
+        try {
+            const resp = await fetch(`${API}/volumenes/metricas/?desde=${desde}&hasta=${hasta}`);
+            const metricas = await resp.json();
+            const tablaContenedor = document.getElementById("vol-tabla");
+
+            if (metricas.length === 0) {
+                tablaContenedor.innerHTML = `<p class="text-sm text-slate-400 text-center py-8 italic">No hay datos de volumen para este periodo. Añade datos primero.</p>`;
+                document.getElementById("vol-kpis").style.display = "none";
+                document.getElementById("vol-graficos").style.display = "none";
+                return;
+            }
+
+            // KPIs
+            const totalUnidades = metricas.reduce((s, m) => s + m.unidades, 0);
+            const totalHorasTeo = metricas.reduce((s, m) => s + m.horas_teoricas, 0);
+            const totalHorasReal = metricas.reduce((s, m) => s + m.horas_reales, 0);
+            const eficiencias = metricas.filter(m => m.eficiencia_pct !== null).map(m => m.eficiencia_pct);
+            const mediaEficiencia = eficiencias.length > 0
+                ? Math.round(eficiencias.reduce((s, e) => s + e, 0) / eficiencias.length)
+                : 0;
+
+            document.getElementById("vol-kpi-unidades").textContent = totalUnidades.toLocaleString();
+            document.getElementById("vol-kpi-horas-teo").textContent = `${totalHorasTeo.toFixed(1)}h`;
+            document.getElementById("vol-kpi-horas-real").textContent = `${totalHorasReal.toFixed(1)}h`;
+            document.getElementById("vol-kpi-eficiencia").textContent = `${mediaEficiencia}%`;
+            document.getElementById("vol-kpis").style.display = "grid";
+
+            // Gráfico eficiencia por tarea
+            const eficienciaPorTarea = {};
+            metricas.forEach(m => {
+                if (!eficienciaPorTarea[m.tarea_principal]) {
+                    eficienciaPorTarea[m.tarea_principal] = { sum: 0, count: 0 };
+                }
+                if (m.eficiencia_pct !== null) {
+                    eficienciaPorTarea[m.tarea_principal].sum += m.eficiencia_pct;
+                    eficienciaPorTarea[m.tarea_principal].count++;
+                }
+            });
+            const labelsEf = Object.keys(eficienciaPorTarea);
+            const dataEf = labelsEf.map(t => eficienciaPorTarea[t].count > 0
+                ? Math.round(eficienciaPorTarea[t].sum / eficienciaPorTarea[t].count)
+                : 0);
+            const bgEf = labelsEf.map(l => (coloresTarea[l] || coloresTarea["Otro"]).bg);
+
+            if (volGraficoEficiencia) volGraficoEficiencia.destroy();
+            volGraficoEficiencia = new Chart(document.getElementById("vol-grafico-eficiencia").getContext("2d"), {
+                type: "bar",
+                data: {
+                    labels: labelsEf,
+                    datasets: [{
+                        label: "Eficiencia %",
+                        data: dataEf,
+                        backgroundColor: bgEf,
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 150,
+                            title: { display: true, text: "%" },
+                            ticks: {
+                                callback: v => v + "%"
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Gráfico comparativa teóricas vs reales
+            const fechasUnicas = [...new Set(metricas.map(m => m.fecha))].sort();
+            const horasTeoPorFecha = fechasUnicas.map(f =>
+                parseFloat(metricas.filter(m => m.fecha === f).reduce((s, m) => s + m.horas_teoricas, 0).toFixed(2))
+            );
+            const horasRealPorFecha = fechasUnicas.map(f =>
+                parseFloat(metricas.filter(m => m.fecha === f).reduce((s, m) => s + m.horas_reales, 0).toFixed(2))
+            );
+
+            if (volGraficoComparativa) volGraficoComparativa.destroy();
+            volGraficoComparativa = new Chart(document.getElementById("vol-grafico-comparativa").getContext("2d"), {
+                type: "line",
+                data: {
+                    labels: fechasUnicas,
+                    datasets: [
+                        {
+                            label: "Horas teóricas",
+                            data: horasTeoPorFecha,
+                            borderColor: "#8b5cf6",
+                            backgroundColor: "rgba(139,92,246,0.1)",
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.4,
+                            pointBackgroundColor: "#8b5cf6"
+                        },
+                        {
+                            label: "Horas reales",
+                            data: horasRealPorFecha,
+                            borderColor: "#3b82f6",
+                            backgroundColor: "rgba(59,130,246,0.1)",
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.4,
+                            pointBackgroundColor: "#3b82f6"
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { position: "bottom" } },
+                    scales: { y: { beginAtZero: true, title: { display: true, text: "Horas" } } }
+                }
+            });
+
+            document.getElementById("vol-graficos").style.display = "grid";
+
+            // Tabla detallada
+            let html = `
+                <div class="overflow-x-auto mt-4">
+                <table class="w-full text-sm">
+                    <thead class="bg-slate-800 text-white">
+                        <tr>
+                            <th class="px-3 py-2 text-
+                            <th class="px-3 py-2 text-left">Fecha</th>
+                            <th class="px-3 py-2 text-left">Tarea</th>
+                            <th class="px-3 py-2 text-right">Unidades</th>
+                            <th class="px-3 py-2 text-right">H. Teóricas</th>
+                            <th class="px-3 py-2 text-right">H. Reales</th>
+                            <th class="px-3 py-2 text-right">Eficiencia</th>
+                            <th class="px-3 py-2 text-right">Uds/H Real</th>
+                            <th class="px-3 py-2 text-right">Desviación</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">`;
+
+            metricas.forEach(m => {
+                const color = (coloresTarea[m.tarea_principal] || coloresTarea["Otro"]).bg;
+                const efColor = m.eficiencia_pct === null ? "text-slate-400" : m.eficiencia_pct >= 90 ? "text-emerald-600 font-bold" : m.eficiencia_pct >= 70 ? "text-amber-600 font-bold" : "text-rose-600 font-bold";
+                const desColor = m.desviacion_horas <= 0 ? "text-emerald-600" : "text-rose-600";
+                html += `
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="px-3 py-2 text-slate-600">${m.fecha}</td>
+                        <td class="px-3 py-2">
+                            <span class="inline-flex items-center gap-1">
+                                <span class="w-2 h-2 rounded-full" style="background-color:${color}"></span>
+                                ${m.tarea_principal}
+                            </span>
+                        </td>
+                        <td class="px-3 py-2 text-right font-medium">${m.unidades.toLocaleString()}</td>
+                        <td class="px-3 py-2 text-right text-violet-600">${m.horas_teoricas}h</td>
+                        <td class="px-3 py-2 text-right text-blue-600">${m.horas_reales}h</td>
+                        <td class="px-3 py-2 text-right ${efColor}">${m.eficiencia_pct !== null ? m.eficiencia_pct + "%" : "—"}</td>
+                        <td class="px-3 py-2 text-right text-slate-600">${m.uds_hora_real !== null ? m.uds_hora_real : "—"}</td>
+                        <td class="px-3 py-2 text-right ${desColor}">${m.desviacion_horas > 0 ? "+" : ""}${m.desviacion_horas}h</td>
+                    </tr>`;
+            });
+
+            html += `</tbody></table></div>`;
+            tablaContenedor.innerHTML = html;
+
+        } catch(e) {
+            document.getElementById("vol-tabla").innerHTML = `<p class="text-sm text-rose-500 text-center py-8">Error cargando métricas.</p>`;
+        }
+    }
     // ==================== EDICIÓN ====================
     async function cargarEdicion() {
         const usuario = document.getElementById("edicion-usuario").value;
@@ -1364,7 +1716,7 @@
                         <td class="px-3 py-2">
                             <div class="flex gap-2">
                                 <button onclick='abrirModal(${JSON.stringify(r)})' class="text-blue-600 hover:text-blue-800 text-xs font-medium px-2 py-1 bg-blue-50 rounded-lg">✏️</button>
-                                <button onclick='duplicarRegistro(${r.id})' class="text-violet-600 hover:text-violet-800 text-xs font-medium px-2 py-1 bg-violet-50 rounded-lg" title="Duplicar">📋</button>
+                                <button onclick='duplicarRegistro(${r.id})' class="text-violet-600 hover:text-violet-800 text-xs font-medium px-2 py-1 bg-violet-50 rounded-lg">📋</button>
                                 <button onclick="eliminarRegistro(${r.id})" class="text-rose-600 hover:text-rose-800 text-xs font-medium px-2 py-1 bg-rose-50 rounded-lg">🗑️</button>
                             </div>
                         </td>
@@ -1452,7 +1804,9 @@
             }
             let html = `<div class="space-y-2">`;
             usuarios.forEach(u => {
-                const rolColor = u.rol === "supervisor" ? "bg-violet-100 text-violet-700" : "bg-blue-100 text-blue-700";
+                const rolColor = u.rol === "supervisor"
+                    ? "bg-violet-100 text-violet-700"
+                    : "bg-blue-100 text-blue-700";
                 html += `
                     <div class="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
                         <div class="flex items-center gap-3">
@@ -1523,6 +1877,7 @@
             else alert("Error al eliminar usuario.");
         } catch { alert("Error de conexión."); }
     }
+
 </script>
 </body>
 </html>
