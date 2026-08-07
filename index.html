@@ -7,30 +7,201 @@
     <link rel="icon" href="data:,">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-</head>
-<body class="bg-slate-100 min-h-screen">
+    <style>
+        /* ===== MODO OSCURO ===== */
+        .dark body { background-color: #0f172a; color: #e2e8f0; }
+        .dark .bg-white { background-color: #1e293b !important; }
+        .dark .bg-slate-100 { background-color: #0f172a !important; }
+        .dark .bg-slate-50 { background-color: #1e293b !important; }
+        .dark .text-slate-800 { color: #e2e8f0 !important; }
+        .dark .text-slate-700 { color: #cbd5e1 !important; }
+        .dark .text-slate-600 { color: #94a3b8 !important; }
+        .dark .text-slate-500 { color: #64748b !important; }
+        .dark .border { border-color: #334155 !important; }
+        .dark .border-b { border-color: #334155 !important; }
+        .dark .shadow { box-shadow: 0 1px 3px rgba(0,0,0,0.5) !important; }
+        .dark .shadow-xl { box-shadow: 0 20px 40px rgba(0,0,0,0.5) !important; }
+        .dark input, .dark select, .dark textarea {
+            background-color: #0f172a !important;
+            color: #e2e8f0 !important;
+            border-color: #334155 !important;
+        }
+        .dark .bg-slate-200 { background-color: #334155 !important; }
+        .dark .divide-slate-100 > * { border-color: #334155 !important; }
+        .dark .hover\:bg-slate-50:hover { background-color: #334155 !important; }
+        .dark .bg-blue-50 { background-color: #1e3a5f !important; }
+        .dark .bg-violet-50 { background-color: #2e1065 !important; }
+        .dark .bg-emerald-50 { background-color: #064e3b !important; }
+        .dark .bg-amber-50 { background-color: #451a03 !important; }
+        .dark .bg-rose-50 { background-color: #4c0519 !important; }
 
-<!-- ==================== PANTALLA DE LOGIN ==================== -->
+        /* ===== ANIMACIONES ===== */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-10px); }
+            to   { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes pulse-badge {
+            0%, 100% { transform: scale(1); }
+            50%       { transform: scale(1.1); }
+        }
+        @keyframes bounceIn {
+            0%   { transform: scale(0.8); opacity: 0; }
+            60%  { transform: scale(1.05); opacity: 1; }
+            100% { transform: scale(1); }
+        }
+        .fade-in    { animation: fadeIn 0.3s ease forwards; }
+        .slide-in   { animation: slideIn 0.25s ease forwards; }
+        .bounce-in  { animation: bounceIn 0.35s ease forwards; }
+        .pestana-content { animation: fadeIn 0.25s ease forwards; }
+
+        /* ===== SKELETON ===== */
+        .skeleton {
+            background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.4s infinite;
+            border-radius: 8px;
+        }
+        .dark .skeleton {
+            background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
+            background-size: 200% 100%;
+        }
+        @keyframes shimmer {
+            0%   { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        /* ===== TOAST ===== */
+        #toast-container {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-width: 360px;
+        }
+        .toast {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 18px;
+            border-radius: 14px;
+            font-size: 14px;
+            font-weight: 500;
+            color: white;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+            animation: bounceIn 0.35s ease forwards;
+            cursor: pointer;
+        }
+        .toast.success { background: linear-gradient(135deg, #10b981, #059669); }
+        .toast.error   { background: linear-gradient(135deg, #ef4444, #dc2626); }
+        .toast.warning { background: linear-gradient(135deg, #f59e0b, #d97706); }
+        .toast.info    { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+        .toast-exit {
+            animation: fadeOut 0.3s ease forwards;
+        }
+        @keyframes fadeOut {
+            to { opacity: 0; transform: translateX(20px); }
+        }
+
+        /* ===== ALERTAS BADGE ===== */
+        .alert-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            font-size: 10px;
+            font-weight: bold;
+            color: white;
+            background: #ef4444;
+            animation: pulse-badge 2s infinite;
+            margin-left: 4px;
+        }
+
+        /* ===== SCROLLBAR ===== */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        .dark ::-webkit-scrollbar-thumb { background: #475569; }
+
+        /* ===== RELOJ ===== */
+        #reloj-header {
+            font-size: 13px;
+            font-weight: 600;
+            color: #64748b;
+            letter-spacing: 0.05em;
+            font-variant-numeric: tabular-nums;
+        }
+        .dark #reloj-header { color: #94a3b8; }
+
+        /* ===== TABS MÓVIL ===== */
+        @media (max-width: 640px) {
+            #tabs-container { flex-wrap: nowrap; overflow-x: auto; }
+            #tabs-container button { font-size: 12px; padding: 6px 10px; }
+        }
+
+        /* ===== RANKING ===== */
+        .ranking-1 { background: linear-gradient(135deg, #fef9c3, #fde68a); border-left: 4px solid #f59e0b; }
+        .ranking-2 { background: linear-gradient(135deg, #f1f5f9, #e2e8f0); border-left: 4px solid #94a3b8; }
+        .ranking-3 { background: linear-gradient(135deg, #fef3c7, #fde68a88); border-left: 4px solid #b45309; }
+        .dark .ranking-1 { background: linear-gradient(135deg, #451a03, #78350f); }
+        .dark .ranking-2 { background: linear-gradient(135deg, #1e293b, #334155); }
+        .dark .ranking-3 { background: linear-gradient(135deg, #292524, #44403c); }
+
+        /* ===== MODAL ===== */
+        .modal-overlay {
+            backdrop-filter: blur(4px);
+            background: rgba(0,0,0,0.5);
+        }
+    </style>
+</head>
+<body class="bg-slate-100 min-h-screen transition-colors duration-300">
+
+<!-- ===== TOAST CONTAINER ===== -->
+<div id="toast-container"></div>
+
+<!-- ===== PANTALLA LOGIN ===== -->
 <div id="pantalla-login" class="flex items-center justify-center min-h-screen px-4">
-    <div class="bg-white shadow-xl rounded-2xl p-10 w-full max-w-sm text-center">
+    <div class="bg-white shadow-xl rounded-2xl p-10 w-full max-w-sm text-center fade-in">
+        <div class="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+            </svg>
+        </div>
         <h1 class="text-3xl font-bold text-slate-800 mb-1">Registro de Tareas</h1>
         <p class="text-sm text-slate-500 mb-8">Identifícate para continuar</p>
         <div class="bg-blue-50 border-2 border-dashed border-blue-300 rounded-xl p-4 mb-4">
             <label class="block text-sm font-semibold text-blue-900 mb-2">Escanea tu código o escríbelo:</label>
-            <input type="text" id="login-codigo" class="w-full px-4 py-3 text-center text-xl font-bold border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white" placeholder="Código de usuario..." autocomplete="off" />
+            <input type="text" id="login-codigo"
+                class="w-full px-4 py-3 text-center text-xl font-bold border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                placeholder="Código de usuario..." autocomplete="off"
+                aria-label="Código de usuario" />
         </div>
         <div class="mb-6">
             <label class="block text-sm font-medium text-slate-700 mb-1">PIN:</label>
-            <input type="password" id="login-pin" class="w-full px-4 py-3 text-center text-2xl tracking-widest border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="••••" maxlength="6" />
+            <input type="password" id="login-pin"
+                class="w-full px-4 py-3 text-center text-2xl tracking-widest border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="••••" maxlength="6" aria-label="PIN de acceso" />
         </div>
-        <button onclick="hacerLogin()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl text-xl transition duration-200">Entrar</button>
-        <div id="login-error" class="mt-4 p-3 rounded-lg text-sm bg-rose-100 text-rose-800 hidden"></div>
+        <button onclick="hacerLogin()"
+            class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl text-xl transition duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            aria-label="Iniciar sesión">
+            Entrar
+        </button>
+        <div id="login-error" class="mt-4 p-3 rounded-lg text-sm bg-rose-100 text-rose-800 hidden" role="alert"></div>
     </div>
 </div>
 
-<!-- ==================== CONFIRMACIÓN GUARDADO ==================== -->
-<div id="pantalla-confirmacion" class="fixed inset-0 bg-emerald-500 hidden items-center justify-center z-50">
-    <div class="text-center text-white">
+<!-- ===== CONFIRMACIÓN GUARDADO ===== -->
+<div id="pantalla-confirmacion" class="fixed inset-0 bg-emerald-500 hidden items-center justify-center z-50" role="status" aria-live="polite">
+    <div class="text-center text-white bounce-in">
         <div class="text-9xl mb-6">✅</div>
         <h2 class="text-4xl font-bold mb-3">¡Guardado correctamente!</h2>
         <p id="confirmacion-texto" class="text-xl opacity-90"></p>
@@ -38,41 +209,81 @@
     </div>
 </div>
 
-<!-- ==================== APLICACIÓN PRINCIPAL ==================== -->
+<!-- ===== APLICACIÓN PRINCIPAL ===== -->
 <div id="app-principal" class="hidden">
 
-    <!-- Header -->
-    <div class="bg-white shadow px-6 py-3 flex justify-between items-center">
+    <!-- HEADER -->
+    <div class="bg-white shadow px-4 md:px-6 py-3 flex justify-between items-center sticky top-0 z-40">
         <div class="flex items-center gap-3">
-            <div id="header-avatar" class="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-lg"></div>
+            <div id="header-avatar"
+                class="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-lg flex-shrink-0"
+                aria-hidden="true"></div>
             <div>
-                <div class="font-bold text-slate-800" id="header-nombre"></div>
+                <div class="font-bold text-slate-800 text-sm md:text-base" id="header-nombre"></div>
                 <span id="header-rol" class="text-xs px-2 py-0.5 rounded-full font-medium"></span>
             </div>
         </div>
-        <div class="flex items-center gap-4">
-            <button onclick="descargarExcel()" id="btn-excel" class="hidden bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium py-2 px-4 rounded-lg">📊 Excel</button>
-            <button onclick="cerrarSesion()" class="text-sm text-rose-500 hover:text-rose-700 font-medium">Cerrar sesión</button>
+        <div class="flex items-center gap-2 md:gap-4">
+            <span id="reloj-header" aria-label="Hora actual"></span>
+            <button onclick="toggleModoOscuro()"
+                id="btn-dark"
+                class="text-slate-500 hover:text-slate-700 p-2 rounded-lg hover:bg-slate-100 transition focus:outline-none focus:ring-2 focus:ring-slate-300"
+                aria-label="Alternar modo oscuro">
+                🌙
+            </button>
+            <button onclick="abrirModalExcel()" id="btn-excel"
+                class="hidden bg-emerald-600 hover:bg-emerald-700 text-white text-xs md:text-sm font-medium py-2 px-3 md:px-4 rounded-lg transition focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                aria-label="Exportar a Excel">
+                📊 <span class="hidden md:inline">Excel</span>
+            </button>
+            <button onclick="cerrarSesion()"
+                class="text-xs md:text-sm text-rose-500 hover:text-rose-700 font-medium focus:outline-none focus:ring-2 focus:ring-rose-300 rounded"
+                aria-label="Cerrar sesión">
+                Cerrar sesión
+            </button>
         </div>
     </div>
 
-    <!-- Pestañas -->
-    <div class="bg-white border-b px-6 flex gap-2 py-2 overflow-x-auto">
-        <button onclick="mostrarPestana('registro')" id="tab-registro" class="px-4 py-2 rounded-lg font-medium text-sm bg-blue-600 text-white whitespace-nowrap">📋 Registro</button>
-        <button onclick="mostrarPestana('dashboard')" id="tab-dashboard" class="px-4 py-2 rounded-lg font-medium text-sm bg-white text-slate-600 border hidden whitespace-nowrap">🏠 Dashboard</button>
-        <button onclick="mostrarPestana('historico')" id="tab-historico" class="px-4 py-2 rounded-lg font-medium text-sm bg-white text-slate-600 border hidden whitespace-nowrap">📅 Histórico</button>
-        <button onclick="mostrarPestana('progreso')" id="tab-progreso" class="px-4 py-2 rounded-lg font-medium text-sm bg-white text-slate-600 border hidden whitespace-nowrap">📊 Progreso</button>
-        <button onclick="mostrarPestana('volumen')" id="tab-volumen" class="px-4 py-2 rounded-lg font-medium text-sm bg-white text-slate-600 border hidden whitespace-nowrap">📈 Volumen</button>
-        <button onclick="mostrarPestana('plantillas')" id="tab-plantillas" class="px-4 py-2 rounded-lg font-medium text-sm bg-white text-slate-600 border hidden whitespace-nowrap">📋 Plantillas</button>
-        <button onclick="mostrarPestana('edicion')" id="tab-edicion" class="px-4 py-2 rounded-lg font-medium text-sm bg-white text-slate-600 border hidden whitespace-nowrap">✏️ Editar</button>
-        <button onclick="mostrarPestana('usuarios')" id="tab-usuarios" class="px-4 py-2 rounded-lg font-medium text-sm bg-white text-slate-600 border hidden whitespace-nowrap">👥 Usuarios</button>
+    <!-- PESTAÑAS -->
+    <div class="bg-white border-b px-2 md:px-6 sticky top-16 z-30">
+        <div id="tabs-container" class="flex gap-1 py-2 overflow-x-auto scrollbar-hide">
+            <button onclick="mostrarPestana('registro')" id="tab-registro"
+                class="tab-btn px-3 md:px-4 py-2 rounded-lg font-medium text-sm bg-blue-600 text-white whitespace-nowrap transition focus:outline-none focus:ring-2 focus:ring-blue-500"
+                aria-selected="true" role="tab">📋 Registro</button>
+            <button onclick="mostrarPestana('dashboard')" id="tab-dashboard"
+                class="tab-btn px-3 md:px-4 py-2 rounded-lg font-medium text-sm bg-white text-slate-600 border whitespace-nowrap transition hidden focus:outline-none focus:ring-2 focus:ring-blue-500"
+                aria-selected="false" role="tab">🏠 Dashboard</button>
+            <button onclick="mostrarPestana('historico')" id="tab-historico"
+                class="tab-btn px-3 md:px-4 py-2 rounded-lg font-medium text-sm bg-white text-slate-600 border whitespace-nowrap transition hidden focus:outline-none focus:ring-2 focus:ring-blue-500"
+                aria-selected="false" role="tab">📅 Histórico</button>
+            <button onclick="mostrarPestana('progreso')" id="tab-progreso"
+                class="tab-btn px-3 md:px-4 py-2 rounded-lg font-medium text-sm bg-white text-slate-600 border whitespace-nowrap transition hidden focus:outline-none focus:ring-2 focus:ring-blue-500"
+                aria-selected="false" role="tab">📊 Progreso</button>
+            <button onclick="mostrarPestana('volumen')" id="tab-volumen"
+                class="tab-btn px-3 md:px-4 py-2 rounded-lg font-medium text-sm bg-white text-slate-600 border whitespace-nowrap transition hidden focus:outline-none focus:ring-2 focus:ring-blue-500"
+                aria-selected="false" role="tab">📈 Volumen</button>
+            <button onclick="mostrarPestana('rendimiento')" id="tab-rendimiento"
+                class="tab-btn px-3 md:px-4 py-2 rounded-lg font-medium text-sm bg-white text-slate-600 border whitespace-nowrap transition hidden focus:outline-none focus:ring-2 focus:ring-blue-500"
+                aria-selected="false" role="tab">⚡ Rendimiento</button>
+            <button onclick="mostrarPestana('plantillas')" id="tab-plantillas"
+                class="tab-btn px-3 md:px-4 py-2 rounded-lg font-medium text-sm bg-white text-slate-600 border whitespace-nowrap transition hidden focus:outline-none focus:ring-2 focus:ring-blue-500"
+                aria-selected="false" role="tab">📋 Plantillas</button>
+            <button onclick="mostrarPestana('edicion')" id="tab-edicion"
+                class="tab-btn px-3 md:px-4 py-2 rounded-lg font-medium text-sm bg-white text-slate-600 border whitespace-nowrap transition hidden focus:outline-none focus:ring-2 focus:ring-blue-500"
+                aria-selected="false" role="tab">✏️ Editar</button>
+            <button onclick="mostrarPestana('usuarios')" id="tab-usuarios"
+                class="tab-btn px-3 md:px-4 py-2 rounded-lg font-medium text-sm bg-white text-slate-600 border whitespace-nowrap transition hidden focus:outline-none focus:ring-2 focus:ring-blue-500"
+                aria-selected="false" role="tab">👥 Usuarios</button>
+        </div>
     </div>
 
     <div class="max-w-4xl mx-auto px-4 py-6">
 
-    <!-- PESTAÑA REGISTRO -->
-    <div id="pestana-registro">
-        <div id="tarjeta-estado" class="rounded-2xl p-5 mb-6 text-white bg-slate-500">
+    <!-- ===== PESTAÑA REGISTRO ===== -->
+    <div id="pestana-registro" role="tabpanel">
+
+        <!-- Tarjeta estado -->
+        <div id="tarjeta-estado" class="rounded-2xl p-5 mb-6 text-white bg-slate-500 transition-all duration-500">
             <div class="flex justify-between items-start">
                 <div>
                     <p class="text-sm opacity-80 mb-1">Registrando como:</p>
@@ -81,26 +292,36 @@
                 </div>
                 <div class="text-right">
                     <p class="text-sm opacity-80 mb-1">Tiempo hoy:</p>
-                    <p id="estado-tiempo" class="text-3xl font-bold">0h 0min</p>
+                    <p id="estado-tiempo" class="text-3xl font-bold tabular-nums">0h 0min</p>
                     <p id="estado-restante" class="text-sm opacity-80"></p>
                 </div>
             </div>
             <div class="mt-4 bg-white bg-opacity-30 rounded-full h-3">
-                <div id="estado-barra" class="h-3 rounded-full bg-white transition-all duration-500" style="width:0%"></div>
+                <div id="estado-barra" class="h-3 rounded-full bg-white transition-all duration-700" style="width:0%"></div>
             </div>
         </div>
 
-        <div class="bg-white rounded-xl shadow p-4 mb-4 flex items-center gap-4">
-            <label class="text-sm font-medium text-slate-700 whitespace-nowrap">📅 Fecha:</label>
-            <input type="date" id="fecha" class="flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg" />
+        <!-- Resumen tareas guardadas hoy -->
+        <div id="resumen-hoy-contenedor" class="bg-white rounded-xl shadow p-4 mb-4 hidden">
+            <h3 class="text-sm font-semibold text-slate-700 mb-3">Tareas ya guardadas hoy</h3>
+            <div id="resumen-hoy" class="space-y-1"></div>
         </div>
 
+        <!-- Fecha -->
+        <div class="bg-white rounded-xl shadow p-4 mb-4 flex items-center gap-4">
+            <label class="text-sm font-medium text-slate-700 whitespace-nowrap" for="fecha">📅 Fecha:</label>
+            <input type="date" id="fecha"
+                class="flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg" />
+        </div>
+
+        <!-- Selector tarea -->
         <div class="bg-white rounded-xl shadow p-5 mb-4">
             <h3 class="text-lg font-semibold text-slate-800 mb-4">Selecciona la tarea</h3>
             <div class="grid grid-cols-2 gap-4 mb-4">
                 <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1">Tarea principal:</label>
-                    <select id="tarea_principal" onchange="actualizarSubtareas()" class="w-full px-3 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-base">
+                    <label class="block text-sm font-medium text-slate-700 mb-1" for="tarea_principal">Tarea principal:</label>
+                    <select id="tarea_principal" onchange="actualizarSubtareas()"
+                        class="w-full px-3 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-base">
                         <option value="Picking">Picking</option>
                         <option value="Packing">Packing</option>
                         <option value="Inbound">Inbound</option>
@@ -109,46 +330,64 @@
                     </select>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1">Subtarea:</label>
-                    <select id="subtarea" class="w-full px-3 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-base"></select>
+                    <label class="block text-sm font-medium text-slate-700 mb-1" for="subtarea">Subtarea:</label>
+                    <select id="subtarea"
+                        class="w-full px-3 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-base"></select>
                 </div>
             </div>
             <label class="block text-sm font-medium text-slate-700 mb-2">Tiempo dedicado:</label>
             <div class="grid grid-cols-4 gap-2 mb-3">
-                <button onclick="seleccionarTiempo(15)" class="tiempo-btn py-3 rounded-xl border-2 border-slate-200 text-sm font-bold text-slate-700 hover:border-blue-400 hover:bg-blue-50 transition">15 min</button>
-                <button onclick="seleccionarTiempo(30)" class="tiempo-btn py-3 rounded-xl border-2 border-slate-200 text-sm font-bold text-slate-700 hover:border-blue-400 hover:bg-blue-50 transition">30 min</button>
-                <button onclick="seleccionarTiempo(45)" class="tiempo-btn py-3 rounded-xl border-2 border-slate-200 text-sm font-bold text-slate-700 hover:border-blue-400 hover:bg-blue-50 transition">45 min</button>
-                <button onclick="seleccionarTiempo(60)" class="tiempo-btn py-3 rounded-xl border-2 border-slate-200 text-sm font-bold text-slate-700 hover:border-blue-400 hover:bg-blue-50 transition">1 hora</button>
-                <button onclick="seleccionarTiempo(90)" class="tiempo-btn py-3 rounded-xl border-2 border-slate-200 text-sm font-bold text-slate-700 hover:border-blue-400 hover:bg-blue-50 transition">1h 30m</button>
-                <button onclick="seleccionarTiempo(120)" class="tiempo-btn py-3 rounded-xl border-2 border-slate-200 text-sm font-bold text-slate-700 hover:border-blue-400 hover:bg-blue-50 transition">2 horas</button>
-                <button onclick="seleccionarTiempo(180)" class="tiempo-btn py-3 rounded-xl border-2 border-slate-200 text-sm font-bold text-slate-700 hover:border-blue-400 hover:bg-blue-50 transition">3 horas</button>
-                <button onclick="seleccionarTiempo(240)" class="tiempo-btn py-3 rounded-xl border-2 border-slate-200 text-sm font-bold text-slate-700 hover:border-blue-400 hover:bg-blue-50 transition">4 horas</button>
+                <button onclick="seleccionarTiempo(15)"  class="tiempo-btn py-3 rounded-xl border-2 border-slate-200 text-sm font-bold text-slate-700 hover:border-blue-400 hover:bg-blue-50 transition focus:outline-none">15 min</button>
+                <button onclick="seleccionarTiempo(30)"  class="tiempo-btn py-3 rounded-xl border-2 border-slate-200 text-sm font-bold text-slate-700 hover:border-blue-400 hover:bg-blue-50 transition focus:outline-none">30 min</button>
+                <button onclick="seleccionarTiempo(45)"  class="tiempo-btn py-3 rounded-xl border-2 border-slate-200 text-sm font-bold text-slate-700 hover:border-blue-400 hover:bg-blue-50 transition focus:outline-none">45 min</button>
+                <button onclick="seleccionarTiempo(60)"  class="tiempo-btn py-3 rounded-xl border-2 border-slate-200 text-sm font-bold text-slate-700 hover:border-blue-400 hover:bg-blue-50 transition focus:outline-none">1 hora</button>
+                <button onclick="seleccionarTiempo(90)"  class="tiempo-btn py-3 rounded-xl border-2 border-slate-200 text-sm font-bold text-slate-700 hover:border-blue-400 hover:bg-blue-50 transition focus:outline-none">1h 30m</button>
+                <button onclick="seleccionarTiempo(120)" class="tiempo-btn py-3 rounded-xl border-2 border-slate-200 text-sm font-bold text-slate-700 hover:border-blue-400 hover:bg-blue-50 transition focus:outline-none">2 horas</button>
+                <button onclick="seleccionarTiempo(180)" class="tiempo-btn py-3 rounded-xl border-2 border-slate-200 text-sm font-bold text-slate-700 hover:border-blue-400 hover:bg-blue-50 transition focus:outline-none">3 horas</button>
+                <button onclick="seleccionarTiempo(240)" class="tiempo-btn py-3 rounded-xl border-2 border-slate-200 text-sm font-bold text-slate-700 hover:border-blue-400 hover:bg-blue-50 transition focus:outline-none">4 horas</button>
             </div>
-            <div class="text-center text-sm text-slate-500 mb-3">Tiempo seleccionado: <span id="tiempo-seleccionado" class="font-bold text-blue-600">Ninguno</span></div>
+            <div class="text-center text-sm text-slate-500 mb-3">
+                Tiempo seleccionado: <span id="tiempo-seleccionado" class="font-bold text-blue-600">Ninguno</span>
+            </div>
             <input type="hidden" id="tiempo_minutos" value="0" />
             <div class="grid grid-cols-2 gap-3 mt-3">
                 <div>
-                    <label class="block text-xs font-medium text-slate-500 mb-1">Proyecto (opcional):</label>
-                    <input type="text" id="proyecto" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
+                    <label class="block text-xs font-medium text-slate-500 mb-1" for="proyecto">Proyecto (opcional):</label>
+                    <input type="text" id="proyecto"
+                        class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
                 </div>
                 <div>
-                    <label class="block text-xs font-medium text-slate-500 mb-1">Comentarios (opcional):</label>
-                    <input type="text" id="comentarios" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
+                    <label class="block text-xs font-medium text-slate-500 mb-1" for="comentarios">Comentarios (opcional):</label>
+                    <input type="text" id="comentarios"
+                        class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
                 </div>
             </div>
         </div>
 
         <div class="flex gap-3 mb-4">
-            <button onclick="añadirTarea()" class="flex-1 bg-slate-800 hover:bg-slate-900 text-white font-bold py-4 rounded-xl text-lg transition duration-200">+ Añadir a la lista</button>
-            <button onclick="mostrarPestana('plantillas')" class="bg-violet-100 hover:bg-violet-200 text-violet-700 font-bold py-4 px-5 rounded-xl transition duration-200">📋</button>
+            <button onclick="añadirTarea()"
+                class="flex-1 bg-slate-800 hover:bg-slate-900 text-white font-bold py-4 rounded-xl text-lg transition duration-200 focus:outline-none focus:ring-2 focus:ring-slate-500"
+                aria-label="Añadir tarea a la lista">
+                + Añadir a la lista
+            </button>
+            <button onclick="mostrarPestana('plantillas')"
+                class="bg-violet-100 hover:bg-violet-200 text-violet-700 font-bold py-4 px-5 rounded-xl transition duration-200 focus:outline-none focus:ring-2 focus:ring-violet-400"
+                aria-label="Ver plantillas">📋</button>
         </div>
 
+        <!-- Lista tareas pendientes -->
         <div class="bg-white rounded-xl shadow p-5 mb-4">
             <div class="flex justify-between items-center mb-3">
-                <h3 class="font-semibold text-slate-800">Tareas pendientes <span id="contador" class="text-sm font-normal text-slate-400">(0)</span></h3>
+                <h3 class="font-semibold text-slate-800">
+                    Tareas pendientes <span id="contador" class="text-sm font-normal text-slate-400">(0)</span>
+                </h3>
                 <div class="flex items-center gap-3">
                     <span id="total" class="text-sm font-bold text-blue-600">Total: 0 min</span>
-                    <button onclick="guardarComoPlantilla()" class="text-xs bg-violet-100 hover:bg-violet-200 text-violet-700 font-medium px-3 py-1.5 rounded-lg">💾 Guardar plantilla</button>
+                    <button onclick="guardarComoPlantilla()"
+                        class="text-xs bg-violet-100 hover:bg-violet-200 text-violet-700 font-medium px-3 py-1.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-400"
+                        aria-label="Guardar como plantilla">
+                        💾 Plantilla
+                    </button>
                 </div>
             </div>
             <div id="tareas" class="space-y-2 max-h-64 overflow-y-auto">
@@ -157,16 +396,24 @@
         </div>
 
         <div class="flex gap-3">
-            <button onclick="guardarTodo()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl text-lg transition duration-200">💾 Guardar todo</button>
-            <button onclick="limpiarLista()" class="bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold py-4 px-6 rounded-xl transition duration-200">🗑️</button>
+            <button onclick="guardarTodo()"
+                class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl text-lg transition duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                aria-label="Guardar todas las tareas">
+                💾 Guardar todo
+            </button>
+            <button onclick="limpiarLista()"
+                class="bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold py-4 px-6 rounded-xl transition duration-200 focus:outline-none focus:ring-2 focus:ring-rose-400"
+                aria-label="Limpiar lista de tareas">🗑️</button>
         </div>
-        <div id="respuesta" class="mt-4 p-3 rounded-lg text-sm hidden"></div>
     </div>
-    <!-- PESTAÑA DASHBOARD -->
-    <div id="pestana-dashboard" class="hidden">
-        <h2 class="text-2xl font-bold text-slate-800 mb-6">Dashboard</h2>
-
-        <!-- KPIs -->
+    <!-- ===== PESTAÑA DASHBOARD ===== -->
+    <div id="pestana-dashboard" class="hidden" role="tabpanel">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-bold text-slate-800">Dashboard</h2>
+            <input type="date" id="dashboard-fecha" onchange="cargarDashboard()"
+                class="px-3 py-1.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        </div>
+        <div id="dashboard-alertas" class="mb-6 space-y-2"></div>
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             <div class="bg-white rounded-xl shadow p-4 text-center">
                 <div class="text-3xl font-bold text-blue-600" id="kpi-registros">—</div>
@@ -174,7 +421,7 @@
             </div>
             <div class="bg-white rounded-xl shadow p-4 text-center">
                 <div class="text-3xl font-bold text-violet-600" id="kpi-usuarios">—</div>
-                <div class="text-xs text-slate-500 mt-1">Usuarios activos hoy</div>
+                <div class="text-xs text-slate-500 mt-1">Usuarios activos</div>
             </div>
             <div class="bg-white rounded-xl shadow p-4 text-center">
                 <div class="text-3xl font-bold text-amber-500" id="kpi-horas">—</div>
@@ -185,32 +432,26 @@
                 <div class="text-xs text-slate-500 mt-1">% jornada media</div>
             </div>
         </div>
-
-        <!-- Productividad por usuario -->
         <div class="bg-white rounded-xl shadow p-6 mb-6">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="font-bold text-slate-800">Productividad por usuario</h3>
-                <input type="date" id="dashboard-fecha" onchange="cargarDashboard()" class="px-3 py-1 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-            </div>
+            <h3 class="font-bold text-slate-800 mb-4">Productividad por usuario</h3>
             <div id="dashboard-productividad" class="space-y-3">
-                <p class="text-sm text-slate-400 text-center py-4 italic">Cargando...</p>
+                <div class="skeleton h-12 w-full mb-2"></div>
+                <div class="skeleton h-12 w-full"></div>
             </div>
         </div>
-
-        <!-- Comparación hoy vs ayer -->
         <div class="bg-white rounded-xl shadow p-6 mb-6">
             <h3 class="font-bold text-slate-800 mb-4">Comparación hoy vs ayer</h3>
             <div id="dashboard-comparacion" class="space-y-3">
-                <p class="text-sm text-slate-400 text-center py-4 italic">Cargando...</p>
+                <div class="skeleton h-10 w-full mb-2"></div>
+                <div class="skeleton h-10 w-full"></div>
             </div>
         </div>
-
-        <!-- Top tareas y media -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <div class="bg-white rounded-xl shadow p-6">
                 <h3 class="font-bold text-slate-800 mb-4">Top 5 tareas más frecuentes</h3>
                 <div id="dashboard-top-tareas">
-                    <p class="text-sm text-slate-400 text-center py-4 italic">Cargando...</p>
+                    <div class="skeleton h-8 w-full mb-2"></div>
+                    <div class="skeleton h-8 w-full"></div>
                 </div>
             </div>
             <div class="bg-white rounded-xl shadow p-6">
@@ -218,8 +459,6 @@
                 <canvas id="dashboard-grafico-media"></canvas>
             </div>
         </div>
-
-        <!-- Gráficos -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="bg-white rounded-xl shadow p-6">
                 <h3 class="font-bold text-slate-800 mb-4">Distribución de tareas hoy</h3>
@@ -232,59 +471,63 @@
         </div>
     </div>
 
-    <!-- PESTAÑA HISTÓRICO -->
-    <div id="pestana-historico" class="hidden">
-        <div class="bg-white shadow-lg rounded-xl p-8">
+    <!-- ===== PESTAÑA HISTÓRICO ===== -->
+    <div id="pestana-historico" class="hidden" role="tabpanel">
+        <div class="bg-white shadow-lg rounded-xl p-6 md:p-8">
             <div class="border-b pb-4 mb-6">
                 <h1 class="text-2xl font-bold text-slate-800">Histórico</h1>
                 <p class="text-sm text-slate-500">Consulta el histórico por semana o mes</p>
             </div>
             <div class="flex gap-2 mb-6">
-                <button onclick="cambiarPeriodo('semana')" id="btn-periodo-semana" class="px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white">Por semana</button>
-                <button onclick="cambiarPeriodo('mes')" id="btn-periodo-mes" class="px-4 py-2 rounded-lg text-sm font-medium bg-white text-slate-600 border">Por mes</button>
+                <button onclick="cambiarPeriodo('semana')" id="btn-periodo-semana"
+                    class="px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white">Por semana</button>
+                <button onclick="cambiarPeriodo('mes')" id="btn-periodo-mes"
+                    class="px-4 py-2 rounded-lg text-sm font-medium bg-white text-slate-600 border">Por mes</button>
             </div>
             <div id="filtros-semana" class="grid grid-cols-2 gap-4 mb-4">
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-1">Usuario:</label>
-                    <select id="historico-usuario-semana" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm">
+                    <select id="historico-usuario-semana"
+                        class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm">
                         <option value="">-- Todos --</option>
                     </select>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-1">Fecha de referencia:</label>
-                    <input type="date" id="historico-fecha-semana" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
+                    <input type="date" id="historico-fecha-semana"
+                        class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
                 </div>
             </div>
             <div id="filtros-mes" class="grid grid-cols-3 gap-4 mb-4 hidden">
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-1">Usuario:</label>
-                    <select id="historico-usuario-mes" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm">
+                    <select id="historico-usuario-mes"
+                        class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm">
                         <option value="">-- Todos --</option>
                     </select>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-1">Año:</label>
-                    <input type="number" id="historico-anyo" min="2024" max="2030" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
+                    <input type="number" id="historico-anyo" min="2024" max="2030"
+                        class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-1">Mes:</label>
-                    <select id="historico-mes" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm">
-                        <option value="1">Enero</option>
-                        <option value="2">Febrero</option>
-                        <option value="3">Marzo</option>
-                        <option value="4">Abril</option>
-                        <option value="5">Mayo</option>
-                        <option value="6">Junio</option>
-                        <option value="7">Julio</option>
-                        <option value="8">Agosto</option>
-                        <option value="9">Septiembre</option>
-                        <option value="10">Octubre</option>
-                        <option value="11">Noviembre</option>
-                        <option value="12">Diciembre</option>
+                    <select id="historico-mes"
+                        class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm">
+                        <option value="1">Enero</option><option value="2">Febrero</option>
+                        <option value="3">Marzo</option><option value="4">Abril</option>
+                        <option value="5">Mayo</option><option value="6">Junio</option>
+                        <option value="7">Julio</option><option value="8">Agosto</option>
+                        <option value="9">Septiembre</option><option value="10">Octubre</option>
+                        <option value="11">Noviembre</option><option value="12">Diciembre</option>
                     </select>
                 </div>
             </div>
-            <button onclick="cargarHistorico()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-lg mb-6">Consultar</button>
+            <button onclick="cargarHistorico()"
+                class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-lg mb-6">
+                Consultar
+            </button>
             <div id="historico-resultado">
                 <p class="text-sm text-slate-400 text-center py-8 italic">Selecciona un periodo y consulta.</p>
             </div>
@@ -295,31 +538,46 @@
         </div>
     </div>
 
-    <!-- PESTAÑA PROGRESO -->
-    <div id="pestana-progreso" class="hidden">
-        <div class="bg-white shadow-lg rounded-xl p-8">
+    <!-- ===== PESTAÑA PROGRESO ===== -->
+    <div id="pestana-progreso" class="hidden" role="tabpanel">
+        <div class="bg-white shadow-lg rounded-xl p-6 md:p-8">
             <div class="border-b pb-4 mb-6">
                 <h1 class="text-2xl font-bold text-slate-800">Progreso por Usuario</h1>
                 <p class="text-sm text-slate-500">Visualización de horas registradas con gráficos</p>
             </div>
-            <div class="grid grid-cols-2 gap-4 mb-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                 <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1">Usuario:</label>
-                    <select id="filtro-usuario" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Usuario 1:</label>
+                    <select id="filtro-usuario"
+                        class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
                         <option value="">-- Selecciona usuario --</option>
                     </select>
                 </div>
                 <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Usuario 2 (comparar):</label>
+                    <select id="filtro-usuario2"
+                        class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                        <option value="">-- Opcional --</option>
+                    </select>
+                </div>
+                <div>
                     <label class="block text-sm font-medium text-slate-700 mb-1">Fecha:</label>
-                    <input type="date" id="filtro-fecha" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    <input type="date" id="filtro-fecha"
+                        class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
                 </div>
             </div>
-            <button onclick="cargarProgreso()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-lg mb-6">Consultar Progreso</button>
-            <div id="progreso-resultado"><p class="text-sm text-slate-400 text-center py-8 italic">Selecciona usuario y fecha.</p></div>
+            <button onclick="cargarProgreso()"
+                class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-lg mb-6">
+                Consultar Progreso
+            </button>
+            <div id="progreso-resultado">
+                <p class="text-sm text-slate-400 text-center py-8 italic">Selecciona usuario y fecha.</p>
+            </div>
             <div id="graficos-contenedor" class="hidden mt-6 space-y-8">
                 <div>
                     <h3 class="text-sm font-semibold text-slate-700 mb-2">Distribución de la jornada</h3>
-                    <div id="barra-segmentada" style="height:32px;" class="w-full bg-slate-200 rounded-lg overflow-hidden flex gap-0.5"></div>
+                    <div id="barra-segmentada" style="height:32px;"
+                        class="w-full bg-slate-200 rounded-lg overflow-hidden flex gap-0.5"></div>
                     <div id="leyenda-barra" class="mt-3 space-y-2"></div>
                 </div>
                 <div>
@@ -328,7 +586,7 @@
                         <span id="porcentaje-label">0%</span>
                     </div>
                     <div class="w-full bg-slate-200 rounded-full h-3">
-                        <div id="barra-total" class="h-3 rounded-full transition-all duration-500 bg-blue-600" style="width:0%"></div>
+                        <div id="barra-total" class="h-3 rounded-full transition-all duration-700 bg-blue-600" style="width:0%"></div>
                     </div>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -341,6 +599,10 @@
                         <canvas id="grafico-barras"></canvas>
                     </div>
                 </div>
+                <div id="grafico-comparacion-contenedor" class="bg-slate-50 rounded-xl p-4 hidden">
+                    <h3 class="text-sm font-semibold text-slate-700 mb-3">Comparación entre usuarios</h3>
+                    <canvas id="grafico-comparacion"></canvas>
+                </div>
                 <div class="bg-slate-50 rounded-xl p-4">
                     <h3 class="text-sm font-semibold text-slate-700 mb-3">Evolución semanal (horas por día)</h3>
                     <canvas id="grafico-semanal"></canvas>
@@ -348,13 +610,23 @@
             </div>
         </div>
     </div>
-
-    <!-- PESTAÑA VOLUMEN & MÉTRICAS -->
-    <div id="pestana-volumen" class="hidden">
-        <div class="bg-white shadow-lg rounded-xl p-8 mb-6">
+    <!-- ===== PESTAÑA VOLUMEN & MÉTRICAS ===== -->
+    <div id="pestana-volumen" class="hidden" role="tabpanel">
+        <div class="bg-white shadow-lg rounded-xl p-6 md:p-8 mb-6">
             <div class="border-b pb-4 mb-6">
                 <h1 class="text-2xl font-bold text-slate-800">Volumen & Métricas</h1>
-                <p class="text-sm text-slate-500">Introduce datos de volumen y compara con las horas reales de los operarios</p>
+                <p class="text-sm text-slate-500">Introduce datos de volumen y compara con las horas reales</p>
+            </div>
+
+            <!-- Objetivos por tarea -->
+            <div class="bg-blue-50 rounded-xl p-5 mb-6 border border-blue-200">
+                <h3 class="text-sm font-bold text-slate-700 mb-4">Objetivos por tarea (uds/hora)</h3>
+                <div id="objetivos-lista" class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-3"></div>
+                <button onclick="guardarObjetivos()"
+                    class="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 rounded-lg">
+                    Guardar objetivos
+                </button>
+                <div id="obj-mensaje" class="mt-2 text-sm hidden"></div>
             </div>
 
             <!-- Formulario añadir volumen -->
@@ -363,11 +635,13 @@
                 <div class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-3">
                     <div>
                         <label class="block text-xs font-medium text-slate-600 mb-1">Fecha:</label>
-                        <input type="date" id="vol-fecha" class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                        <input type="date" id="vol-fecha"
+                            class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
                     </div>
                     <div>
                         <label class="block text-xs font-medium text-slate-600 mb-1">Tarea principal:</label>
-                        <select id="vol-tarea" class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                        <select id="vol-tarea" onchange="calcularHorasTeoricas()"
+                            class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
                             <option value="Picking">Picking</option>
                             <option value="Packing">Packing</option>
                             <option value="Inbound">Inbound</option>
@@ -377,18 +651,28 @@
                     </div>
                     <div>
                         <label class="block text-xs font-medium text-slate-600 mb-1">Unidades procesadas:</label>
-                        <input type="number" id="vol-unidades" min="0" placeholder="Ej: 500" class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                        <input type="number" id="vol-unidades" min="0" placeholder="Ej: 500"
+                            oninput="calcularHorasTeoricas()"
+                            class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
                     </div>
                     <div>
-                        <label class="block text-xs font-medium text-slate-600 mb-1">Horas teóricas:</label>
-                        <input type="number" id="vol-horas" min="0" step="0.5" placeholder="Ej: 4.5" class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                        <label class="block text-xs font-medium text-slate-600 mb-1">
+                            Horas teóricas: <span class="text-blue-500 font-normal">(auto)</span>
+                        </label>
+                        <input type="number" id="vol-horas" min="0" step="0.5"
+                            placeholder="Calculado automáticamente"
+                            class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-blue-50" />
                     </div>
                     <div class="md:col-span-2">
                         <label class="block text-xs font-medium text-slate-600 mb-1">Comentarios (opcional):</label>
-                        <input type="text" id="vol-comentarios" placeholder="Ej: Campaña Black Friday" class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                        <input type="text" id="vol-comentarios" placeholder="Ej: Campaña Black Friday"
+                            class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
                     </div>
                 </div>
-                <button onclick="crearVolumen()" class="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2.5 rounded-lg">+ Añadir datos de volumen</button>
+                <button onclick="crearVolumen()"
+                    class="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2.5 rounded-lg">
+                    + Añadir datos de volumen
+                </button>
                 <div id="vol-mensaje" class="mt-2 text-sm hidden"></div>
             </div>
 
@@ -398,16 +682,19 @@
                 <div class="grid grid-cols-2 gap-3 mb-4">
                     <div>
                         <label class="block text-xs font-medium text-slate-600 mb-1">Desde:</label>
-                        <input type="date" id="vol-desde" class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                        <input type="date" id="vol-desde"
+                            class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
                     </div>
                     <div>
                         <label class="block text-xs font-medium text-slate-600 mb-1">Hasta:</label>
-                        <input type="date" id="vol-hasta" class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                        <input type="date" id="vol-hasta"
+                            class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
                     </div>
                 </div>
-                <button onclick="cargarMetricas()" class="w-full bg-slate-700 hover:bg-slate-800 text-white text-sm font-medium py-2.5 rounded-lg mb-6">Consultar métricas</button>
-
-                <!-- KPIs métricas -->
+                <button onclick="cargarMetricas()"
+                    class="w-full bg-slate-700 hover:bg-slate-800 text-white text-sm font-medium py-2.5 rounded-lg mb-6">
+                    Consultar métricas
+                </button>
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6" id="vol-kpis" style="display:none;">
                     <div class="bg-blue-50 rounded-xl p-4 text-center">
                         <div class="text-2xl font-bold text-blue-700" id="vol-kpi-unidades">—</div>
@@ -426,8 +713,6 @@
                         <div class="text-xs text-slate-500 mt-1">Eficiencia media</div>
                     </div>
                 </div>
-
-                <!-- Gráficos métricas -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6" id="vol-graficos" style="display:none;">
                     <div class="bg-slate-50 rounded-xl p-4">
                         <h3 class="text-sm font-semibold text-slate-700 mb-3">Eficiencia por tarea (%)</h3>
@@ -438,8 +723,6 @@
                         <canvas id="vol-grafico-comparativa"></canvas>
                     </div>
                 </div>
-
-                <!-- Tabla métricas -->
                 <div id="vol-tabla">
                     <p class="text-sm text-slate-400 text-center py-8 italic">Selecciona un rango de fechas y consulta.</p>
                 </div>
@@ -447,22 +730,88 @@
         </div>
     </div>
 
-    <!-- PESTAÑA PLANTILLAS -->
-    <div id="pestana-plantillas" class="hidden">
-        <div class="bg-white shadow-lg rounded-xl p-8">
+    <!-- ===== PESTAÑA RENDIMIENTO ===== -->
+    <div id="pestana-rendimiento" class="hidden" role="tabpanel">
+        <div class="bg-white shadow-lg rounded-xl p-6 md:p-8 mb-6">
+            <div class="border-b pb-4 mb-6">
+                <h1 class="text-2xl font-bold text-slate-800">⚡ Rendimiento</h1>
+                <p class="text-sm text-slate-500">Análisis avanzado de productividad, objetivos y alertas</p>
+            </div>
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1">Desde:</label>
+                    <input type="date" id="rend-desde"
+                        class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1">Hasta:</label>
+                    <input type="date" id="rend-hasta"
+                        class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1">Usuario (opcional):</label>
+                    <select id="rend-usuario"
+                        class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                        <option value="">-- Todos --</option>
+                    </select>
+                </div>
+            </div>
+            <button onclick="cargarRendimiento()"
+                class="w-full bg-slate-800 hover:bg-slate-900 text-white font-medium py-2.5 rounded-lg mb-6">
+                Analizar Rendimiento
+            </button>
+            <div class="mb-6">
+                <h3 class="font-bold text-slate-800 mb-3">Alertas activas</h3>
+                <div id="rend-alertas" class="space-y-2">
+                    <p class="text-sm text-slate-400 text-center py-4 italic">Cargando alertas...</p>
+                </div>
+            </div>
+            <div class="mb-6">
+                <h3 class="font-bold text-slate-800 mb-3">Ranking de operarios</h3>
+                <div id="rend-ranking" class="space-y-3">
+                    <p class="text-sm text-slate-400 text-center py-4 italic">Pulsa Analizar para ver el ranking.</p>
+                </div>
+            </div>
+            <div class="mb-6">
+                <h3 class="font-bold text-slate-800 mb-3">Objetivo vs Real por tarea</h3>
+                <div id="rend-objetivo-vs-real" class="space-y-3">
+                    <p class="text-sm text-slate-400 text-center py-4 italic">Pulsa Analizar para ver datos.</p>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div class="bg-slate-50 rounded-xl p-4">
+                    <h3 class="text-sm font-semibold text-slate-700 mb-3">Eficiencia diaria (% jornada)</h3>
+                    <canvas id="rend-grafico-eficiencia"></canvas>
+                </div>
+                <div class="bg-slate-50 rounded-xl p-4">
+                    <h3 class="text-sm font-semibold text-slate-700 mb-3">Objetivo vs Real (horas)</h3>
+                    <canvas id="rend-grafico-objetivo"></canvas>
+                </div>
+            </div>
+            <div class="bg-slate-50 rounded-xl p-4">
+                <h3 class="text-sm font-semibold text-slate-700 mb-3">Tendencia semanal</h3>
+                <canvas id="rend-grafico-tendencia"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== PESTAÑA PLANTILLAS ===== -->
+    <div id="pestana-plantillas" class="hidden" role="tabpanel">
+        <div class="bg-white shadow-lg rounded-xl p-6 md:p-8">
             <div class="border-b pb-4 mb-6">
                 <h1 class="text-2xl font-bold text-slate-800">Plantillas de Tareas</h1>
                 <p class="text-sm text-slate-500">Guarda y carga conjuntos de tareas frecuentes</p>
             </div>
             <div id="lista-plantillas">
-                <p class="text-sm text-slate-400 text-center py-8 italic">Cargando plantillas...</p>
+                <div class="skeleton h-24 w-full mb-3"></div>
+                <div class="skeleton h-24 w-full"></div>
             </div>
         </div>
     </div>
 
-    <!-- PESTAÑA EDICIÓN -->
-    <div id="pestana-edicion" class="hidden">
-        <div class="bg-white shadow-lg rounded-xl p-8">
+    <!-- ===== PESTAÑA EDICIÓN ===== -->
+    <div id="pestana-edicion" class="hidden" role="tabpanel">
+        <div class="bg-white shadow-lg rounded-xl p-6 md:p-8">
             <div class="border-b pb-4 mb-6">
                 <h1 class="text-2xl font-bold text-slate-800">Editar Registros</h1>
                 <p class="text-sm text-slate-500">Consulta, edita, duplica o elimina registros guardados</p>
@@ -470,13 +819,15 @@
             <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
                 <div>
                     <label class="block text-xs font-medium text-slate-600 mb-1">Usuario:</label>
-                    <select id="edicion-usuario" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm">
+                    <select id="edicion-usuario"
+                        class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm">
                         <option value="">-- Todos --</option>
                     </select>
                 </div>
                 <div>
                     <label class="block text-xs font-medium text-slate-600 mb-1">Tarea principal:</label>
-                    <select id="edicion-tarea" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm">
+                    <select id="edicion-tarea"
+                        class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm">
                         <option value="">-- Todas --</option>
                         <option value="Picking">Picking</option>
                         <option value="Packing">Packing</option>
@@ -486,22 +837,41 @@
                     </select>
                 </div>
                 <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1">Subtarea:</label>
+                    <select id="edicion-subtarea"
+                        class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm">
+                        <option value="">-- Todas --</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1">Proyecto:</label>
+                    <input type="text" id="edicion-proyecto" placeholder="Filtrar por proyecto..."
+                        class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
+                </div>
+                <div>
                     <label class="block text-xs font-medium text-slate-600 mb-1">Desde:</label>
-                    <input type="date" id="edicion-fecha-desde" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
+                    <input type="date" id="edicion-fecha-desde"
+                        class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
                 </div>
                 <div>
                     <label class="block text-xs font-medium text-slate-600 mb-1">Hasta:</label>
-                    <input type="date" id="edicion-fecha-hasta" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
+                    <input type="date" id="edicion-fecha-hasta"
+                        class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
                 </div>
             </div>
-            <button onclick="cargarEdicion()" class="w-full bg-slate-700 hover:bg-slate-800 text-white font-medium py-2.5 rounded-lg mb-6">Buscar Registros</button>
-            <div id="edicion-resultado"><p class="text-sm text-slate-400 text-center py-8 italic">Usa los filtros para buscar registros.</p></div>
+            <button onclick="cargarEdicion()"
+                class="w-full bg-slate-700 hover:bg-slate-800 text-white font-medium py-2.5 rounded-lg mb-6">
+                Buscar Registros
+            </button>
+            <div id="edicion-resultado">
+                <p class="text-sm text-slate-400 text-center py-8 italic">Usa los filtros para buscar registros.</p>
+            </div>
         </div>
     </div>
 
-    <!-- PESTAÑA USUARIOS -->
-    <div id="pestana-usuarios" class="hidden">
-        <div class="bg-white shadow-lg rounded-xl p-8">
+    <!-- ===== PESTAÑA USUARIOS ===== -->
+    <div id="pestana-usuarios" class="hidden" role="tabpanel">
+        <div class="bg-white shadow-lg rounded-xl p-6 md:p-8">
             <div class="border-b pb-4 mb-6">
                 <h1 class="text-2xl font-bold text-slate-800">Gestión de Usuarios</h1>
                 <p class="text-sm text-slate-500">Añade o elimina usuarios del sistema</p>
@@ -511,44 +881,61 @@
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="block text-xs font-medium text-slate-600 mb-1">Nombre:</label>
-                        <input type="text" id="nuevo-nombre" placeholder="Ej: Ana Gómez" class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                        <input type="text" id="nuevo-nombre" placeholder="Ej: Ana Gómez"
+                            class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
                     </div>
                     <div>
                         <label class="block text-xs font-medium text-slate-600 mb-1">Código:</label>
-                        <input type="text" id="nuevo-codigo" placeholder="Ej: EMP001" class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                        <input type="text" id="nuevo-codigo" placeholder="Ej: EMP001"
+                            class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
                     </div>
                     <div>
                         <label class="block text-xs font-medium text-slate-600 mb-1">PIN:</label>
-                        <input type="password" id="nuevo-pin" placeholder="••••" maxlength="6" class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                        <input type="password" id="nuevo-pin" placeholder="••••" maxlength="6"
+                            class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
                     </div>
                     <div>
                         <label class="block text-xs font-medium text-slate-600 mb-1">Rol:</label>
-                        <select id="nuevo-rol" class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                        <select id="nuevo-rol"
+                            class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
                             <option value="operario">Operario</option>
                             <option value="supervisor">Supervisor</option>
                         </select>
                     </div>
                 </div>
-                <button onclick="crearUsuario()" class="mt-3 w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 rounded-lg">+ Añadir Usuario</button>
+                <button onclick="crearUsuario()"
+                    class="mt-3 w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 rounded-lg">
+                    + Añadir Usuario
+                </button>
                 <div id="usuarios-mensaje" class="mt-2 text-sm hidden"></div>
             </div>
-            <div id="lista-usuarios"><p class="text-sm text-slate-400 text-center py-4 italic">Cargando usuarios...</p></div>
+            <div id="lista-usuarios">
+                <div class="skeleton h-14 w-full mb-2"></div>
+                <div class="skeleton h-14 w-full"></div>
+            </div>
         </div>
     </div>
 
     </div><!-- fin max-w -->
 
-    <!-- Modal edición -->
-    <div id="modal-edicion" style="display:none;" class="fixed inset-0 bg-black bg-opacity-50 items-center justify-center z-50">
-        <div class="bg-white rounded-xl p-6 w-full max-w-md mx-auto mt-10 shadow-xl">
-            <h3 class="text-lg font-bold text-slate-800 mb-4">Editar Registro</h3>
+    <!-- ===== MODAL EDICIÓN ===== -->
+    <div id="modal-edicion" style="display:none;"
+        class="modal-overlay fixed inset-0 items-center justify-center z-50"
+        role="dialog" aria-modal="true" aria-labelledby="modal-edicion-titulo">
+        <div class="bg-white rounded-xl p-6 w-full max-w-md mx-4 shadow-xl max-h-screen overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold text-slate-800" id="modal-edicion-titulo">Editar Registro</h3>
+                <button onclick="cerrarModal()" class="text-slate-400 hover:text-slate-600 text-2xl leading-none"
+                    aria-label="Cerrar modal">&times;</button>
+            </div>
             <input type="hidden" id="edit-id" />
             <label class="block text-sm font-medium text-slate-700 mb-1">Usuario:</label>
-            <input type="text" id="edit-usuario" class="w-full px-3 py-2 border rounded-lg mb-3" />
+            <input type="text" id="edit-usuario" class="w-full px-3 py-2 border rounded-lg mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500" />
             <label class="block text-sm font-medium text-slate-700 mb-1">Fecha:</label>
-            <input type="date" id="edit-fecha" class="w-full px-3 py-2 border rounded-lg mb-3" />
+            <input type="date" id="edit-fecha" class="w-full px-3 py-2 border rounded-lg mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500" />
             <label class="block text-sm font-medium text-slate-700 mb-1">Tarea principal:</label>
-            <select id="edit-tarea-principal" onchange="actualizarSubtareasEdicion()" class="w-full px-3 py-2 border rounded-lg mb-3 bg-white">
+            <select id="edit-tarea-principal" onchange="actualizarSubtareasEdicion()"
+                class="w-full px-3 py-2 border rounded-lg mb-3 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <option value="Picking">Picking</option>
                 <option value="Packing">Packing</option>
                 <option value="Inbound">Inbound</option>
@@ -556,9 +943,9 @@
                 <option value="Ecommerce">Ecommerce</option>
             </select>
             <label class="block text-sm font-medium text-slate-700 mb-1">Subtarea:</label>
-            <select id="edit-subtarea" class="w-full px-3 py-2 border rounded-lg mb-3 bg-white"></select>
+            <select id="edit-subtarea" class="w-full px-3 py-2 border rounded-lg mb-3 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"></select>
             <label class="block text-sm font-medium text-slate-700 mb-1">Tiempo:</label>
-            <select id="edit-tiempo" class="w-full px-3 py-2 border rounded-lg mb-3 bg-white">
+            <select id="edit-tiempo" class="w-full px-3 py-2 border rounded-lg mb-3 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <option value="15">15 minutos</option>
                 <option value="30">30 minutos</option>
                 <option value="45">45 minutos</option>
@@ -570,27 +957,86 @@
                 <option value="480">8 horas</option>
             </select>
             <label class="block text-sm font-medium text-slate-700 mb-1">Proyecto:</label>
-            <input type="text" id="edit-proyecto" class="w-full px-3 py-2 border rounded-lg mb-3" />
+            <input type="text" id="edit-proyecto" class="w-full px-3 py-2 border rounded-lg mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500" />
             <label class="block text-sm font-medium text-slate-700 mb-1">Comentarios:</label>
-            <input type="text" id="edit-comentarios" class="w-full px-3 py-2 border rounded-lg mb-4" />
+            <input type="text" id="edit-comentarios" class="w-full px-3 py-2 border rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500" />
             <div class="flex gap-3">
-                <button onclick="guardarEdicion()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded-
-            <div class="flex gap-3">
-                <button onclick="guardarEdicion()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded-lg">Guardar cambios</button>
-                <button onclick="cerrarModal()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-2 px-4 rounded-lg">Cancelar</button>
+                <button onclick="guardarEdicion()"
+                    class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    Guardar cambios
+                </button>
+                <button onclick="cerrarModal()"
+                    class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-2 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-300">
+                    Cancelar
+                </button>
             </div>
         </div>
     </div>
 
-    <!-- Modal guardar plantilla -->
-    <div id="modal-plantilla" style="display:none;" class="fixed inset-0 bg-black bg-opacity-50 items-center justify-center z-50">
-        <div class="bg-white rounded-xl p-6 w-full max-w-sm mx-auto mt-20 shadow-xl">
-            <h3 class="text-lg font-bold text-slate-800 mb-4">Guardar como plantilla</h3>
+    <!-- ===== MODAL PLANTILLA ===== -->
+    <div id="modal-plantilla" style="display:none;"
+        class="modal-overlay fixed inset-0 items-center justify-center z-50"
+        role="dialog" aria-modal="true" aria-labelledby="modal-plantilla-titulo">
+        <div class="bg-white rounded-xl p-6 w-full max-w-sm mx-4 shadow-xl">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold text-slate-800" id="modal-plantilla-titulo">Guardar como plantilla</h3>
+                <button onclick="cerrarModalPlantilla()" class="text-slate-400 hover:text-slate-600 text-2xl leading-none"
+                    aria-label="Cerrar modal">&times;</button>
+            </div>
             <label class="block text-sm font-medium text-slate-700 mb-1">Nombre de la plantilla:</label>
-            <input type="text" id="plantilla-nombre" placeholder="Ej: Turno mañana almacén" class="w-full px-3 py-2 border rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            <input type="text" id="plantilla-nombre" placeholder="Ej: Turno mañana almacén"
+                class="w-full px-3 py-2 border rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500" />
             <div class="flex gap-3">
-                <button onclick="confirmarGuardarPlantilla()" class="flex-1 bg-violet-600 hover:bg-violet-700 text-white font-medium py-2 rounded-lg">Guardar</button>
-                <button onclick="cerrarModalPlantilla()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-2 px-4 rounded-lg">Cancelar</button>
+                <button onclick="confirmarGuardarPlantilla()"
+                    class="flex-1 bg-violet-600 hover:bg-violet-700 text-white font-medium py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500">
+                    Guardar
+                </button>
+                <button onclick="cerrarModalPlantilla()"
+                    class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-2 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-300">
+                    Cancelar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== MODAL EXCEL ===== -->
+    <div id="modal-excel" style="display:none;"
+        class="modal-overlay fixed inset-0 items-center justify-center z-50"
+        role="dialog" aria-modal="true" aria-labelledby="modal-excel-titulo">
+        <div class="bg-white rounded-xl p-6 w-full max-w-sm mx-4 shadow-xl">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold text-slate-800" id="modal-excel-titulo">Exportar Excel</h3>
+                <button onclick="cerrarModalExcel()" class="text-slate-400 hover:text-slate-600 text-2xl leading-none"
+                    aria-label="Cerrar modal">&times;</button>
+            </div>
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1">Desde:</label>
+                    <input type="date" id="excel-desde"
+                        class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1">Hasta:</label>
+                    <input type="date" id="excel-hasta"
+                        class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1">Usuario (opcional):</label>
+                    <select id="excel-usuario"
+                        class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                        <option value="">-- Todos --</option>
+                    </select>
+                </div>
+            </div>
+            <div class="flex gap-3 mt-4">
+                <button onclick="descargarExcel()"
+                    class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                    Descargar Excel
+                </button>
+                <button onclick="cerrarModalExcel()"
+                    class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-2 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-300">
+                    Cancelar
+                </button>
             </div>
         </div>
     </div>
@@ -604,15 +1050,15 @@
     let tareasPendientes = [];
     let tiempoSeleccionado = 0;
     let periodoHistorico = "semana";
-    let graficaTarta = null;
-    let graficaBarras = null;
-    let graficaSemanal = null;
-    let dashboardGraficoTareas = null;
-    let dashboardGraficoUsuarios = null;
-    let dashboardGraficoMedia = null;
+    let objetivosCache = {};
+
+    // Gráficas
+    let graficaTarta = null, graficaBarras = null, graficaSemanal = null;
+    let graficaComparacion = null;
+    let dashboardGraficoTareas = null, dashboardGraficoUsuarios = null, dashboardGraficoMedia = null;
     let historicoGrafico = null;
-    let volGraficoEficiencia = null;
-    let volGraficoComparativa = null;
+    let volGraficoEficiencia = null, volGraficoComparativa = null;
+    let rendGraficoEficiencia = null, rendGraficoObjetivo = null, rendGraficoTendencia = null;
 
     const coloresTarea = {
         "Picking":   { bg: "#3b82f6", light: "#eff6ff", text: "#1d4ed8" },
@@ -633,7 +1079,52 @@
 
     const avatarColores = ["#3b82f6","#8b5cf6","#f59e0b","#10b981","#ef4444","#ec4899","#06b6d4"];
 
+    // ==================== TOAST ====================
+    function toast(mensaje, tipo = "success", duracion = 3500) {
+        const iconos = { success: "✅", error: "❌", warning: "⚠️", info: "ℹ️" };
+        const contenedor = document.getElementById("toast-container");
+        const t = document.createElement("div");
+        t.className = `toast ${tipo}`;
+        t.innerHTML = `<span>${iconos[tipo]}</span><span>${mensaje}</span>`;
+        t.onclick = () => cerrarToast(t);
+        contenedor.appendChild(t);
+        setTimeout(() => cerrarToast(t), duracion);
+    }
+
+    function cerrarToast(t) {
+        t.classList.add("toast-exit");
+        setTimeout(() => t.remove(), 300);
+    }
+
+    // ==================== MODO OSCURO ====================
+    function toggleModoOscuro() {
+        document.documentElement.classList.toggle("dark");
+        const btn = document.getElementById("btn-dark");
+        btn.textContent = document.documentElement.classList.contains("dark") ? "☀️" : "🌙";
+        localStorage.setItem("darkMode", document.documentElement.classList.contains("dark"));
+    }
+
+    // ==================== RELOJ ====================
+    function iniciarReloj() {
+        function actualizar() {
+            const ahora = new Date();
+            document.getElementById("reloj-header").textContent =
+                ahora.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+        }
+        actualizar();
+        setInterval(actualizar, 1000);
+    }
+
+    // ==================== INIT ====================
     window.onload = function() {
+        // Modo oscuro guardado
+        if (localStorage.getItem("darkMode") === "true") {
+            document.documentElement.classList.add("dark");
+            document.getElementById("btn-dark").textContent = "☀️";
+        }
+
+        iniciarReloj();
+
         document.getElementById("login-codigo").focus();
         document.getElementById("fecha").value = hoy;
         document.getElementById("filtro-fecha").value = hoy;
@@ -644,16 +1135,28 @@
         document.getElementById("vol-fecha").value = hoy;
         document.getElementById("vol-desde").value = hoy;
         document.getElementById("vol-hasta").value = hoy;
+
+        const hace7 = new Date();
+        hace7.setDate(hace7.getDate() - 7);
+        document.getElementById("rend-desde").value = hace7.toISOString().split('T')[0];
+        document.getElementById("rend-hasta").value = hoy;
+
         const fechaActual = new Date();
         document.getElementById("historico-anyo").value = fechaActual.getFullYear();
         document.getElementById("historico-mes").value = fechaActual.getMonth() + 1;
+
         actualizarSubtareas();
-        document.getElementById("login-codigo").addEventListener("keydown", function(e) {
+        actualizarSubtareasEdicionFiltro();
+
+        document.getElementById("login-codigo").addEventListener("keydown", e => {
             if (e.key === "Enter") document.getElementById("login-pin").focus();
         });
-        document.getElementById("login-pin").addEventListener("keydown", function(e) {
+        document.getElementById("login-pin").addEventListener("keydown", e => {
             if (e.key === "Enter") hacerLogin();
         });
+
+        // Edición: actualizar subtareas al cambiar tarea
+        document.getElementById("edicion-tarea").addEventListener("change", actualizarSubtareasEdicionFiltro);
     };
 
     // ==================== LOGIN ====================
@@ -700,12 +1203,14 @@
         if (usuarioSesion.rol === "supervisor") {
             rolBadge.textContent = "Supervisor";
             rolBadge.className = "text-xs px-2 py-0.5 rounded-full font-medium bg-violet-100 text-violet-700";
-            ["tab-dashboard","tab-historico","tab-progreso","tab-volumen","tab-plantillas","tab-edicion","tab-usuarios"].forEach(id => {
+            ["tab-dashboard","tab-historico","tab-progreso","tab-volumen",
+             "tab-rendimiento","tab-plantillas","tab-edicion","tab-usuarios"].forEach(id => {
                 document.getElementById(id).classList.remove("hidden");
             });
             document.getElementById("btn-excel").classList.remove("hidden");
             cargarUsuariosGestion();
             cargarDashboard();
+            cargarAlertasRendimiento();
         } else {
             rolBadge.textContent = "Operario";
             rolBadge.className = "text-xs px-2 py-0.5 rounded-full font-medium bg-blue-100 text-blue-700";
@@ -713,11 +1218,14 @@
         }
 
         document.getElementById("estado-nombre").textContent = usuarioSesion.nombre;
-        document.getElementById("estado-fecha").textContent = new Date().toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" });
+        document.getElementById("estado-fecha").textContent = new Date().toLocaleDateString("es-ES", {
+            weekday: "long", day: "numeric", month: "long"
+        });
 
         actualizarIndicadorTiempo();
         cargarUsuariosFiltros();
         cargarPlantillas();
+        cargarObjetivos();
         mostrarPestana("registro");
     }
 
@@ -725,13 +1233,15 @@
         usuarioSesion = null;
         tareasPendientes = [];
         tiempoSeleccionado = 0;
+        objetivosCache = {};
         actualizarLista();
         document.getElementById("pantalla-login").classList.remove("hidden");
         document.getElementById("app-principal").classList.add("hidden");
         document.getElementById("login-codigo").value = "";
         document.getElementById("login-pin").value = "";
         document.getElementById("login-codigo").focus();
-        ["tab-dashboard","tab-historico","tab-progreso","tab-volumen","tab-plantillas","tab-edicion","tab-usuarios"].forEach(id => {
+        ["tab-dashboard","tab-historico","tab-progreso","tab-volumen",
+         "tab-rendimiento","tab-plantillas","tab-edicion","tab-usuarios"].forEach(id => {
             document.getElementById(id).classList.add("hidden");
         });
         document.getElementById("btn-excel").classList.add("hidden");
@@ -745,9 +1255,10 @@
             const resp = await fetch(`${API}/registros/${usuarioSesion.codigo}`);
             if (!resp.ok) { actualizarTarjetaEstado(0); return; }
             const registros = await resp.json();
-            const totalHoy = registros.filter(r => r.fecha === hoy).reduce((sum, r) => sum + r.tiempo_minutos, 0);
-            const totalPendiente = tareasPendientes.reduce((sum, t) => sum + t.tiempo_minutos, 0);
+            const totalHoy = registros.filter(r => r.fecha === hoy).reduce((s, r) => s + r.tiempo_minutos, 0);
+            const totalPendiente = tareasPendientes.reduce((s, t) => s + t.tiempo_minutos, 0);
             actualizarTarjetaEstado(totalHoy + totalPendiente);
+            mostrarResumenHoy(registros.filter(r => r.fecha === hoy));
         } catch { actualizarTarjetaEstado(0); }
     }
 
@@ -759,47 +1270,75 @@
         const restanteM = restante % 60;
         const porcentaje = Math.min((totalMinutos / 480) * 100, 100);
         document.getElementById("estado-tiempo").textContent = `${horas}h ${mins}min`;
-        document.getElementById("estado-restante").textContent = restante > 0 ? `Faltan ${restanteH}h ${restanteM}min` : "✅ Jornada completa";
+        document.getElementById("estado-restante").textContent = restante > 0
+            ? `Faltan ${restanteH}h ${restanteM}min`
+            : "✅ Jornada completa";
         document.getElementById("estado-barra").style.width = `${porcentaje}%`;
         const tarjeta = document.getElementById("tarjeta-estado");
-        if (porcentaje >= 100) tarjeta.className = "rounded-2xl p-5 mb-6 text-white bg-emerald-500";
-        else if (porcentaje >= 60) tarjeta.className = "rounded-2xl p-5 mb-6 text-white bg-blue-500";
-        else if (porcentaje >= 30) tarjeta.className = "rounded-2xl p-5 mb-6 text-white bg-amber-500";
-        else tarjeta.className = "rounded-2xl p-5 mb-6 text-white bg-slate-500";
+        if (porcentaje >= 100)     tarjeta.className = "rounded-2xl p-5 mb-6 text-white bg-emerald-500 transition-all duration-500";
+        else if (porcentaje >= 60) tarjeta.className = "rounded-2xl p-5 mb-6 text-white bg-blue-500 transition-all duration-500";
+        else if (porcentaje >= 30) tarjeta.className = "rounded-2xl p-5 mb-6 text-white bg-amber-500 transition-all duration-500";
+        else                       tarjeta.className = "rounded-2xl p-5 mb-6 text-white bg-slate-500 transition-all duration-500";
+    }
+
+    function mostrarResumenHoy(registros) {
+        const contenedor = document.getElementById("resumen-hoy-contenedor");
+        const lista = document.getElementById("resumen-hoy");
+        if (registros.length === 0) { contenedor.classList.add("hidden"); return; }
+        contenedor.classList.remove("hidden");
+        lista.innerHTML = registros.map(r => {
+            const color = coloresTarea[r.tarea_principal] || coloresTarea["Otro"];
+            const h = Math.floor(r.tiempo_minutos / 60);
+            const m = r.tiempo_minutos % 60;
+            return `<div class="flex justify-between items-center text-sm p-2 rounded-lg slide-in"
+                style="background-color:${color.light};border-left:3px solid ${color.bg}">
+                <span style="color:${color.text}" class="font-medium">${r.tarea_principal} - ${r.subtarea}</span>
+                <span class="text-slate-500">${h > 0 ? h+"h " : ""}${m}min</span>
+            </div>`;
+        }).join("");
     }
 
     // ==================== NAVEGACIÓN ====================
     function mostrarPestana(nombre) {
-        const pestanasPermitidas = usuarioSesion.rol === "supervisor"
-            ? ["registro","dashboard","historico","progreso","volumen","plantillas","edicion","usuarios"]
-            : ["registro","plantillas"];
-        if (!pestanasPermitidas.includes(nombre)) {
-            alert("No tienes permisos para acceder a esta sección.");
+        const todas = ["registro","dashboard","historico","progreso","volumen",
+                       "rendimiento","plantillas","edicion","usuarios"];
+        const permitidas = usuarioSesion.rol === "supervisor" ? todas : ["registro","plantillas"];
+        if (!permitidas.includes(nombre)) {
+            toast("No tienes permisos para acceder a esta sección.", "error");
             return;
         }
-        ["registro","dashboard","historico","progreso","volumen","plantillas","edicion","usuarios"].forEach(p => {
+        todas.forEach(p => {
             const pestana = document.getElementById(`pestana-${p}`);
             const tab = document.getElementById(`tab-${p}`);
             if (pestana) pestana.classList.add("hidden");
             if (tab) {
-                tab.className = tab.className
-                    .replace("bg-blue-600 text-white", "bg-white text-slate-600 border")
-                    .replace("bg-blue-600", "bg-white");
+                tab.classList.remove("bg-blue-600","text-white");
+                tab.classList.add("bg-white","text-slate-600","border");
+                tab.setAttribute("aria-selected","false");
             }
         });
-        document.getElementById(`pestana-${nombre}`).classList.remove("hidden");
+        const pestanaActiva = document.getElementById(`pestana-${nombre}`);
+        if (pestanaActiva) {
+            pestanaActiva.classList.remove("hidden");
+            pestanaActiva.classList.add("pestana-content");
+        }
         const tabActivo = document.getElementById(`tab-${nombre}`);
         if (tabActivo) {
-            tabActivo.className = tabActivo.className
-                .replace("bg-white text-slate-600 border", "bg-blue-600 text-white")
-                .replace("bg-white", "bg-blue-600");
+            tabActivo.classList.remove("bg-white","text-slate-600","border");
+            tabActivo.classList.add("bg-blue-600","text-white");
+            tabActivo.setAttribute("aria-selected","true");
         }
         if (nombre === "progreso" || nombre === "edicion") cargarUsuariosFiltros();
         if (nombre === "usuarios") cargarUsuariosGestion();
         if (nombre === "dashboard") cargarDashboard();
         if (nombre === "plantillas") cargarPlantillas();
         if (nombre === "historico") cargarUsuariosHistorico();
+        if (nombre === "rendimiento") {
+            cargarUsuariosFiltrosRendimiento();
+            cargarAlertasRendimiento();
+        }
         if (nombre === "volumen") {
+            cargarObjetivos();
             document.getElementById("vol-fecha").value = hoy;
             document.getElementById("vol-desde").value = hoy;
             document.getElementById("vol-hasta").value = hoy;
@@ -830,19 +1369,34 @@
         });
     }
 
-    // ==================== BOTONES DE TIEMPO ====================
+    function actualizarSubtareasEdicionFiltro() {
+        const principal = document.getElementById("edicion-tarea").value;
+        const sel = document.getElementById("edicion-subtarea");
+        sel.innerHTML = `<option value="">-- Todas --</option>`;
+        if (principal && subtareasPorTarea[principal]) {
+            subtareasPorTarea[principal].forEach(sub => {
+                const o = document.createElement("option");
+                o.value = sub; o.textContent = sub;
+                sel.appendChild(o);
+            });
+        }
+    }
+
+    // ==================== BOTONES TIEMPO ====================
     function seleccionarTiempo(minutos) {
         tiempoSeleccionado = minutos;
         document.getElementById("tiempo_minutos").value = minutos;
-        const etiquetas = { 15:"15 min", 30:"30 min", 45:"45 min", 60:"1 hora", 90:"1h 30min", 120:"2 horas", 180:"3 horas", 240:"4 horas" };
+        const etiquetas = {15:"15 min",30:"30 min",45:"45 min",60:"1 hora",
+                           90:"1h 30min",120:"2 horas",180:"3 horas",240:"4 horas"};
         document.getElementById("tiempo-seleccionado").textContent = etiquetas[minutos] || `${minutos} min`;
         document.querySelectorAll(".tiempo-btn").forEach(btn => {
-            btn.className = "tiempo-btn py-3 rounded-xl border-2 border-slate-200 text-sm font-bold text-slate-700 hover:border-blue-400 hover:bg-blue-50 transition";
+            btn.className = "tiempo-btn py-3 rounded-xl border-2 border-slate-200 text-sm font-bold text-slate-700 hover:border-blue-400 hover:bg-blue-50 transition focus:outline-none";
         });
         const valores = [15,30,45,60,90,120,180,240];
         const index = valores.indexOf(minutos);
         if (index !== -1) {
-            document.querySelectorAll(".tiempo-btn")[index].className = "tiempo-btn py-3 rounded-xl border-2 border-blue-500 bg-blue-50 text-sm font-bold text-blue-700 transition";
+            document.querySelectorAll(".tiempo-btn")[index].className =
+                "tiempo-btn py-3 rounded-xl border-2 border-blue-500 bg-blue-50 text-sm font-bold text-blue-700 transition focus:outline-none";
         }
     }
 
@@ -851,25 +1405,24 @@
         document.getElementById("tiempo_minutos").value = 0;
         document.getElementById("tiempo-seleccionado").textContent = "Ninguno";
         document.querySelectorAll(".tiempo-btn").forEach(btn => {
-            btn.className = "tiempo-btn py-3 rounded-xl border-2 border-slate-200 text-sm font-bold text-slate-700 hover:border-blue-400 hover:bg-blue-50 transition";
+            btn.className = "tiempo-btn py-3 rounded-xl border-2 border-slate-200 text-sm font-bold text-slate-700 hover:border-blue-400 hover:bg-blue-50 transition focus:outline-none";
         });
     }
 
     // ==================== REGISTRO ====================
     function añadirTarea() {
-        if (tiempoSeleccionado === 0) { alert("Por favor, selecciona el tiempo dedicado."); return; }
+        if (tiempoSeleccionado === 0) { toast("Por favor, selecciona el tiempo dedicado.", "warning"); return; }
         const tarea_principal = document.getElementById("tarea_principal").value;
         const subtarea = document.getElementById("subtarea").value;
-        const totalActual = tareasPendientes.reduce((sum, t) => sum + t.tiempo_minutos, 0);
+        const totalActual = tareasPendientes.reduce((s, t) => s + t.tiempo_minutos, 0);
         if (totalActual + tiempoSeleccionado > 480) {
-            alert(`No puedes superar 8 horas. Te quedan ${480 - totalActual} minutos.`);
+            toast(`No puedes superar 8 horas. Te quedan ${480 - totalActual} minutos.`, "error");
             return;
         }
         tareasPendientes.push({
             usuario: usuarioSesion.codigo,
             fecha: document.getElementById("fecha").value,
-            tarea_principal,
-            subtarea,
+            tarea_principal, subtarea,
             tiempo_minutos: tiempoSeleccionado,
             proyecto: document.getElementById("proyecto").value || null,
             comentarios: document.getElementById("comentarios").value || null
@@ -879,6 +1432,11 @@
         resetearBotonesTiempo();
         document.getElementById("proyecto").value = "";
         document.getElementById("comentarios").value = "";
+        // Micro-animación en el último item
+        const items = document.querySelectorAll("#tareas > div");
+        if (items.length > 0) {
+            items[items.length - 1].classList.add("bounce-in");
+        }
     }
 
     function eliminarTareaLista(index) {
@@ -896,18 +1454,24 @@
         } else {
             tareasPendientes.forEach((t, index) => {
                 totalMinutos += t.tiempo_minutos;
-                const horas = Math.floor(t.tiempo_minutos / 60);
-                const mins = t.tiempo_minutos % 60;
-                const tiempoTexto = horas > 0 ? `${horas}h ${mins}min` : `${mins}min`;
+                const h = Math.floor(t.tiempo_minutos / 60);
+                const m = t.tiempo_minutos % 60;
+                const tiempoTexto = h > 0 ? `${h}h ${m}min` : `${m}min`;
                 const color = coloresTarea[t.tarea_principal] || coloresTarea["Otro"];
-                contenedor.innerHTML += `
-                    <div style="background-color:${color.light};border-left:4px solid ${color.bg}" class="p-3 rounded-lg flex justify-between items-center text-sm">
-                        <div>
-                            <span style="color:${color.text}" class="font-semibold">${t.tarea_principal} - ${t.subtarea}</span>
-                            <span class="text-slate-500 ml-2">(${tiempoTexto})</span>
-                        </div>
-                        <button onclick="eliminarTareaLista(${index})" class="text-rose-500 hover:text-rose-700 font-bold px-2 py-1 text-lg">✕</button>
-                    </div>`;
+                const div = document.createElement("div");
+                div.style.backgroundColor = color.light;
+                div.style.borderLeft = `4px solid ${color.bg}`;
+                div.className = "p-3 rounded-lg flex justify-between items-center text-sm slide-in";
+                div.innerHTML = `
+                    <div>
+                        <span style="color:${color.text}" class="font-semibold">${t.tarea_principal} - ${t.subtarea}</span>
+                        <span class="text-slate-500 ml-2">(${tiempoTexto})</span>
+                        ${t.proyecto ? `<span class="text-slate-400 ml-2 text-xs">📁 ${t.proyecto}</span>` : ""}
+                    </div>
+                    <button onclick="eliminarTareaLista(${index})"
+                        class="text-rose-500 hover:text-rose-700 font-bold px-2 py-1 text-lg focus:outline-none"
+                        aria-label="Eliminar tarea">✕</button>`;
+                contenedor.appendChild(div);
             });
         }
         document.getElementById("contador").textContent = `(${tareasPendientes.length})`;
@@ -915,7 +1479,7 @@
     }
 
     async function guardarTodo() {
-        if (tareasPendientes.length === 0) { alert("No hay tareas en la lista."); return; }
+        if (tareasPendientes.length === 0) { toast("No hay tareas en la lista.", "warning"); return; }
         let exito = 0, error = 0;
         for (const tarea of tareasPendientes) {
             try {
@@ -931,16 +1495,14 @@
             mostrarConfirmacion(exito);
             limpiarLista();
         } else {
-            const div = document.getElementById("respuesta");
-            div.style.display = "block";
-            div.className = "mt-4 p-3 rounded-lg text-sm bg-rose-100 text-rose-800";
-            div.innerHTML = `⚠️ ${exito} guardadas, ${error} fallaron.`;
+            toast(`⚠️ ${exito} guardadas, ${error} fallaron.`, "error");
         }
     }
 
     function mostrarConfirmacion(numTareas) {
         const pantalla = document.getElementById("pantalla-confirmacion");
-        document.getElementById("confirmacion-texto").textContent = `${numTareas} tarea(s) registradas para ${usuarioSesion.nombre}`;
+        document.getElementById("confirmacion-texto").textContent =
+            `${numTareas} tarea(s) registradas para ${usuarioSesion.nombre}`;
         pantalla.classList.remove("hidden");
         pantalla.style.display = "flex";
         let cuenta = 3;
@@ -958,13 +1520,54 @@
     }
 
     function limpiarLista() { tareasPendientes = []; actualizarLista(); actualizarIndicadorTiempo(); }
-    function descargarExcel() { window.open(`${API}/exportar-excel/`, "_blank"); }
+    // ==================== EXCEL ====================
+    function abrirModalExcel() {
+        document.getElementById("excel-desde").value = hoy;
+        document.getElementById("excel-hasta").value = hoy;
+        cargarUsuariosSelectExcel();
+        document.getElementById("modal-excel").style.display = "flex";
+    }
+
+    function cerrarModalExcel() {
+        document.getElementById("modal-excel").style.display = "none";
+    }
+
+    async function cargarUsuariosSelectExcel() {
+        try {
+            const resp = await fetch(`${API}/usuarios/`);
+            const usuarios = await resp.json();
+            const sel = document.getElementById("excel-usuario");
+            sel.innerHTML = `<option value="">-- Todos --</option>`;
+            usuarios.forEach(u => {
+                const o = document.createElement("option");
+                o.value = u.codigo; o.textContent = u.nombre;
+                sel.appendChild(o);
+            });
+        } catch {}
+    }
+
+    function descargarExcel() {
+        const desde = document.getElementById("excel-desde").value;
+        const hasta = document.getElementById("excel-hasta").value;
+        const usuario = document.getElementById("excel-usuario").value;
+        let url = `${API}/exportar-excel/?`;
+        if (desde) url += `desde=${desde}&`;
+        if (hasta) url += `hasta=${hasta}&`;
+        if (usuario) url += `usuario=${usuario}`;
+        window.open(url, "_blank");
+        cerrarModalExcel();
+        toast("Descargando Excel...", "info");
+    }
 
     // ==================== PLANTILLAS ====================
     function guardarComoPlantilla() {
-        if (tareasPendientes.length === 0) { alert("Añade tareas a la lista antes de guardar una plantilla."); return; }
+        if (tareasPendientes.length === 0) {
+            toast("Añade tareas a la lista antes de guardar una plantilla.", "warning");
+            return;
+        }
         document.getElementById("plantilla-nombre").value = "";
         document.getElementById("modal-plantilla").style.display = "flex";
+        setTimeout(() => document.getElementById("plantilla-nombre").focus(), 100);
     }
 
     function cerrarModalPlantilla() {
@@ -973,7 +1576,7 @@
 
     async function confirmarGuardarPlantilla() {
         const nombre = document.getElementById("plantilla-nombre").value.trim();
-        if (!nombre) { alert("Introduce un nombre para la plantilla."); return; }
+        if (!nombre) { toast("Introduce un nombre para la plantilla.", "warning"); return; }
         const plantilla = {
             nombre,
             usuario: usuarioSesion.codigo,
@@ -993,12 +1596,12 @@
             });
             if (resp.ok) {
                 cerrarModalPlantilla();
-                alert("Plantilla guardada correctamente.");
+                toast("Plantilla guardada correctamente.", "success");
                 cargarPlantillas();
             } else {
-                alert("Error al guardar la plantilla.");
+                toast("Error al guardar la plantilla.", "error");
             }
-        } catch { alert("Error de conexión."); }
+        } catch { toast("Error de conexión.", "error"); }
     }
 
     async function cargarPlantillas() {
@@ -1007,16 +1610,22 @@
             const plantillas = await resp.json();
             const contenedor = document.getElementById("lista-plantillas");
             if (plantillas.length === 0) {
-                contenedor.innerHTML = `<p class="text-sm text-slate-400 text-center py-8 italic">No tienes plantillas guardadas. Añade tareas y guárdalas como plantilla desde la pestaña de Registro.</p>`;
+                contenedor.innerHTML = `<p class="text-sm text-slate-400 text-center py-8 italic">No tienes plantillas guardadas. Añade tareas y guárdalas como plantilla desde la pestaña Registro.</p>`;
                 return;
             }
             contenedor.innerHTML = `<div class="space-y-4">` + plantillas.map(p => `
-                <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                <div class="bg-slate-50 rounded-xl p-4 border border-slate-200 fade-in">
                     <div class="flex justify-between items-center mb-3">
                         <h3 class="font-bold text-slate-800">${p.nombre}</h3>
                         <div class="flex gap-2">
-                            <button onclick="usarPlantilla(${p.id})" class="text-xs bg-blue-600 hover:bg-blue-700 text-white font-medium px-3 py-1.5 rounded-lg">Cargar</button>
-                            <button onclick="eliminarPlantilla(${p.id})" class="text-xs bg-rose-100 hover:bg-rose-200 text-rose-700 font-medium px-3 py-1.5 rounded-lg">Eliminar</button>
+                            <button onclick="usarPlantilla(${p.id})"
+                                class="text-xs bg-blue-600 hover:bg-blue-700 text-white font-medium px-3 py-1.5 rounded-lg">
+                                Cargar
+                            </button>
+                            <button onclick="eliminarPlantilla(${p.id})"
+                                class="text-xs bg-rose-100 hover:bg-rose-200 text-rose-700 font-medium px-3 py-1.5 rounded-lg">
+                                Eliminar
+                            </button>
                         </div>
                     </div>
                     <div class="space-y-1">
@@ -1024,17 +1633,21 @@
                             const color = coloresTarea[i.tarea_principal] || coloresTarea["Otro"];
                             const h = Math.floor(i.tiempo_minutos/60);
                             const m = i.tiempo_minutos%60;
-                            return `<div class="flex justify-between text-sm p-2 rounded-lg" style="background-color:${color.light}">
+                            return `<div class="flex justify-between text-sm p-2 rounded-lg"
+                                style="background-color:${color.light}">
                                 <span style="color:${color.text}" class="font-medium">${i.tarea_principal} - ${i.subtarea}</span>
                                 <span class="text-slate-500">${h > 0 ? h+"h " : ""}${m}min</span>
                             </div>`;
                         }).join("")}
                     </div>
-                    <div class="mt-2 text-xs text-slate-400">Total: ${p.items.reduce((s,i) => s+i.tiempo_minutos, 0)} min</div>
+                    <div class="mt-2 text-xs text-slate-400">
+                        Total: ${p.items.reduce((s,i) => s+i.tiempo_minutos, 0)} min
+                    </div>
                 </div>
             `).join("") + `</div>`;
         } catch {
-            document.getElementById("lista-plantillas").innerHTML = `<p class="text-sm text-rose-500 text-center py-4">Error cargando plantillas.</p>`;
+            document.getElementById("lista-plantillas").innerHTML =
+                `<p class="text-sm text-rose-500 text-center py-4">Error cargando plantillas.</p>`;
         }
     }
 
@@ -1059,16 +1672,17 @@
             actualizarLista();
             actualizarTarjetaEstado(tareasPendientes.reduce((s,t) => s+t.tiempo_minutos, 0));
             mostrarPestana("registro");
-        } catch { alert("Error cargando plantilla."); }
+            toast(`Plantilla "${plantilla.nombre}" cargada.`, "success");
+        } catch { toast("Error cargando plantilla.", "error"); }
     }
 
     async function eliminarPlantilla(id) {
         if (!confirm("¿Seguro que quieres eliminar esta plantilla?")) return;
         try {
             const resp = await fetch(`${API}/plantillas/${id}`, { method: "DELETE" });
-            if (resp.ok) cargarPlantillas();
-            else alert("Error al eliminar la plantilla.");
-        } catch { alert("Error de conexión."); }
+            if (resp.ok) { cargarPlantillas(); toast("Plantilla eliminada.", "success"); }
+            else toast("Error al eliminar la plantilla.", "error");
+        } catch { toast("Error de conexión.", "error"); }
     }
 
     // ==================== USUARIOS FILTROS ====================
@@ -1076,12 +1690,12 @@
         try {
             const resp = await fetch(`${API}/usuarios/`);
             const usuarios = await resp.json();
-            ["filtro-usuario","edicion-usuario"].forEach(id => {
+            ["filtro-usuario","filtro-usuario2","edicion-usuario"].forEach(id => {
                 const select = document.getElementById(id);
                 if (!select) return;
                 const def = id === "filtro-usuario"
                     ? `<option value="">-- Selecciona usuario --</option>`
-                    : `<option value="">-- Todos --</option>`;
+                    : `<option value="">-- ${id === "filtro-usuario2" ? "Opcional" : "Todos"} --</option>`;
                 select.innerHTML = def;
                 usuarios.forEach(u => {
                     const o = document.createElement("option");
@@ -1108,52 +1722,106 @@
             });
         } catch {}
     }
+
+    async function cargarUsuariosFiltrosRendimiento() {
+        try {
+            const resp = await fetch(`${API}/usuarios/`);
+            const usuarios = await resp.json();
+            const sel = document.getElementById("rend-usuario");
+            sel.innerHTML = `<option value="">-- Todos --</option>`;
+            usuarios.forEach(u => {
+                const o = document.createElement("option");
+                o.value = u.codigo; o.textContent = u.nombre;
+                sel.appendChild(o);
+            });
+        } catch {}
+    }
+
     // ==================== DASHBOARD ====================
     async function cargarDashboard() {
         const fecha = document.getElementById("dashboard-fecha").value || hoy;
         try {
-            const respProd = await fetch(`${API}/estadisticas/productividad/?fecha_ref=${fecha}`);
-            const prod = await respProd.json();
-            const contProd = document.getElementById("dashboard-productividad");
-            contProd.innerHTML = "";
-            let totalMinsHoy = 0, usuariosActivosCount = 0;
+            const [respProd, respTop, respMedia, respReg, respAlertas] = await Promise.all([
+                fetch(`${API}/estadisticas/productividad/?fecha_ref=${fecha}`),
+                fetch(`${API}/estadisticas/top-tareas/`),
+                fetch(`${API}/estadisticas/media-por-tarea/`),
+                fetch(`${API}/registros/rango/?desde=${fecha}&hasta=${fecha}`),
+                fetch(`${API}/rendimiento/alertas/`)
+            ]);
 
+            const prod = await respProd.json();
+            const topTareas = await respTop.json();
+            const dataMedia = await respMedia.json();
+            const registrosHoy = await respReg.json();
+            const alertasData = await respAlertas.json();
+
+            // Alertas dashboard
+            const contAlertas = document.getElementById("dashboard-alertas");
+            contAlertas.innerHTML = "";
+            if (alertasData.alertas && alertasData.alertas.length > 0) {
+                alertasData.alertas.slice(0, 3).forEach(a => {
+                    const colorMap = {
+                        danger: "bg-rose-50 border-rose-300 text-rose-800",
+                        warning: "bg-amber-50 border-amber-300 text-amber-800"
+                    };
+                    const iconMap = { danger: "🔴", warning: "🟡" };
+                    contAlertas.innerHTML += `
+                        <div class="flex items-center gap-3 p-3 rounded-xl border text-sm fade-in ${colorMap[a.nivel] || colorMap.warning}">
+                            <span>${iconMap[a.nivel] || "⚠️"}</span>
+                            <span>${a.mensaje}</span>
+                        </div>`;
+                });
+            }
+
+            // KPIs
+            let totalMinsHoy = 0, usuariosActivosCount = 0;
             prod.forEach(p => {
                 totalMinsHoy += p.minutos_hoy;
                 if (p.minutos_hoy > 0) usuariosActivosCount++;
-                const color = p.porcentaje_jornada >= 100 ? "bg-emerald-500" : p.porcentaje_jornada >= 60 ? "bg-blue-500" : p.porcentaje_jornada >= 30 ? "bg-amber-400" : "bg-slate-300";
-                const horasH = Math.floor(p.minutos_hoy / 60);
-                const minsH = p.minutos_hoy % 60;
-                contProd.innerHTML += `
-                    <div class="flex items-center gap-4 p-3 bg-slate-50 rounded-xl">
-                        <div class="flex-1">
-                            <div class="flex justify-between text-sm mb-1">
-                                <span class="font-medium text-slate-700">${p.nombre} (${p.usuario})</span>
-                                <span class="text-slate-500">${horasH}h ${minsH}min (${p.porcentaje_jornada}%)</span>
-                            </div>
-                            <div class="w-full bg-slate-200 rounded-full h-2">
-                                <div class="${color} h-2 rounded-full transition-all duration-500" style="width:${Math.min(p.porcentaje_jornada,100)}%"></div>
-                            </div>
-                        </div>
-                    </div>`;
             });
-            if (prod.length === 0) contProd.innerHTML = `<p class="text-sm text-slate-400 text-center py-4 italic">No hay operarios.</p>`;
-
             document.getElementById("kpi-registros").textContent = prod.filter(p => p.minutos_hoy > 0).length;
             document.getElementById("kpi-usuarios").textContent = usuariosActivosCount;
             document.getElementById("kpi-horas").textContent = `${(totalMinsHoy/60).toFixed(1)}h`;
             document.getElementById("kpi-media").textContent = prod.length > 0
-                ? `${Math.round(prod.reduce((s,p) => s+p.porcentaje_jornada, 0) / prod.length)}%`
-                : "0%";
+                ? `${Math.round(prod.reduce((s,p) => s+p.porcentaje_jornada,0) / prod.length)}%` : "0%";
 
+            // Productividad
+            const contProd = document.getElementById("dashboard-productividad");
+            contProd.innerHTML = "";
+            if (prod.length === 0) {
+                contProd.innerHTML = `<p class="text-sm text-slate-400 text-center py-4 italic">No hay operarios.</p>`;
+            } else {
+                prod.forEach(p => {
+                    const colorBar = p.porcentaje_jornada >= 100 ? "bg-emerald-500"
+                        : p.porcentaje_jornada >= 60 ? "bg-blue-500"
+                        : p.porcentaje_jornada >= 30 ? "bg-amber-400" : "bg-slate-300";
+                    const horasH = Math.floor(p.minutos_hoy / 60);
+                    const minsH = p.minutos_hoy % 60;
+                    contProd.innerHTML += `
+                        <div class="flex items-center gap-4 p-3 bg-slate-50 rounded-xl fade-in">
+                            <div class="flex-1">
+                                <div class="flex justify-between text-sm mb-1">
+                                    <span class="font-medium text-slate-700">${p.nombre} (${p.usuario})</span>
+                                    <span class="text-slate-500">${horasH}h ${minsH}min (${p.porcentaje_jornada}%)</span>
+                                </div>
+                                <div class="w-full bg-slate-200 rounded-full h-2">
+                                    <div class="${colorBar} h-2 rounded-full transition-all duration-700"
+                                        style="width:${Math.min(p.porcentaje_jornada,100)}%"></div>
+                                </div>
+                            </div>
+                        </div>`;
+                });
+            }
+
+            // Comparación hoy vs ayer
             const contComp = document.getElementById("dashboard-comparacion");
             contComp.innerHTML = prod.length > 0 ? prod.map(p => {
                 const diff = p.variacion_minutos;
                 const signo = diff > 0 ? "+" : "";
                 const colorDiff = diff > 0 ? "text-emerald-600" : diff < 0 ? "text-rose-600" : "text-slate-500";
-                return `<div class="flex justify-between items-center p-3 bg-slate-50 rounded-xl text-sm">
+                return `<div class="flex justify-between items-center p-3 bg-slate-50 rounded-xl text-sm fade-in">
                     <span class="font-medium text-slate-700">${p.nombre}</span>
-                    <div class="flex gap-4">
+                    <div class="flex gap-2 md:gap-4 text-xs md:text-sm">
                         <span class="text-slate-500">Hoy: ${Math.floor(p.minutos_hoy/60)}h ${p.minutos_hoy%60}m</span>
                         <span class="text-slate-500">Ayer: ${Math.floor(p.minutos_ayer/60)}h ${p.minutos_ayer%60}m</span>
                         <span class="font-bold ${colorDiff}">${signo}${diff}min</span>
@@ -1161,59 +1829,72 @@
                 </div>`;
             }).join("") : `<p class="text-sm text-slate-400 text-center py-4 italic">Sin datos.</p>`;
 
-            const respTop = await fetch(`${API}/estadisticas/top-tareas/`);
-            const topTareas = await respTop.json();
+            // Top tareas
             const contTop = document.getElementById("dashboard-top-tareas");
             contTop.innerHTML = topTareas.slice(0,5).map((t, idx) => {
                 const tarea = t.tarea.split(" - ")[0];
                 const color = (coloresTarea[tarea] || coloresTarea["Otro"]).bg;
-                return `<div class="flex justify-between items-center p-2.5 rounded-lg text-sm mb-2" style="border-left:3px solid ${color};background:#f8fafc">
+                return `<div class="flex justify-between items-center p-2.5 rounded-lg text-sm mb-2 fade-in"
+                    style="border-left:3px solid ${color};background:#f8fafc">
                     <span class="font-medium text-slate-700">${idx+1}. ${t.tarea}</span>
                     <span class="text-slate-500 font-bold">${Math.floor(t.minutos_totales/60)}h (${t.count}x)</span>
                 </div>`;
             }).join("") || `<p class="text-sm text-slate-400 text-center py-4 italic">Sin datos.</p>`;
 
-            const respMedia = await fetch(`${API}/estadisticas/media-por-tarea/`);
-            const dataMedia = await respMedia.json();
+            // Gráfico media
             if (dashboardGraficoMedia) dashboardGraficoMedia.destroy();
-            dashboardGraficoMedia = new Chart(document.getElementById("dashboard-grafico-media").getContext("2d"), {
+            dashboardGraficoMedia = new Chart(
+                document.getElementById("dashboard-grafico-media").getContext("2d"), {
                 type: "bar",
                 data: {
                     labels: dataMedia.map(d => d.tarea),
-                    datasets: [{ label: "Media (min)", data: dataMedia.map(d => d.media_minutos), backgroundColor: dataMedia.map(d => (coloresTarea[d.tarea]||coloresTarea["Otro"]).bg), borderRadius: 6 }]
+                    datasets: [{
+                        label: "Media (min)",
+                        data: dataMedia.map(d => d.media_minutos),
+                        backgroundColor: dataMedia.map(d => (coloresTarea[d.tarea]||coloresTarea["Otro"]).bg),
+                        borderRadius: 6
+                    }]
                 },
                 options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
             });
 
-            const respReg = await fetch(`${API}/registros/rango/?desde=${fecha}&hasta=${fecha}`);
-            const registrosHoy = await respReg.json();
-
+            // Gráfico tareas hoy
             const tareaCount = {};
             registrosHoy.forEach(r => {
                 tareaCount[r.tarea_principal] = (tareaCount[r.tarea_principal] || 0) + r.tiempo_minutos;
             });
             if (dashboardGraficoTareas) dashboardGraficoTareas.destroy();
-            dashboardGraficoTareas = new Chart(document.getElementById("dashboard-grafico-tareas").getContext("2d"), {
+            dashboardGraficoTareas = new Chart(
+                document.getElementById("dashboard-grafico-tareas").getContext("2d"), {
                 type: "doughnut",
                 data: {
                     labels: Object.keys(tareaCount),
-                    datasets: [{ data: Object.values(tareaCount), backgroundColor: Object.keys(tareaCount).map(l => (coloresTarea[l]||coloresTarea["Otro"]).bg) }]
+                    datasets: [{ data: Object.values(tareaCount),
+                        backgroundColor: Object.keys(tareaCount).map(l => (coloresTarea[l]||coloresTarea["Otro"]).bg) }]
                 },
                 options: { responsive: true, plugins: { legend: { position: "bottom" } } }
             });
 
+            // Gráfico usuarios hoy
             const userMins = {};
             registrosHoy.forEach(r => {
                 userMins[r.usuario] = (userMins[r.usuario] || 0) + r.tiempo_minutos;
             });
             if (dashboardGraficoUsuarios) dashboardGraficoUsuarios.destroy();
-            dashboardGraficoUsuarios = new Chart(document.getElementById("dashboard-grafico-usuarios").getContext("2d"), {
+            dashboardGraficoUsuarios = new Chart(
+                document.getElementById("dashboard-grafico-usuarios").getContext("2d"), {
                 type: "bar",
                 data: {
                     labels: Object.keys(userMins),
-                    datasets: [{ label: "Horas", data: Object.values(userMins).map(m => parseFloat((m/60).toFixed(2))), backgroundColor: avatarColores, borderRadius: 6 }]
+                    datasets: [{
+                        label: "Horas",
+                        data: Object.values(userMins).map(m => parseFloat((m/60).toFixed(2))),
+                        backgroundColor: avatarColores,
+                        borderRadius: 6
+                    }]
                 },
-                options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, max: 8 } } }
+                options: { responsive: true, plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true, max: 8 } } }
             });
 
         } catch(e) { console.error("Error dashboard:", e); }
@@ -1228,13 +1909,8 @@
         document.getElementById("btn-periodo-mes").className = tipo === "mes"
             ? "px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white"
             : "px-4 py-2 rounded-lg text-sm font-medium bg-white text-slate-600 border";
-        if (tipo === "semana") {
-            document.getElementById("filtros-semana").classList.remove("hidden");
-            document.getElementById("filtros-mes").classList.add("hidden");
-        } else {
-            document.getElementById("filtros-semana").classList.add("hidden");
-            document.getElementById("filtros-mes").classList.remove("hidden");
-        }
+        document.getElementById("filtros-semana").classList.toggle("hidden", tipo !== "semana");
+        document.getElementById("filtros-mes").classList.toggle("hidden", tipo !== "mes");
     }
 
     async function cargarHistorico() {
@@ -1257,8 +1933,9 @@
                     labels.push(dia);
                     valores.push(parseFloat((info.total_minutos/60).toFixed(2)));
                     const pct = Math.min((info.total_minutos/480)*100, 100);
-                    const color = pct >= 100 ? "bg-emerald-500" : pct >= 60 ? "bg-blue-500" : pct >= 30 ? "bg-amber-400" : "bg-slate-300";
-                    html += `<div class="p-3 bg-slate-50 rounded-xl">
+                    const color = pct >= 100 ? "bg-emerald-500" : pct >= 60 ? "bg-blue-500"
+                        : pct >= 30 ? "bg-amber-400" : "bg-slate-300";
+                    html += `<div class="p-3 bg-slate-50 rounded-xl fade-in">
                         <div class="flex justify-between text-sm mb-2">
                             <span class="font-medium text-slate-700">${dia}</span>
                             <span class="font-bold text-blue-600">${(info.total_minutos/60).toFixed(1)}h</span>
@@ -1271,13 +1948,18 @@
                 html += `</div>`;
                 contenedor.innerHTML = html;
                 if (historicoGrafico) historicoGrafico.destroy();
-                historicoGrafico = new Chart(document.getElementById("historico-grafico").getContext("2d"), {
+                historicoGrafico = new Chart(
+                    document.getElementById("historico-grafico").getContext("2d"), {
                     type: "bar",
-                    data: { labels, datasets: [{ label: "Horas", data: valores, backgroundColor: "#3b82f6", borderRadius: 6 }] },
-                    options: { responsive: true, scales: { y: { beginAtZero: true, max: 8, title: { display: true, text: "Horas" } } } }
+                    data: { labels, datasets: [{ label: "Horas", data: valores,
+                        backgroundColor: "#3b82f6", borderRadius: 6 }] },
+                    options: { responsive: true, scales: { y: { beginAtZero: true, max: 8,
+                        title: { display: true, text: "Horas" } } } }
                 });
                 contenedorGrafico.classList.remove("hidden");
-            } catch { contenedor.innerHTML = `<p class="text-sm text-rose-500 text-center py-8">Error cargando histórico semanal.</p>`; }
+            } catch {
+                contenedor.innerHTML = `<p class="text-sm text-rose-500 text-center py-8">Error cargando histórico semanal.</p>`;
+            }
         } else {
             const usuario = document.getElementById("historico-usuario-mes").value;
             const anyo = document.getElementById("historico-anyo").value;
@@ -1288,7 +1970,8 @@
                 const resp = await fetch(url);
                 const data = await resp.json();
                 let html = `<div class="mb-4 p-3 bg-blue-50 rounded-lg text-sm text-slate-600">
-                    Mes: <b>${mes}/${anyo}</b> | Registros: <b>${data.total_registros}</b> | Total: <b>${(data.total_minutos/60).toFixed(1)} horas</b>
+                    Mes: <b>${mes}/${anyo}</b> | Registros: <b>${data.total_registros}</b> |
+                    Total: <b>${(data.total_minutos/60).toFixed(1)} horas</b>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div class="bg-slate-50 p-4 rounded-xl">
@@ -1315,15 +1998,17 @@
                 </div>`;
                 contenedor.innerHTML = html;
                 contenedorGrafico.classList.add("hidden");
-            } catch { contenedor.innerHTML = `<p class="text-sm text-rose-500 text-center py-8">Error cargando histórico mensual.</p>`; }
+            } catch {
+                contenedor.innerHTML = `<p class="text-sm text-rose-500 text-center py-8">Error cargando histórico mensual.</p>`;
+            }
         }
     }
-
     // ==================== PROGRESO ====================
     async function cargarProgreso() {
         const usuario = document.getElementById("filtro-usuario").value;
+        const usuario2 = document.getElementById("filtro-usuario2").value;
         const fecha = document.getElementById("filtro-fecha").value;
-        if (!usuario || !fecha) { alert("Selecciona usuario y fecha."); return; }
+        if (!usuario || !fecha) { toast("Selecciona usuario y fecha.", "warning"); return; }
         try {
             const resp = await fetch(`${API}/registros/${usuario}`);
             const todos = await resp.json();
@@ -1344,20 +2029,21 @@
 
             contenedor.innerHTML = `
                 <div class="grid grid-cols-3 gap-4 mb-4">
-                    <div class="bg-blue-50 rounded-xl p-4 text-center">
+                    <div class="bg-blue-50 rounded-xl p-4 text-center fade-in">
                         <div class="text-2xl font-bold text-blue-700">${registros.length}</div>
                         <div class="text-xs text-slate-500 mt-1">Registros</div>
                     </div>
-                    <div class="bg-violet-50 rounded-xl p-4 text-center">
+                    <div class="bg-violet-50 rounded-xl p-4 text-center fade-in">
                         <div class="text-2xl font-bold text-violet-700">${horas}h ${mins}min</div>
                         <div class="text-xs text-slate-500 mt-1">Tiempo total</div>
                     </div>
-                    <div class="bg-emerald-50 rounded-xl p-4 text-center">
+                    <div class="bg-emerald-50 rounded-xl p-4 text-center fade-in">
                         <div class="text-2xl font-bold text-emerald-700">${porcentaje.toFixed(0)}%</div>
                         <div class="text-xs text-slate-500 mt-1">Jornada</div>
                     </div>
                 </div>`;
 
+            // Barra segmentada
             const barraSeg = document.getElementById("barra-segmentada");
             const leyenda = document.getElementById("leyenda-barra");
             barraSeg.innerHTML = ""; leyenda.innerHTML = "";
@@ -1368,7 +2054,8 @@
             Object.entries(agrupado).forEach(([tarea, minutos]) => {
                 const pct = (minutos / 480) * 100;
                 const color = (coloresTarea[tarea] || coloresTarea["Otro"]).bg;
-                barraSeg.innerHTML += `<div style="width:${pct}%;background-color:${color}" title="${tarea}: ${minutos}min" class="h-full"></div>`;
+                barraSeg.innerHTML += `<div style="width:${pct}%;background-color:${color}"
+                    title="${tarea}: ${minutos}min" class="h-full transition-all duration-700"></div>`;
                 leyenda.innerHTML += `
                     <div class="flex justify-between items-center text-sm">
                         <div class="flex items-center gap-2">
@@ -1382,6 +2069,7 @@
             document.getElementById("barra-total").style.width = `${porcentaje}%`;
             document.getElementById("porcentaje-label").textContent = `${porcentaje.toFixed(0)}%`;
 
+            // Gráfico tarta
             const labelsP = Object.keys(agrupado);
             const dataP = Object.values(agrupado);
             const bgP = labelsP.map(l => (coloresTarea[l] || coloresTarea["Otro"]).bg);
@@ -1392,39 +2080,86 @@
                 options: { responsive: true, plugins: { legend: { position: "bottom" } } }
             });
 
+            // Gráfico barras subtarea
             const labelsB = registros.map(r => r.subtarea);
             const dataB = registros.map(r => r.tiempo_minutos);
             const bgB = registros.map(r => (coloresTarea[r.tarea_principal] || coloresTarea["Otro"]).bg);
             if (graficaBarras) graficaBarras.destroy();
             graficaBarras = new Chart(document.getElementById("grafico-barras").getContext("2d"), {
                 type: "bar",
-                data: { labels: labelsB, datasets: [{ label: "Minutos", data: dataB, backgroundColor: bgB, borderRadius: 6 }] },
-                options: { responsive: true, indexAxis: "y", plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true } } }
+                data: { labels: labelsB, datasets: [{ label: "Minutos", data: dataB,
+                    backgroundColor: bgB, borderRadius: 6 }] },
+                options: { responsive: true, indexAxis: "y",
+                    plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true } } }
             });
 
+            // Comparación usuario 2
+            const contComp = document.getElementById("grafico-comparacion-contenedor");
+            if (usuario2) {
+                const resp2 = await fetch(`${API}/registros/${usuario2}`);
+                const todos2 = await resp2.json();
+                const registros2 = todos2.filter(r => r.fecha === fecha);
+                const agrupado2 = {};
+                registros2.forEach(r => {
+                    agrupado2[r.tarea_principal] = (agrupado2[r.tarea_principal] || 0) + r.tiempo_minutos;
+                });
+                const todasTareas = [...new Set([...Object.keys(agrupado), ...Object.keys(agrupado2)])];
+                if (graficaComparacion) graficaComparacion.destroy();
+                graficaComparacion = new Chart(
+                    document.getElementById("grafico-comparacion").getContext("2d"), {
+                    type: "bar",
+                    data: {
+                        labels: todasTareas,
+                        datasets: [
+                            {
+                                label: usuario,
+                                data: todasTareas.map(t => agrupado[t] || 0),
+                                backgroundColor: "#3b82f6",
+                                borderRadius: 6
+                            },
+                            {
+                                label: usuario2,
+                                data: todasTareas.map(t => agrupado2[t] || 0),
+                                backgroundColor: "#8b5cf6",
+                                borderRadius: 6
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: { legend: { position: "bottom" } },
+                        scales: { y: { beginAtZero: true, title: { display: true, text: "Minutos" } } }
+                    }
+                });
+                contComp.classList.remove("hidden");
+            } else {
+                contComp.classList.add("hidden");
+                if (graficaComparacion) { graficaComparacion.destroy(); graficaComparacion = null; }
+            }
+
+            // Gráfico semanal
             const diasSemana = [];
             for (let i = 6; i >= 0; i--) {
                 const d = new Date(fecha);
                 d.setDate(d.getDate() - i);
                 diasSemana.push(d.toISOString().split("T")[0]);
             }
-            const horasSemana = diasSemana.map(dia => {
-                const mins = todos.filter(r => r.fecha === dia).reduce((s, r) => s + r.tiempo_minutos, 0);
-                return parseFloat((mins / 60).toFixed(2));
-            });
+            const horasSemana = diasSemana.map(dia =>
+                parseFloat((todos.filter(r => r.fecha === dia)
+                    .reduce((s, r) => s + r.tiempo_minutos, 0) / 60).toFixed(2))
+            );
             if (graficaSemanal) graficaSemanal.destroy();
             graficaSemanal = new Chart(document.getElementById("grafico-semanal").getContext("2d"), {
                 type: "line",
                 data: {
-                    labels: diasSemana.map(d => new Date(d + "T00:00:00").toLocaleDateString("es-ES", { weekday: "short", day: "numeric" })),
+                    labels: diasSemana.map(d => new Date(d + "T00:00:00")
+                        .toLocaleDateString("es-ES", { weekday: "short", day: "numeric" })),
                     datasets: [{
                         label: "Horas",
                         data: horasSemana,
                         borderColor: "#3b82f6",
                         backgroundColor: "rgba(59,130,246,0.1)",
-                        borderWidth: 2,
-                        fill: true,
-                        tension: 0.4,
+                        borderWidth: 2, fill: true, tension: 0.4,
                         pointBackgroundColor: "#3b82f6"
                     }]
                 },
@@ -1433,9 +2168,85 @@
 
             graficos.classList.remove("hidden");
         } catch(e) {
-            document.getElementById("progreso-resultado").innerHTML = `<p class="text-sm text-rose-500 text-center py-8">Error cargando progreso.</p>`;
+            document.getElementById("progreso-resultado").innerHTML =
+                `<p class="text-sm text-rose-500 text-center py-8">Error cargando progreso.</p>`;
         }
     }
+
+    // ==================== OBJETIVOS ====================
+    async function cargarObjetivos() {
+        try {
+            const resp = await fetch(`${API}/objetivos/`);
+            const objetivos = await resp.json();
+            objetivosCache = {};
+            objetivos.forEach(o => { objetivosCache[o.tarea_principal] = o; });
+            const contenedor = document.getElementById("objetivos-lista");
+            contenedor.innerHTML = objetivos.map(o => `
+                <div class="bg-white rounded-xl p-3 border border-blue-200">
+                    <div class="flex items-center gap-2 mb-2">
+                        <div class="w-3 h-3 rounded-full"
+                            style="background-color:${(coloresTarea[o.tarea_principal]||coloresTarea["Otro"]).bg}"></div>
+                        <span class="text-xs font-bold text-slate-700">${o.tarea_principal}</span>
+                    </div>
+                    <div class="flex gap-2">
+                        <div class="flex-1">
+                            <label class="text-xs text-slate-500">Uds/hora:</label>
+                            <input type="number" id="obj-uds-${o.tarea_principal}"
+                                value="${o.uds_hora}" min="1" step="1"
+                                class="w-full px-2 py-1 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                        </div>
+                        <div class="flex-1">
+                            <label class="text-xs text-slate-500">H/jornada:</label>
+                            <input type="number" id="obj-horas-${o.tarea_principal}"
+                                value="${o.horas_jornada}" min="1" max="12" step="0.5"
+                                class="w-full px-2 py-1 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                        </div>
+                    </div>
+                </div>
+            `).join("");
+        } catch {}
+    }
+
+    async function guardarObjetivos() {
+        const tareas = ["Picking","Packing","Inbound","Shipping","Ecommerce"];
+        const msg = document.getElementById("obj-mensaje");
+        let errores = 0;
+        for (const tarea of tareas) {
+            const uds = parseFloat(document.getElementById(`obj-uds-${tarea}`)?.value);
+            const horas = parseFloat(document.getElementById(`obj-horas-${tarea}`)?.value);
+            if (!uds || !horas) continue;
+            try {
+                const resp = await fetch(`${API}/objetivos/${tarea}`, {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ tarea_principal: tarea, uds_hora: uds, horas_jornada: horas })
+                });
+                if (resp.ok) {
+                    if (objetivosCache[tarea]) {
+                        objetivosCache[tarea].uds_hora = uds;
+                        objetivosCache[tarea].horas_jornada = horas;
+                    }
+                } else errores++;
+            } catch { errores++; }
+        }
+        if (errores === 0) {
+            toast("Objetivos guardados correctamente.", "success");
+        } else {
+            toast(`${errores} objetivos no se pudieron guardar.`, "error");
+        }
+    }
+
+    function calcularHorasTeoricas() {
+        const tarea = document.getElementById("vol-tarea").value;
+        const unidades = parseInt(document.getElementById("vol-unidades").value);
+        const obj = objetivosCache[tarea];
+        if (obj && unidades > 0) {
+            const horasTeo = round2(unidades / obj.uds_hora);
+            document.getElementById("vol-horas").value = horasTeo;
+        }
+    }
+
+    function round2(n) { return Math.round(n * 100) / 100; }
 
     // ==================== VOLUMEN & MÉTRICAS ====================
     async function crearVolumen() {
@@ -1457,22 +2268,16 @@
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    fecha,
-                    tarea_principal,
-                    unidades,
-                    horas_teoricas,
-                    creado_por: usuarioSesion.codigo,
-                    comentarios
+                    fecha, tarea_principal, unidades, horas_teoricas,
+                    creado_por: usuarioSesion.codigo, comentarios
                 })
             });
             if (resp.ok) {
-                msg.textContent = "Datos de volumen guardados correctamente.";
-                msg.className = "mt-2 text-sm text-emerald-600";
-                msg.classList.remove("hidden");
+                toast("Datos de volumen guardados correctamente.", "success");
                 document.getElementById("vol-unidades").value = "";
                 document.getElementById("vol-horas").value = "";
                 document.getElementById("vol-comentarios").value = "";
-                setTimeout(() => msg.classList.add("hidden"), 3000);
+                msg.classList.add("hidden");
             } else {
                 msg.textContent = "Error al guardar los datos.";
                 msg.className = "mt-2 text-sm text-rose-600";
@@ -1488,14 +2293,14 @@
     async function cargarMetricas() {
         const desde = document.getElementById("vol-desde").value;
         const hasta = document.getElementById("vol-hasta").value;
-        if (!desde || !hasta) { alert("Selecciona un rango de fechas."); return; }
+        if (!desde || !hasta) { toast("Selecciona un rango de fechas.", "warning"); return; }
         try {
             const resp = await fetch(`${API}/volumenes/metricas/?desde=${desde}&hasta=${hasta}`);
             const metricas = await resp.json();
             const tablaContenedor = document.getElementById("vol-tabla");
 
             if (metricas.length === 0) {
-                tablaContenedor.innerHTML = `<p class="text-sm text-slate-400 text-center py-8 italic">No hay datos de volumen para este periodo. Añade datos primero.</p>`;
+                tablaContenedor.innerHTML = `<p class="text-sm text-slate-400 text-center py-8 italic">No hay datos de volumen para este periodo.</p>`;
                 document.getElementById("vol-kpis").style.display = "none";
                 document.getElementById("vol-graficos").style.display = "none";
                 return;
@@ -1507,8 +2312,7 @@
             const totalHorasReal = metricas.reduce((s, m) => s + m.horas_reales, 0);
             const eficiencias = metricas.filter(m => m.eficiencia_pct !== null).map(m => m.eficiencia_pct);
             const mediaEficiencia = eficiencias.length > 0
-                ? Math.round(eficiencias.reduce((s, e) => s + e, 0) / eficiencias.length)
-                : 0;
+                ? Math.round(eficiencias.reduce((s,e) => s+e, 0) / eficiencias.length) : 0;
 
             document.getElementById("vol-kpi-unidades").textContent = totalUnidades.toLocaleString();
             document.getElementById("vol-kpi-horas-teo").textContent = `${totalHorasTeo.toFixed(1)}h`;
@@ -1516,12 +2320,11 @@
             document.getElementById("vol-kpi-eficiencia").textContent = `${mediaEficiencia}%`;
             document.getElementById("vol-kpis").style.display = "grid";
 
-            // Gráfico eficiencia por tarea
+            // Gráfico eficiencia
             const eficienciaPorTarea = {};
             metricas.forEach(m => {
-                if (!eficienciaPorTarea[m.tarea_principal]) {
+                if (!eficienciaPorTarea[m.tarea_principal])
                     eficienciaPorTarea[m.tarea_principal] = { sum: 0, count: 0 };
-                }
                 if (m.eficiencia_pct !== null) {
                     eficienciaPorTarea[m.tarea_principal].sum += m.eficiencia_pct;
                     eficienciaPorTarea[m.tarea_principal].count++;
@@ -1529,91 +2332,51 @@
             });
             const labelsEf = Object.keys(eficienciaPorTarea);
             const dataEf = labelsEf.map(t => eficienciaPorTarea[t].count > 0
-                ? Math.round(eficienciaPorTarea[t].sum / eficienciaPorTarea[t].count)
-                : 0);
-            const bgEf = labelsEf.map(l => (coloresTarea[l] || coloresTarea["Otro"]).bg);
-
+                ? Math.round(eficienciaPorTarea[t].sum / eficienciaPorTarea[t].count) : 0);
             if (volGraficoEficiencia) volGraficoEficiencia.destroy();
-            volGraficoEficiencia = new Chart(document.getElementById("vol-grafico-eficiencia").getContext("2d"), {
+            volGraficoEficiencia = new Chart(
+                document.getElementById("vol-grafico-eficiencia").getContext("2d"), {
                 type: "bar",
-                data: {
-                    labels: labelsEf,
-                    datasets: [{
-                        label: "Eficiencia %",
-                        data: dataEf,
-                        backgroundColor: bgEf,
-                        borderRadius: 6
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            max: 150,
-                            title: { display: true, text: "%" },
-                            ticks: {
-                                callback: v => v + "%"
-                            }
-                        }
-                    }
-                }
+                data: { labels: labelsEf, datasets: [{
+                    label: "Eficiencia %", data: dataEf,
+                    backgroundColor: labelsEf.map(l => (coloresTarea[l]||coloresTarea["Otro"]).bg),
+                    borderRadius: 6
+                }]},
+                options: { responsive: true, plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true, max: 150,
+                        ticks: { callback: v => v + "%" } } } }
             });
 
-            // Gráfico comparativa teóricas vs reales
+            // Gráfico comparativa
             const fechasUnicas = [...new Set(metricas.map(m => m.fecha))].sort();
             const horasTeoPorFecha = fechasUnicas.map(f =>
-                parseFloat(metricas.filter(m => m.fecha === f).reduce((s, m) => s + m.horas_teoricas, 0).toFixed(2))
-            );
+                parseFloat(metricas.filter(m => m.fecha === f)
+                    .reduce((s,m) => s+m.horas_teoricas, 0).toFixed(2)));
             const horasRealPorFecha = fechasUnicas.map(f =>
-                parseFloat(metricas.filter(m => m.fecha === f).reduce((s, m) => s + m.horas_reales, 0).toFixed(2))
-            );
-
+                parseFloat(metricas.filter(m => m.fecha === f)
+                    .reduce((s,m) => s+m.horas_reales, 0).toFixed(2)));
             if (volGraficoComparativa) volGraficoComparativa.destroy();
-            volGraficoComparativa = new Chart(document.getElementById("vol-grafico-comparativa").getContext("2d"), {
+            volGraficoComparativa = new Chart(
+                document.getElementById("vol-grafico-comparativa").getContext("2d"), {
                 type: "line",
-                data: {
-                    labels: fechasUnicas,
-                    datasets: [
-                        {
-                            label: "Horas teóricas",
-                            data: horasTeoPorFecha,
-                            borderColor: "#8b5cf6",
-                            backgroundColor: "rgba(139,92,246,0.1)",
-                            borderWidth: 2,
-                            fill: true,
-                            tension: 0.4,
-                            pointBackgroundColor: "#8b5cf6"
-                        },
-                        {
-                            label: "Horas reales",
-                            data: horasRealPorFecha,
-                            borderColor: "#3b82f6",
-                            backgroundColor: "rgba(59,130,246,0.1)",
-                            borderWidth: 2,
-                            fill: true,
-                            tension: 0.4,
-                            pointBackgroundColor: "#3b82f6"
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    plugins: { legend: { position: "bottom" } },
-                    scales: { y: { beginAtZero: true, title: { display: true, text: "Horas" } } }
-                }
+                data: { labels: fechasUnicas, datasets: [
+                    { label: "Horas teóricas", data: horasTeoPorFecha,
+                        borderColor: "#8b5cf6", backgroundColor: "rgba(139,92,246,0.1)",
+                        borderWidth: 2, fill: true, tension: 0.4, pointBackgroundColor: "#8b5cf6" },
+                    { label: "Horas reales", data: horasRealPorFecha,
+                        borderColor: "#3b82f6", backgroundColor: "rgba(59,130,246,0.1)",
+                        borderWidth: 2, fill: true, tension: 0.4, pointBackgroundColor: "#3b82f6" }
+                ]},
+                options: { responsive: true, plugins: { legend: { position: "bottom" } },
+                    scales: { y: { beginAtZero: true, title: { display: true, text: "Horas" } } } }
             });
-
             document.getElementById("vol-graficos").style.display = "grid";
 
-            // Tabla detallada
-            let html = `
-                <div class="overflow-x-auto mt-4">
+            // Tabla
+            let html = `<div class="overflow-x-auto mt-4">
                 <table class="w-full text-sm">
                     <thead class="bg-slate-800 text-white">
                         <tr>
-                            <th class="px-3 py-2 text-
                             <th class="px-3 py-2 text-left">Fecha</th>
                             <th class="px-3 py-2 text-left">Tarea</th>
                             <th class="px-3 py-2 text-right">Unidades</th>
@@ -1625,52 +2388,300 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">`;
-
             metricas.forEach(m => {
-                const color = (coloresTarea[m.tarea_principal] || coloresTarea["Otro"]).bg;
-                const efColor = m.eficiencia_pct === null ? "text-slate-400" : m.eficiencia_pct >= 90 ? "text-emerald-600 font-bold" : m.eficiencia_pct >= 70 ? "text-amber-600 font-bold" : "text-rose-600 font-bold";
+                const color = (coloresTarea[m.tarea_principal]||coloresTarea["Otro"]).bg;
+                const efColor = m.eficiencia_pct === null ? "text-slate-400"
+                    : m.eficiencia_pct >= 90 ? "text-emerald-600 font-bold"
+                    : m.eficiencia_pct >= 70 ? "text-amber-600 font-bold" : "text-rose-600 font-bold";
                 const desColor = m.desviacion_horas <= 0 ? "text-emerald-600" : "text-rose-600";
-                html += `
-                    <tr class="hover:bg-slate-50 transition">
-                        <td class="px-3 py-2 text-slate-600">${m.fecha}</td>
-                        <td class="px-3 py-2">
-                            <span class="inline-flex items-center gap-1">
-                                <span class="w-2 h-2 rounded-full" style="background-color:${color}"></span>
-                                ${m.tarea_principal}
-                            </span>
-                        </td>
-                        <td class="px-3 py-2 text-right font-medium">${m.unidades.toLocaleString()}</td>
-                        <td class="px-3 py-2 text-right text-violet-600">${m.horas_teoricas}h</td>
-                        <td class="px-3 py-2 text-right text-blue-600">${m.horas_reales}h</td>
-                        <td class="px-3 py-2 text-right ${efColor}">${m.eficiencia_pct !== null ? m.eficiencia_pct + "%" : "—"}</td>
-                        <td class="px-3 py-2 text-right text-slate-600">${m.uds_hora_real !== null ? m.uds_hora_real : "—"}</td>
-                        <td class="px-3 py-2 text-right ${desColor}">${m.desviacion_horas > 0 ? "+" : ""}${m.desviacion_horas}h</td>
-                    </tr>`;
+                html += `<tr class="hover:bg-slate-50 transition">
+                    <td class="px-3 py-2 text-slate-600">${m.fecha}</td>
+                    <td class="px-3 py-2">
+                        <span class="inline-flex items-center gap-1">
+                            <span class="w-2 h-2 rounded-full" style="background-color:${color}"></span>
+                            ${m.tarea_principal}
+                        </span>
+                    </td>
+                    <td class="px-3 py-2 text-right font-medium">${m.unidades.toLocaleString()}</td>
+                    <td class="px-3 py-2 text-right text-violet-600">${m.horas_teoricas}h</td>
+                    <td class="px-3 py-2 text-right text-blue-600">${m.horas_reales}h</td>
+                    <td class="px-3 py-2 text-right ${efColor}">${m.eficiencia_pct !== null ? m.eficiencia_pct+"%" : "—"}</td>
+                    <td class="px-3 py-2 text-right text-slate-600">${m.uds_hora_real !== null ? m.uds_hora_real : "—"}</td>
+                    <td class="px-3 py-2 text-right ${desColor}">${m.desviacion_horas > 0 ? "+" : ""}${m.desviacion_horas}h</td>
+                </tr>`;
             });
-
             html += `</tbody></table></div>`;
             tablaContenedor.innerHTML = html;
-
         } catch(e) {
-            document.getElementById("vol-tabla").innerHTML = `<p class="text-sm text-rose-500 text-center py-8">Error cargando métricas.</p>`;
+            document.getElementById("vol-tabla").innerHTML =
+                `<p class="text-sm text-rose-500 text-center py-8">Error cargando métricas.</p>`;
         }
     }
+    // ==================== RENDIMIENTO ====================
+    async function cargarAlertasRendimiento() {
+        try {
+            const resp = await fetch(`${API}/rendimiento/alertas/`);
+            const data = await resp.json();
+            const contenedor = document.getElementById("rend-alertas");
+            if (!contenedor) return;
+            if (data.alertas.length === 0) {
+                contenedor.innerHTML = `<div class="flex items-center gap-3 p-3 rounded-xl border border-emerald-300 bg-emerald-50 text-emerald-800 text-sm">
+                    ✅ No hay alertas activas en este momento.
+                </div>`;
+                return;
+            }
+            const colorMap = { danger: "bg-rose-50 border-rose-300 text-rose-800", warning: "bg-amber-50 border-amber-300 text-amber-800" };
+            const iconMap = { danger: "🔴", warning: "🟡" };
+            contenedor.innerHTML = data.alertas.map(a => `
+                <div class="flex items-center gap-3 p-3 rounded-xl border text-sm fade-in ${colorMap[a.nivel] || colorMap.warning}">
+                    <span class="text-lg">${iconMap[a.nivel] || "⚠️"}</span>
+                    <div>
+                        <span class="font-medium">${a.nombre || ""}</span>
+                        <span class="ml-1">${a.mensaje}</span>
+                    </div>
+                </div>`).join("");
+        } catch {}
+    }
+
+    async function cargarRendimiento() {
+        const desde = document.getElementById("rend-desde").value;
+        const hasta = document.getElementById("rend-hasta").value;
+        const usuario = document.getElementById("rend-usuario").value;
+        if (!desde || !hasta) { toast("Selecciona un rango de fechas.", "warning"); return; }
+
+        try {
+            let urlRanking = `${API}/rendimiento/ranking/?desde=${desde}&hasta=${hasta}`;
+            let urlEficiencia = `${API}/rendimiento/eficiencia-diaria/?desde=${desde}&hasta=${hasta}`;
+            let urlTendencia = `${API}/rendimiento/tendencia-semanal/`;
+            let urlObjetivo = `${API}/rendimiento/objetivo-vs-real/?desde=${desde}&hasta=${hasta}`;
+            if (usuario) {
+                urlEficiencia += `&usuario=${usuario}`;
+                urlTendencia += `?usuario=${usuario}`;
+            }
+
+            const [respRanking, respEficiencia, respTendencia, respObjetivo, respAlertas] = await Promise.all([
+                fetch(urlRanking),
+                fetch(urlEficiencia),
+                fetch(urlTendencia),
+                fetch(urlObjetivo),
+                fetch(`${API}/rendimiento/alertas/`)
+            ]);
+
+            const ranking = await respRanking.json();
+            const eficiencia = await respEficiencia.json();
+            const tendencia = await respTendencia.json();
+            const objetivo = await respObjetivo.json();
+            const alertasData = await respAlertas.json();
+
+            // Alertas
+            const contAlertas = document.getElementById("rend-alertas");
+            if (alertasData.alertas.length === 0) {
+                contAlertas.innerHTML = `<div class="flex items-center gap-3 p-3 rounded-xl border border-emerald-300 bg-emerald-50 text-emerald-800 text-sm">
+                    ✅ No hay alertas activas.
+                </div>`;
+            } else {
+                const colorMap = { danger: "bg-rose-50 border-rose-300 text-rose-800", warning: "bg-amber-50 border-amber-300 text-amber-800" };
+                const iconMap = { danger: "🔴", warning: "🟡" };
+                contAlertas.innerHTML = alertasData.alertas.map(a => `
+                    <div class="flex items-center gap-3 p-3 rounded-xl border text-sm fade-in ${colorMap[a.nivel] || colorMap.warning}">
+                        <span class="text-lg">${iconMap[a.nivel] || "⚠️"}</span>
+                        <div>
+                            <span class="font-medium">${a.nombre || ""}</span>
+                            <span class="ml-1">${a.mensaje}</span>
+                        </div>
+                    </div>`).join("");
+            }
+
+            // Ranking
+            const contRanking = document.getElementById("rend-ranking");
+            if (ranking.length === 0) {
+                contRanking.innerHTML = `<p class="text-sm text-slate-400 text-center py-4 italic">No hay datos de operarios.</p>`;
+            } else {
+                contRanking.innerHTML = ranking.map((u, idx) => {
+                    const medallaClass = idx === 0 ? "ranking-1" : idx === 1 ? "ranking-2" : idx === 2 ? "ranking-3" : "bg-slate-50";
+                    const medalla = idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : `${idx+1}º`;
+                    const colorConsistencia = u.consistencia_pct >= 80 ? "text-emerald-600"
+                        : u.consistencia_pct >= 50 ? "text-amber-600" : "text-rose-600";
+                    const colorJornada = u.pct_jornada_periodo >= 80 ? "text-emerald-600"
+                        : u.pct_jornada_periodo >= 50 ? "text-amber-600" : "text-rose-600";
+                    return `
+                        <div class="p-4 rounded-xl fade-in ${medallaClass}">
+                            <div class="flex justify-between items-center mb-2">
+                                <div class="flex items-center gap-3">
+                                    <span class="text-2xl">${medalla}</span>
+                                    <div>
+                                        <div class="font-bold text-slate-800">${u.nombre}</div>
+                                        <div class="text-xs text-slate-500">${u.usuario}</div>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-xl font-bold text-blue-600">${u.total_horas}h</div>
+                                    <div class="text-xs text-slate-500">${u.dias_activo}/${u.dias_laborables} días</div>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-3 gap-2 text-center text-xs mt-2">
+                                <div class="bg-white bg-opacity-60 rounded-lg p-2">
+                                    <div class="font-bold ${colorJornada}">${u.pct_jornada_periodo}%</div>
+                                    <div class="text-slate-500">% jornada</div>
+                                </div>
+                                <div class="bg-white bg-opacity-60 rounded-lg p-2">
+                                    <div class="font-bold ${colorConsistencia}">${u.consistencia_pct}%</div>
+                                    <div class="text-slate-500">Consistencia</div>
+                                </div>
+                                <div class="bg-white bg-opacity-60 rounded-lg p-2">
+                                    <div class="font-bold text-slate-700">${Math.floor(u.media_minutos_dia/60)}h${u.media_minutos_dia%60>0?Math.round(u.media_minutos_dia%60)+"m":""}</div>
+                                    <div class="text-slate-500">Media/día</div>
+                                </div>
+                            </div>
+                        </div>`;
+                }).join("");
+            }
+
+            // Objetivo vs Real
+            const contObj = document.getElementById("rend-objetivo-vs-real");
+            if (objetivo.length === 0) {
+                contObj.innerHTML = `<p class="text-sm text-slate-400 text-center py-4 italic">No hay datos de objetivos.</p>`;
+            } else {
+                contObj.innerHTML = objetivo.map(o => {
+                    const color = (coloresTarea[o.tarea] || coloresTarea["Otro"]).bg;
+                    const pct = o.pct_objetivo || 0;
+                    const colorPct = pct >= 90 ? "text-emerald-600" : pct >= 70 ? "text-amber-600" : "text-rose-600";
+                    const barColor = pct >= 90 ? "bg-emerald-500" : pct >= 70 ? "bg-amber-400" : "bg-rose-500";
+                    return `
+                        <div class="p-4 bg-slate-50 rounded-xl fade-in">
+                            <div class="flex justify-between items-center mb-2">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-3 h-3 rounded-full" style="background-color:${color}"></div>
+                                    <span class="font-semibold text-slate-700">${o.tarea}</span>
+                                </div>
+                                <div class="flex gap-4 text-sm">
+                                    <span class="text-slate-500">Real: <b class="text-blue-600">${o.horas_reales}h</b></span>
+                                    <span class="text-slate-500">Obj: <b class="text-violet-600">${o.horas_objetivo || "—"}h</b></span>
+                                    <span class="font-bold ${colorPct}">${pct ? pct+"%" : "—"}</span>
+                                </div>
+                            </div>
+                            <div class="w-full bg-slate-200 rounded-full h-2">
+                                <div class="${barColor} h-2 rounded-full transition-all duration-700"
+                                    style="width:${Math.min(pct,100)}%"></div>
+                            </div>
+                        </div>`;
+                }).join("");
+            }
+
+            // Gráfico eficiencia diaria
+            if (rendGraficoEficiencia) rendGraficoEficiencia.destroy();
+            rendGraficoEficiencia = new Chart(
+                document.getElementById("rend-grafico-eficiencia").getContext("2d"), {
+                type: "line",
+                data: {
+                    labels: eficiencia.map(e => e.fecha),
+                    datasets: [{
+                        label: "% Jornada",
+                        data: eficiencia.map(e => e.pct_jornada),
+                        borderColor: "#3b82f6",
+                        backgroundColor: "rgba(59,130,246,0.1)",
+                        borderWidth: 2, fill: true, tension: 0.4,
+                        pointBackgroundColor: eficiencia.map(e =>
+                            e.pct_jornada >= 90 ? "#10b981" : e.pct_jornada >= 60 ? "#3b82f6" : "#f59e0b")
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, max: 110,
+                            ticks: { callback: v => v + "%" },
+                            title: { display: true, text: "% Jornada" } }
+                    }
+                }
+            });
+
+            // Gráfico objetivo vs real
+            if (rendGraficoObjetivo) rendGraficoObjetivo.destroy();
+            rendGraficoObjetivo = new Chart(
+                document.getElementById("rend-grafico-objetivo").getContext("2d"), {
+                type: "bar",
+                data: {
+                    labels: objetivo.map(o => o.tarea),
+                    datasets: [
+                        {
+                            label: "Horas reales",
+                            data: objetivo.map(o => o.horas_reales),
+                            backgroundColor: objetivo.map(o => (coloresTarea[o.tarea]||coloresTarea["Otro"]).bg),
+                            borderRadius: 6
+                        },
+                        {
+                            label: "Horas objetivo",
+                            data: objetivo.map(o => o.horas_objetivo || 0),
+                            backgroundColor: "rgba(139,92,246,0.3)",
+                            borderColor: "#8b5cf6",
+                            borderWidth: 2,
+                            borderRadius: 6,
+                            type: "bar"
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { position: "bottom" } },
+                    scales: { y: { beginAtZero: true, title: { display: true, text: "Horas" } } }
+                }
+            });
+
+            // Gráfico tendencia semanal
+            if (rendGraficoTendencia) rendGraficoTendencia.destroy();
+            rendGraficoTendencia = new Chart(
+                document.getElementById("rend-grafico-tendencia").getContext("2d"), {
+                type: "line",
+                data: {
+                    labels: tendencia.map(t => t.semana),
+                    datasets: [
+                        {
+                            label: "Total horas",
+                            data: tendencia.map(t => t.total_horas),
+                            borderColor: "#3b82f6",
+                            backgroundColor: "rgba(59,130,246,0.1)",
+                            borderWidth: 2, fill: true, tension: 0.4,
+                            pointBackgroundColor: "#3b82f6"
+                        },
+                        {
+                            label: "Media horas/día",
+                            data: tendencia.map(t => t.media_horas_dia),
+                            borderColor: "#10b981",
+                            backgroundColor: "rgba(16,185,129,0.1)",
+                            borderWidth: 2, fill: false, tension: 0.4,
+                            pointBackgroundColor: "#10b981"
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { position: "bottom" } },
+                    scales: { y: { beginAtZero: true, title: { display: true, text: "Horas" } } }
+                }
+            });
+
+        } catch(e) { console.error("Error rendimiento:", e); toast("Error cargando rendimiento.", "error"); }
+    }
+
     // ==================== EDICIÓN ====================
     async function cargarEdicion() {
         const usuario = document.getElementById("edicion-usuario").value;
         const tarea = document.getElementById("edicion-tarea").value;
+        const subtarea = document.getElementById("edicion-subtarea").value;
+        const proyecto = document.getElementById("edicion-proyecto").value.trim();
         const desde = document.getElementById("edicion-fecha-desde").value;
         const hasta = document.getElementById("edicion-fecha-hasta").value;
         try {
-            let url = `${API}/registros/`;
-            if (desde && hasta) {
-                url = `${API}/registros/rango/?desde=${desde}&hasta=${hasta}`;
-                if (usuario) url += `&usuario=${usuario}`;
-            }
+            let url = desde && hasta
+                ? `${API}/registros/rango/?desde=${desde}&hasta=${hasta}${usuario ? "&usuario="+usuario : ""}`
+                : `${API}/registros/`;
             const resp = await fetch(url);
             let registros = await resp.json();
             if (!desde && usuario) registros = registros.filter(r => r.usuario === usuario);
             if (tarea) registros = registros.filter(r => r.tarea_principal === tarea);
+            if (subtarea) registros = registros.filter(r => r.subtarea === subtarea);
+            if (proyecto) registros = registros.filter(r => r.proyecto && r.proyecto.toLowerCase().includes(proyecto.toLowerCase()));
             registros.sort((a, b) => b.fecha.localeCompare(a.fecha));
 
             const contenedor = document.getElementById("edicion-resultado");
@@ -1689,19 +2700,19 @@
                 <table class="w-full text-sm">
                     <thead class="bg-slate-50 text-slate-600">
                         <tr>
-                            <th class="px-3 py-2 text-left rounded-tl-lg">Usuario</th>
+                            <th class="px-3 py-2 text-left">Usuario</th>
                             <th class="px-3 py-2 text-left">Fecha</th>
                             <th class="px-3 py-2 text-left">Tarea</th>
                             <th class="px-3 py-2 text-left">Tiempo</th>
-                            <th class="px-3 py-2 text-left rounded-tr-lg">Acciones</th>
+                            <th class="px-3 py-2 text-left">Proyecto</th>
+                            <th class="px-3 py-2 text-left">Acciones</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">`;
-
             registros.forEach(r => {
-                const color = (coloresTarea[r.tarea_principal] || coloresTarea["Otro"]).bg;
-                const h = Math.floor(r.tiempo_minutos / 60);
-                const m = r.tiempo_minutos % 60;
+                const color = (coloresTarea[r.tarea_principal]||coloresTarea["Otro"]).bg;
+                const h = Math.floor(r.tiempo_minutos/60);
+                const m = r.tiempo_minutos%60;
                 html += `
                     <tr class="hover:bg-slate-50 transition">
                         <td class="px-3 py-2 font-medium text-slate-700">${r.usuario}</td>
@@ -1712,12 +2723,19 @@
                                 ${r.tarea_principal} - ${r.subtarea}
                             </span>
                         </td>
-                        <td class="px-3 py-2 text-slate-600">${h > 0 ? h + "h " : ""}${m}min</td>
+                        <td class="px-3 py-2 text-slate-600">${h > 0 ? h+"h " : ""}${m}min</td>
+                        <td class="px-3 py-2 text-slate-500 text-xs">${r.proyecto || "—"}</td>
                         <td class="px-3 py-2">
                             <div class="flex gap-2">
-                                <button onclick='abrirModal(${JSON.stringify(r)})' class="text-blue-600 hover:text-blue-800 text-xs font-medium px-2 py-1 bg-blue-50 rounded-lg">✏️</button>
-                                <button onclick='duplicarRegistro(${r.id})' class="text-violet-600 hover:text-violet-800 text-xs font-medium px-2 py-1 bg-violet-50 rounded-lg">📋</button>
-                                <button onclick="eliminarRegistro(${r.id})" class="text-rose-600 hover:text-rose-800 text-xs font-medium px-2 py-1 bg-rose-50 rounded-lg">🗑️</button>
+                                <button onclick='abrirModal(${JSON.stringify(r)})'
+                                    class="text-blue-600 hover:text-blue-800 text-xs font-medium px-2 py-1 bg-blue-50 rounded-lg"
+                                    aria-label="Editar registro">✏️</button>
+                                <button onclick='duplicarRegistro(${r.id})'
+                                    class="text-violet-600 hover:text-violet-800 text-xs font-medium px-2 py-1 bg-violet-50 rounded-lg"
+                                    aria-label="Duplicar registro">📋</button>
+                                <button onclick="eliminarRegistro(${r.id})"
+                                    class="text-rose-600 hover:text-rose-800 text-xs font-medium px-2 py-1 bg-rose-50 rounded-lg"
+                                    aria-label="Eliminar registro">🗑️</button>
                             </div>
                         </td>
                     </tr>`;
@@ -1725,7 +2743,8 @@
             html += `</tbody></table></div>`;
             contenedor.innerHTML = html;
         } catch(e) {
-            document.getElementById("edicion-resultado").innerHTML = `<p class="text-sm text-rose-500 text-center py-8">Error cargando registros.</p>`;
+            document.getElementById("edicion-resultado").innerHTML =
+                `<p class="text-sm text-rose-500 text-center py-8">Error cargando registros.</p>`;
         }
     }
 
@@ -1739,6 +2758,7 @@
         document.getElementById("edit-proyecto").value = registro.proyecto || "";
         document.getElementById("edit-comentarios").value = registro.comentarios || "";
         document.getElementById("modal-edicion").style.display = "flex";
+        setTimeout(() => document.getElementById("edit-usuario").focus(), 100);
     }
 
     function cerrarModal() {
@@ -1762,34 +2782,37 @@
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(datos)
             });
-            if (resp.ok) { cerrarModal(); cargarEdicion(); }
-            else {
+            if (resp.ok) {
+                cerrarModal();
+                cargarEdicion();
+                toast("Registro actualizado correctamente.", "success");
+            } else {
                 const err = await resp.json();
-                alert(err.detail || "Error al guardar los cambios.");
+                toast(err.detail || "Error al guardar los cambios.", "error");
             }
-        } catch { alert("Error de conexión."); }
+        } catch { toast("Error de conexión.", "error"); }
     }
 
     async function duplicarRegistro(id) {
         try {
             const resp = await fetch(`${API}/registros/${id}/duplicar`, { method: "POST" });
             if (resp.ok) {
-                alert("Registro duplicado correctamente.");
                 cargarEdicion();
+                toast("Registro duplicado correctamente.", "success");
             } else {
                 const err = await resp.json();
-                alert(err.detail || "Error al duplicar.");
+                toast(err.detail || "Error al duplicar.", "error");
             }
-        } catch { alert("Error de conexión."); }
+        } catch { toast("Error de conexión.", "error"); }
     }
 
     async function eliminarRegistro(id) {
         if (!confirm("¿Seguro que quieres eliminar este registro?")) return;
         try {
             const resp = await fetch(`${API}/registros/${id}`, { method: "DELETE" });
-            if (resp.ok) cargarEdicion();
-            else alert("Error al eliminar.");
-        } catch { alert("Error de conexión."); }
+            if (resp.ok) { cargarEdicion(); toast("Registro eliminado.", "success"); }
+            else toast("Error al eliminar.", "error");
+        } catch { toast("Error de conexión.", "error"); }
     }
 
     // ==================== USUARIOS GESTIÓN ====================
@@ -1802,15 +2825,16 @@
                 contenedor.innerHTML = `<p class="text-sm text-slate-400 text-center py-4 italic">No hay usuarios.</p>`;
                 return;
             }
-            let html = `<div class="space-y-2">`;
-            usuarios.forEach(u => {
+            contenedor.innerHTML = `<div class="space-y-2">` + usuarios.map(u => {
                 const rolColor = u.rol === "supervisor"
-                    ? "bg-violet-100 text-violet-700"
-                    : "bg-blue-100 text-blue-700";
-                html += `
-                    <div class="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
+                    ? "bg-violet-100 text-violet-700" : "bg-blue-100 text-blue-700";
+                return `
+                    <div class="flex items-center justify-between p-3 bg-slate-50 rounded-xl fade-in">
                         <div class="flex items-center gap-3">
-                            <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold" style="background-color:${avatarColores[u.id % avatarColores.length]}">${u.nombre.charAt(0)}</div>
+                            <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0"
+                                style="background-color:${avatarColores[u.id % avatarColores.length]}">
+                                ${u.nombre.charAt(0)}
+                            </div>
                             <div>
                                 <div class="font-medium text-slate-800 text-sm">${u.nombre}</div>
                                 <div class="text-xs text-slate-500">${u.codigo}</div>
@@ -1818,14 +2842,17 @@
                         </div>
                         <div class="flex items-center gap-2">
                             <span class="text-xs px-2 py-0.5 rounded-full font-medium ${rolColor}">${u.rol}</span>
-                            <button onclick="eliminarUsuario(${u.id})" class="text-rose-500 hover:text-rose-700 text-xs font-medium px-2 py-1 bg-rose-50 rounded-lg">Eliminar</button>
+                            <button onclick="eliminarUsuario(${u.id})"
+                                class="text-rose-500 hover:text-rose-700 text-xs font-medium px-2 py-1 bg-rose-50 rounded-lg"
+                                aria-label="Eliminar usuario ${u.nombre}">
+                                Eliminar
+                            </button>
                         </div>
                     </div>`;
-            });
-            html += `</div>`;
-            contenedor.innerHTML = html;
+            }).join("") + `</div>`;
         } catch {
-            document.getElementById("lista-usuarios").innerHTML = `<p class="text-sm text-rose-500 text-center py-4">Error cargando usuarios.</p>`;
+            document.getElementById("lista-usuarios").innerHTML =
+                `<p class="text-sm text-rose-500 text-center py-4">Error cargando usuarios.</p>`;
         }
     }
 
@@ -1848,14 +2875,12 @@
                 body: JSON.stringify({ nombre, codigo, pin, rol })
             });
             if (resp.ok) {
-                msg.textContent = "Usuario creado correctamente.";
-                msg.className = "mt-2 text-sm text-emerald-600";
-                msg.classList.remove("hidden");
+                toast("Usuario creado correctamente.", "success");
+                msg.classList.add("hidden");
                 document.getElementById("nuevo-nombre").value = "";
                 document.getElementById("nuevo-codigo").value = "";
                 document.getElementById("nuevo-pin").value = "";
                 cargarUsuariosGestion();
-                setTimeout(() => msg.classList.add("hidden"), 3000);
             } else {
                 const err = await resp.json();
                 msg.textContent = err.detail || "Error al crear usuario.";
@@ -1873,10 +2898,19 @@
         if (!confirm("¿Seguro que quieres eliminar este usuario?")) return;
         try {
             const resp = await fetch(`${API}/usuarios/${id}`, { method: "DELETE" });
-            if (resp.ok) cargarUsuariosGestion();
-            else alert("Error al eliminar usuario.");
-        } catch { alert("Error de conexión."); }
+            if (resp.ok) { cargarUsuariosGestion(); toast("Usuario eliminado.", "success"); }
+            else toast("Error al eliminar usuario.", "error");
+        } catch { toast("Error de conexión.", "error"); }
     }
+
+    // ==================== ESCAPE MODALES ====================
+    document.addEventListener("keydown", function(e) {
+        if (e.key === "Escape") {
+            cerrarModal();
+            cerrarModalPlantilla();
+            cerrarModalExcel();
+        }
+    });
 
 </script>
 </body>
