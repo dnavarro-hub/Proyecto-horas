@@ -2902,49 +2902,39 @@ select.inp option { background: var(--bg-card); }
     body { background: #fff; color: #000; }
     .card { border: 1px solid #ccc; }
 }
-// ==================== GESTIÓN DE TEMA (CLARO / OSCURO) ====================
-function actualizarIconoTema() {
-    const icons = document.querySelectorAll('#theme-icon');
-    const isDark = document.documentElement.classList.contains('dark');
-    icons.forEach(icon => {
-        icon.textContent = isDark ? '🌙' : '☀️';
-    });
-}
-
-function toggleTema() {
+// ==================== GESTIÓN DE TEMA ====================
+document.addEventListener('DOMContentLoaded', () => {
+    const btn = document.getElementById('btn-theme-toggle');
+    const icon = document.getElementById('theme-icon');
     const html = document.documentElement;
-    const isDark = html.classList.contains('dark');
-    
-    if (isDark) {
-        html.classList.remove('dark');
-        localStorage.setItem('tema', 'light');
-    } else {
-        html.classList.add('dark');
-        localStorage.setItem('tema', 'dark');
-    }
-    actualizarIconoTema();
-}
 
-function inicializarTema() {
+    // 1. Cargar tema guardado al iniciar
     const temaGuardado = localStorage.getItem('tema');
-    const html = document.documentElement;
-
     if (temaGuardado === 'light') {
         html.classList.remove('dark');
+        if (icon) icon.textContent = '☀️';
     } else {
         html.classList.add('dark');
+        if (icon) icon.textContent = '🌙';
     }
-    actualizarIconoTema();
-}
 
-// Evento global robusto para capturar clics en el botón de tema
-document.addEventListener('click', (e) => {
-    if (e.target.closest('.theme-toggle-btn')) {
-        toggleTema();
+    // 2. Evento de clic en el botón
+    if (btn) {
+        btn.addEventListener('click', () => {
+            const isDark = html.classList.contains('dark');
+            
+            if (isDark) {
+                html.classList.remove('dark');
+                localStorage.setItem('tema', 'light');
+                if (icon) icon.textContent = '☀️';
+            } else {
+                html.classList.add('dark');
+                localStorage.setItem('tema', 'dark');
+                if (icon) icon.textContent = '🌙';
+            }
+        });
     }
-};
-}
-}
+});
 </style>
 </body>
 </html>
