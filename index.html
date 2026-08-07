@@ -2892,7 +2892,7 @@ select.inp option { background: var(--bg-card); }
     body { background: #fff; color: #000; }
     .card { border: 1px solid #ccc; }
 }
-    // ==================== GESTIÓN DE TEMA (CLARO / OSCURO) ====================
+   // ==================== GESTIÓN DE TEMA (CLARO / OSCURO) ====================
 function toggleTema() {
     const html = document.documentElement;
     const isDark = html.classList.contains('dark');
@@ -2900,27 +2900,32 @@ function toggleTema() {
     if (isDark) {
         html.classList.remove('dark');
         localStorage.setItem('tema', 'light');
-        document.getElementById('theme-icon').textContent = '☀️';
     } else {
         html.classList.add('dark');
         localStorage.setItem('tema', 'dark');
-        document.getElementById('theme-icon').textContent = '🌙';
     }
+    actualizarIconoTema();
+}
+
+function actualizarIconoTema() {
+    const icon = document.getElementById('theme-icon');
+    if (!icon) return;
+    const isDark = document.documentElement.classList.contains('dark');
+    icon.textContent = isDark ? '🌙' : '☀️';
 }
 
 function inicializarTema() {
     const temaGuardado = localStorage.getItem('tema');
     const html = document.documentElement;
-    const icon = document.getElementById('theme-icon');
 
-    // Por defecto inicia en modo oscuro si no hay nada guardado
+    // Por defecto oscuro si no hay nada guardado
     if (temaGuardado === 'light') {
         html.classList.remove('dark');
-        if (icon) icon.textContent = '☀️';
     } else {
         html.classList.add('dark');
-        if (icon) icon.textContent = '🌙';
     }
+    actualizarIconoTema();
+}
 }
 </style>
 </body>
