@@ -199,10 +199,9 @@
             <button onclick="logout()" class="btn btn-ghost text-xs py-1 px-2">Salir</button>
         </div>
     </header>
-<button onclick="toggleTema()" class="p-2 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 hover:opacity-80 transition" title="Cambiar modo claro/oscuro">
+<button class="theme-toggle-btn p-2 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 hover:opacity-80 transition" title="Cambiar modo claro/oscuro">
     <span id="theme-icon">🌙</span>
 </button>
-
     <!-- TABS NAVEGACIÓN -->
     <nav class="bg-slate-800 border-b border-slate-700 px-4 py-2 overflow-x-auto">
         <div class="flex gap-1 min-w-max" id="tabs-nav">
@@ -2892,7 +2891,15 @@ select.inp option { background: var(--bg-card); }
     body { background: #fff; color: #000; }
     .card { border: 1px solid #ccc; }
 }
-   // ==================== GESTIÓN DE TEMA (CLARO / OSCURO) ====================
+// ==================== GESTIÓN DE TEMA (CLARO / OSCURO) ====================
+function actualizarIconoTema() {
+    const icons = document.querySelectorAll('#theme-icon');
+    const isDark = document.documentElement.classList.contains('dark');
+    icons.forEach(icon => {
+        icon.textContent = isDark ? '🌙' : '☀️';
+    });
+}
+
 function toggleTema() {
     const html = document.documentElement;
     const isDark = html.classList.contains('dark');
@@ -2907,24 +2914,24 @@ function toggleTema() {
     actualizarIconoTema();
 }
 
-function actualizarIconoTema() {
-    const icon = document.getElementById('theme-icon');
-    if (!icon) return;
-    const isDark = document.documentElement.classList.contains('dark');
-    icon.textContent = isDark ? '🌙' : '☀️';
-}
-
 function inicializarTema() {
     const temaGuardado = localStorage.getItem('tema');
     const html = document.documentElement;
 
-    // Por defecto oscuro si no hay nada guardado
     if (temaGuardado === 'light') {
         html.classList.remove('dark');
     } else {
         html.classList.add('dark');
     }
     actualizarIconoTema();
+}
+
+// Evento global robusto para capturar clics en el botón de tema
+document.addEventListener('click', (e) => {
+    if (e.target.closest('.theme-toggle-btn')) {
+        toggleTema();
+    }
+};
 }
 }
 </style>
