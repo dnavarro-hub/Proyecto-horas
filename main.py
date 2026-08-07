@@ -32,17 +32,6 @@ engine = create_engine(DATABASE_URL, pool_pre_ping=True)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
-# --- SOLUCIÓN TEMPORAL PARA RECREAR LA TABLA OBJETIVOS ---
-from sqlalchemy import text
-try:
-    with engine.connect() as connection:
-        connection.execute(text("DROP TABLE IF EXISTS objetivos CASCADE;"))
-        connection.commit()
-    print("Tabla 'objetivos' eliminada correctamente para actualizar columnas.")
-except Exception as e:
-    print(f"Nota al limpiar tabla: {e}")
-# ---------------------------------------------------------
-
 # ==================== MODELOS ====================
 
 class RegistroDB(Base):
