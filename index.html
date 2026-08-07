@@ -199,6 +199,9 @@
             <button onclick="logout()" class="btn btn-ghost text-xs py-1 px-2">Salir</button>
         </div>
     </header>
+<button onclick="toggleTema()" class="p-2 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 hover:opacity-80 transition" title="Cambiar modo claro/oscuro">
+    <span id="theme-icon">🌙</span>
+</button>
 
     <!-- TABS NAVEGACIÓN -->
     <nav class="bg-slate-800 border-b border-slate-700 px-4 py-2 overflow-x-auto">
@@ -2500,6 +2503,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const regTarea = document.getElementById('reg-tarea');
     if (regTarea) regTarea.addEventListener('change', actualizarSubtareas);
 });
+    document.addEventListener('DOMContentLoaded', () => {
+    inicializarTema(); // <-- Añade esta línea aquí
+    // ... el resto de tus inicializaciones existentes (cargar datos, verificar login, etc.)
+});
 </script>
 <style>
 /* ==================== RESET & BASE ==================== */
@@ -2884,6 +2891,36 @@ select.inp option { background: var(--bg-card); }
     .main-content { margin-left: 0; }
     body { background: #fff; color: #000; }
     .card { border: 1px solid #ccc; }
+}
+    // ==================== GESTIÓN DE TEMA (CLARO / OSCURO) ====================
+function toggleTema() {
+    const html = document.documentElement;
+    const isDark = html.classList.contains('dark');
+    
+    if (isDark) {
+        html.classList.remove('dark');
+        localStorage.setItem('tema', 'light');
+        document.getElementById('theme-icon').textContent = '☀️';
+    } else {
+        html.classList.add('dark');
+        localStorage.setItem('tema', 'dark');
+        document.getElementById('theme-icon').textContent = '🌙';
+    }
+}
+
+function inicializarTema() {
+    const temaGuardado = localStorage.getItem('tema');
+    const html = document.documentElement;
+    const icon = document.getElementById('theme-icon');
+
+    // Por defecto inicia en modo oscuro si no hay nada guardado
+    if (temaGuardado === 'light') {
+        html.classList.remove('dark');
+        if (icon) icon.textContent = '☀️';
+    } else {
+        html.classList.add('dark');
+        if (icon) icon.textContent = '🌙';
+    }
 }
 </style>
 </body>
