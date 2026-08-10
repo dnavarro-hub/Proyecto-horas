@@ -1277,19 +1277,79 @@
             <div class="bg-slate-50 rounded-xl p-5 mb-6">
                 <h3 class="text-sm font-bold text-slate-700 mb-4">
                     Registro manual
-                </h3>
                 <div class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-3">
-                    <div>
-                        <label class="block text-xs font-medium
-                                      text-slate-600 mb-1">
-                            Fecha:
-                        </label>
-                        <input type="date" id="uni-fecha"
-                            class="w-full px-3 py-2 border rounded-lg
-                                   text-sm focus:outline-none
-                                   focus:ring-2 focus:ring-blue-500"/>
-                    </div>
-                    <div>
+    <div>
+        <label class="block text-xs font-medium
+                      text-slate-600 mb-1">
+            Fecha:
+        </label>
+        <input type="date" id="uni-fecha"
+            class="w-full px-3 py-2 border rounded-lg
+                   text-sm focus:outline-none
+                   focus:ring-2 focus:ring-blue-500"/>
+    </div>
+    <div>
+        <label class="block text-xs font-medium
+                      text-slate-600 mb-1">
+            Usuario:
+        </label>
+        <select id="uni-usuario"
+            class="w-full px-3 py-2 border rounded-lg
+                   text-sm focus:outline-none
+                   focus:ring-2 focus:ring-blue-500
+                   bg-white">
+            <option value="">-- Selecciona --</option>
+        </select>
+    </div>
+    <div>
+        <label class="block text-xs font-medium
+                      text-slate-600 mb-1">
+            Tarea principal:
+        </label>
+        <select id="uni-tarea"
+            onchange="actualizarSubtareasUnidades()"
+            class="w-full px-3 py-2 border rounded-lg
+                   text-sm focus:outline-none
+                   focus:ring-2 focus:ring-blue-500
+                   bg-white">
+        </select>
+    </div>
+    <div>
+        <label class="block text-xs font-medium
+                      text-slate-600 mb-1">
+            Subtarea:
+        </label>
+        <select id="uni-subtarea"
+            class="w-full px-3 py-2 border rounded-lg
+                   text-sm focus:outline-none
+                   focus:ring-2 focus:ring-blue-500
+                   bg-white">
+            <option value="">-- Selecciona tarea primero --</option>
+        </select>
+    </div>
+    <div>
+        <label class="block text-xs font-medium
+                      text-slate-600 mb-1">
+            Unidades:
+        </label>
+        <input type="number" id="uni-unidades"
+            min="0" placeholder="Ej: 250"
+            class="w-full px-3 py-2 border rounded-lg
+                   text-sm focus:outline-none
+                   focus:ring-2 focus:ring-blue-500"/>
+    </div>
+    <div>
+        <label class="block text-xs font-medium
+                      text-slate-600 mb-1">
+            Comentarios (opcional):
+        </label>
+        <input type="text" id="uni-comentarios"
+            placeholder="Opcional..."
+            class="w-full px-3 py-2 border rounded-lg
+                   text-sm focus:outline-none
+                   focus:ring-2 focus:ring-blue-500"/>
+    </div>
+</div>
                         <label class="block text-xs font-medium
                                       text-slate-600 mb-1">
                             Usuario:
@@ -1383,13 +1443,12 @@
                 </div>
                 <div id="uni-import-msg" class="mt-2 text-sm hidden"></div>
             </div>
-
             <!-- Consultar rendimiento unidades -->
             <div class="border-t pt-6">
                 <h3 class="text-sm font-bold text-slate-700 mb-4">
                     Consultar rendimiento
                 </h3>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
                     <div>
                         <label class="block text-xs font-medium
                                       text-slate-600 mb-1">Desde:</label>
@@ -1409,6 +1468,121 @@
                     <div>
                         <label class="block text-xs font-medium
                                       text-slate-600 mb-1">
+                            Usuario:
+                        </label>
+                        <select id="uni-filtro-usuario"
+                            class="w-full px-3 py-2 border rounded-lg
+                                   text-sm focus:outline-none
+                                   focus:ring-2 focus:ring-blue-500
+                                   bg-white">
+                            <option value="">-- Todos --</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium
+                                      text-slate-600 mb-1">
+                            Tarea:
+                        </label>
+                        <select id="uni-filtro-tarea"
+                            onchange="actualizarSubtareasUnidadesFiltro()"
+                            class="w-full px-3 py-2 border rounded-lg
+                                   text-sm focus:outline-none
+                                   focus:ring-2 focus:ring-blue-500
+                                   bg-white">
+                            <option value="">-- Todas --</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium
+                                      text-slate-600 mb-1">
+                            Subtarea:
+                        </label>
+                        <select id="uni-filtro-subtarea"
+                            class="w-full px-3 py-2 border rounded-lg
+                                   text-sm focus:outline-none
+                                   focus:ring-2 focus:ring-blue-500
+                                   bg-white">
+                            <option value="">-- Todas --</option>
+                        </select>
+                    </div>
+                </div>      
+                            Usuario:
+                        </label>
+                        <select id="uni-filtro-usuario"
+                            class="w-full px-3 py-2 border rounded-lg
+                                   text-sm focus:outline-none
+                                   focus:ring-2 focus:ring-blue-500
+                                   bg-white">
+                            <option value="">-- Todos --</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium
+                                      text-slate-600 mb-1">
+                            Tarea:
+                        </label>
+                        <select id="uni-filtro-tarea"
+                            onchange="actualizarSubtareasUnidadesFiltro()"
+                            class="w-full px-3 py-2 border rounded-lg
+                                   text-sm focus:outline-none
+                                   focus:ring-2 focus:ring-blue-500
+                                   bg-white">
+                            <option value="">-- Todas --</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium
+                                      text-slate-600 mb-1">
+                            Subtarea:
+                        </label>
+                        <select id="uni-filtro-subtarea"
+                            class="w-full px-3 py-2 border rounded-lg
+                                   text-sm focus:outline-none
+                                   focus:ring-2 focus:ring-blue-500
+                                   bg-white">
+                            <option value="">-- Todas --</option>
+                        </select>
+                    </div>
+                </div>
+
+                            Usuario:
+                        </label>
+                        <select id="uni-filtro-usuario"
+                            class="w-full px-3 py-2 border rounded-lg
+                                   text-sm focus:outline-none
+                                   focus:ring-2 focus:ring-blue-500
+                                   bg-white">
+                            <option value="">-- Todos --</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium
+                                      text-slate-600 mb-1">
+                            Tarea:
+                        </label>
+                        <select id="uni-filtro-tarea"
+                            onchange="actualizarSubtareasUnidadesFiltro()"
+                            class="w-full px-3 py-2 border rounded-lg
+                                   text-sm focus:outline-none
+                                   focus:ring-2 focus:ring-blue-500
+                                   bg-white">
+                            <option value="">-- Todas --</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium
+                                      text-slate-600 mb-1">
+                            Subtarea:
+                        </label>
+                        <select id="uni-filtro-subtarea"
+                            class="w-full px-3 py-2 border rounded-lg
+                                   text-sm focus:outline-none
+                                   focus:ring-2 focus:ring-blue-500
+                                   bg-white">
+                            <option value="">-- Todas --</option>
+                        </select>
+                    </div>
+                </div>
                             Usuario:
                         </label>
                         <select id="uni-filtro-usuario"
@@ -2633,12 +2807,15 @@ function mostrarPestana(nombre) {
 </script>
 <script>
 // ==================== SUBTAREAS DINÁMICAS ====================
+// Función base — siempre filtra por tarea
 async function obtenerSubtareas(tareaNombre) {
     if (!tareaNombre) return [];
     try {
         const tarea = tareasCache.find(t => t.nombre === tareaNombre);
         if (!tarea) return [];
-        const resp = await fetch(`${API}/subtareas/?tarea_id=${tarea.id}`);
+        const resp = await fetch(
+            `${API}/subtareas/?tarea_id=${tarea.id}`
+        );
         if (!resp.ok) return [];
         return await resp.json();
     } catch {
@@ -2646,52 +2823,62 @@ async function obtenerSubtareas(tareaNombre) {
     }
 }
 
+// Selector de subtarea en pestaña Registro
 async function actualizarSubtareas() {
-    const principal = document.getElementById('tarea_principal')?.value;
-    const sel       = document.getElementById('subtarea');
+    const principal =
+        document.getElementById('tarea_principal')?.value;
+    const sel = document.getElementById('subtarea');
     if (!sel) return;
-    sel.innerHTML   = '';
-    const subs      = await obtenerSubtareas(principal);
-    subs.forEach(s => {
-        const o       = document.createElement('option');
-        o.value       = s.nombre;
-        o.textContent = s.nombre;
-        sel.appendChild(o);
-    });
+    sel.innerHTML = '<option value="">Cargando...</option>';
+    const subs = await obtenerSubtareas(principal);
+    sel.innerHTML = '';
     if (subs.length === 0) {
         const o       = document.createElement('option');
         o.value       = 'General';
         o.textContent = 'General';
         sel.appendChild(o);
+    } else {
+        subs.forEach(s => {
+            const o       = document.createElement('option');
+            o.value       = s.nombre;
+            o.textContent = s.nombre;
+            sel.appendChild(o);
+        });
     }
 }
 
+// Selector de subtarea en modal edición
 async function actualizarSubtareasEdicion(subtareaSeleccionada = '') {
-    const principal = document.getElementById('edit-tarea-principal')?.value;
-    const sel       = document.getElementById('edit-subtarea');
+    const principal =
+        document.getElementById('edit-tarea-principal')?.value;
+    const sel = document.getElementById('edit-subtarea');
     if (!sel || !principal) return;
-    sel.innerHTML   = '';
-    const subs      = await obtenerSubtareas(principal);
-    subs.forEach(s => {
-        const o       = document.createElement('option');
-        o.value       = s.nombre;
-        o.textContent = s.nombre;
-        if (s.nombre === subtareaSeleccionada) o.selected = true;
-        sel.appendChild(o);
-    });
+    sel.innerHTML = '<option value="">Cargando...</option>';
+    const subs = await obtenerSubtareas(principal);
+    sel.innerHTML = '';
     if (subs.length === 0) {
         const o       = document.createElement('option');
         o.value       = 'General';
         o.textContent = 'General';
         sel.appendChild(o);
+    } else {
+        subs.forEach(s => {
+            const o       = document.createElement('option');
+            o.value       = s.nombre;
+            o.textContent = s.nombre;
+            if (s.nombre === subtareaSeleccionada) o.selected = true;
+            sel.appendChild(o);
+        });
     }
 }
 
+// Selector de subtarea en filtros de edición
 async function actualizarSubtareasEdicionFiltro() {
-    const principal = document.getElementById('edicion-tarea')?.value;
-    const sel       = document.getElementById('edicion-subtarea');
+    const principal =
+        document.getElementById('edicion-tarea')?.value;
+    const sel = document.getElementById('edicion-subtarea');
     if (!sel) return;
-    sel.innerHTML   = '<option value="">-- Todas --</option>';
+    sel.innerHTML = '<option value="">-- Todas --</option>';
     if (!principal) return;
     const subs = await obtenerSubtareas(principal);
     subs.forEach(s => {
@@ -2702,6 +2889,39 @@ async function actualizarSubtareasEdicionFiltro() {
     });
 }
 
+// Selector de subtarea en pestaña Unidades
+async function actualizarSubtareasUnidades() {
+    const principal =
+        document.getElementById('uni-tarea')?.value;
+    const sel = document.getElementById('uni-subtarea');
+    if (!sel) return;
+    sel.innerHTML = '<option value="">-- Selecciona --</option>';
+    if (!principal) return;
+    const subs = await obtenerSubtareas(principal);
+    subs.forEach(s => {
+        const o       = document.createElement('option');
+        o.value       = s.nombre;
+        o.textContent = s.nombre;
+        sel.appendChild(o);
+    });
+}
+
+// Selector de subtarea en filtros de Unidades
+async function actualizarSubtareasUnidadesFiltro() {
+    const principal =
+        document.getElementById('uni-filtro-tarea')?.value;
+    const sel = document.getElementById('uni-filtro-subtarea');
+    if (!sel) return;
+    sel.innerHTML = '<option value="">-- Todas --</option>';
+    if (!principal) return;
+    const subs = await obtenerSubtareas(principal);
+    subs.forEach(s => {
+        const o       = document.createElement('option');
+        o.value       = s.nombre;
+        o.textContent = s.nombre;
+        sel.appendChild(o);
+    });
+}
 // ==================== OPCIONES TIEMPO ====================
 const OPCIONES_TIEMPO = [
     { val: 15,  label: '15 min'  },
@@ -4133,18 +4353,55 @@ async function cargarProgreso() {
 }
 </script>
 <script>
-// ==================== OBJETIVOS ====================
 async function cargarObjetivos() {
     try {
+        // Aseguramos que tareasCache esté cargado
+        if (tareasCache.length === 0) {
+            await cargarTareasDesdeAPI();
+        }
+
         const resp      = await fetch(`${API}/objetivos/`);
         const objetivos = await resp.json();
         objetivosCache  = {};
         objetivos.forEach(o => {
             objetivosCache[o.tarea_principal] = o;
         });
+
         const contenedor = document.getElementById('objetivos-lista');
         if (!contenedor) return;
-        contenedor.innerHTML = objetivos.map(o => {
+
+        // Si no hay objetivos creados aún, crear uno por cada tarea
+        const tareasConObjetivo = objetivos.map(o => o.tarea_principal);
+        const tareasSinObjetivo = tareasCache.filter(
+            t => !tareasConObjetivo.includes(t.nombre)
+        );
+
+        // Crear objetivos por defecto para tareas que no tienen
+        for (const tarea of tareasSinObjetivo) {
+            await fetch(`${API}/objetivos/${tarea.nombre}`, {
+                method  : 'PUT',
+                headers : { 'Content-Type': 'application/json' },
+                body    : JSON.stringify({
+                    tarea_principal : tarea.nombre,
+                    uds_hora        : 100.0,
+                    horas_jornada   : 8.0
+                })
+            });
+            objetivosCache[tarea.nombre] = {
+                tarea_principal : tarea.nombre,
+                uds_hora        : 100.0,
+                horas_jornada   : 8.0
+            };
+        }
+
+        // Volver a cargar objetivos actualizados
+        const respActualizada = await fetch(`${API}/objetivos/`);
+        const objetivosActualizados = await respActualizada.json();
+        objetivosActualizados.forEach(o => {
+            objetivosCache[o.tarea_principal] = o;
+        });
+
+        contenedor.innerHTML = objetivosActualizados.map(o => {
             const color = obtenerColorTarea(o.tarea_principal).bg;
             return `
             <div class="bg-white rounded-xl p-3
@@ -4184,58 +4441,11 @@ async function cargarObjetivos() {
                 </div>
             </div>`;
         }).join('');
-    } catch {}
-}
 
-async function guardarObjetivos() {
-    let errores = 0;
-    for (const tarea of tareasCache.map(t => t.nombre)) {
-        const udsEl   =
-            document.getElementById(`obj-uds-${tarea}`);
-        const horasEl =
-            document.getElementById(`obj-horas-${tarea}`);
-        if (!udsEl || !horasEl) continue;
-        const uds   = parseFloat(udsEl.value);
-        const horas = parseFloat(horasEl.value);
-        if (!uds || !horas) continue;
-        try {
-            const resp = await fetch(`${API}/objetivos/${tarea}`, {
-                method  : 'PUT',
-                headers : { 'Content-Type': 'application/json' },
-                body    : JSON.stringify({
-                    tarea_principal : tarea,
-                    uds_hora        : uds,
-                    horas_jornada   : horas
-                })
-            });
-            if (resp.ok) {
-                if (objetivosCache[tarea]) {
-                    objetivosCache[tarea].uds_hora      = uds;
-                    objetivosCache[tarea].horas_jornada = horas;
-                }
-            } else errores++;
-        } catch { errores++; }
-    }
-    if (errores === 0) {
-        toast('Objetivos guardados correctamente.', 'success');
-    } else {
-        toast(`${errores} objetivo(s) no se pudieron guardar.`, 'error');
+    } catch(e) {
+        console.error('Error cargando objetivos:', e);
     }
 }
-
-function calcularHorasTeoricas() {
-    const tarea    = document.getElementById('vol-tarea')?.value;
-    const unidades = parseInt(
-        document.getElementById('vol-unidades')?.value
-    );
-    const obj = objetivosCache[tarea];
-    if (obj && unidades > 0) {
-        const horasTeo =
-            Math.round((unidades / obj.uds_hora) * 100) / 100;
-        document.getElementById('vol-horas').value = horasTeo;
-    }
-}
-
 // ==================== VOLUMEN ====================
 async function crearVolumen() {
     const fecha           = document.getElementById('vol-fecha').value;
@@ -5158,13 +5368,14 @@ async function crearUnidad() {
     const fecha           = document.getElementById('uni-fecha').value;
     const usuario         = document.getElementById('uni-usuario').value;
     const tarea_principal = document.getElementById('uni-tarea').value;
+    const subtarea        = document.getElementById('uni-subtarea').value;
     const unidades        =
         parseInt(document.getElementById('uni-unidades').value);
     const comentarios     =
         document.getElementById('uni-comentarios').value || null;
     const msg = document.getElementById('uni-mensaje');
 
-    if (!fecha || !usuario || !tarea_principal || !unidades) {
+    if (!fecha || !usuario || !tarea_principal || !subtarea || !unidades) {
         msg.textContent = 'Rellena todos los campos obligatorios.';
         msg.className   = 'mt-2 text-sm text-rose-600';
         msg.classList.remove('hidden');
@@ -5175,7 +5386,10 @@ async function crearUnidad() {
             method  : 'POST',
             headers : { 'Content-Type': 'application/json' },
             body    : JSON.stringify({
-                fecha, usuario, tarea_principal,
+                fecha,
+                usuario,
+                tarea_principal,
+                subtarea,
                 unidades,
                 creado_por  : usuarioSesion.codigo,
                 comentarios
@@ -5185,10 +5399,13 @@ async function crearUnidad() {
             toast('Unidades registradas correctamente.', 'success');
             document.getElementById('uni-unidades').value    = '';
             document.getElementById('uni-comentarios').value = '';
+            document.getElementById('uni-subtarea').innerHTML =
+                '<option value="">-- Selecciona tarea primero --</option>';
             msg.classList.add('hidden');
         } else {
             const err = await resp.json();
-            msg.textContent = err.detail || 'Error al registrar unidades.';
+            msg.textContent =
+                err.detail || 'Error al registrar unidades.';
             msg.className   = 'mt-2 text-sm text-rose-600';
             msg.classList.remove('hidden');
         }
@@ -5198,7 +5415,6 @@ async function crearUnidad() {
         msg.classList.remove('hidden');
     }
 }
-
 async function descargarPlantillaUnidades() {
     window.open(`${API}/unidades/plantilla-excel/`, '_blank');
     toast('Descargando plantilla Excel...', 'info');
@@ -5250,29 +5466,31 @@ async function importarUnidades() {
         msg.className   = 'mt-2 text-sm text-rose-600';
     }
 }
-
 async function cargarRendimientoUnidades() {
-    const desde   = document.getElementById('uni-desde').value;
-    const hasta   = document.getElementById('uni-hasta').value;
-    const usuario = document.getElementById('uni-filtro-usuario').value;
-    const tarea   = document.getElementById('uni-filtro-tarea').value;
-    const msg     = document.getElementById('uni-msg-consulta');
+    const desde    = document.getElementById('uni-desde').value;
+    const hasta    = document.getElementById('uni-hasta').value;
+    const usuario  = document.getElementById('uni-filtro-usuario').value;
+    const tarea    = document.getElementById('uni-filtro-tarea').value;
+    const subtarea = document.getElementById('uni-filtro-subtarea')?.value;
 
     if (!desde || !hasta) {
         toast('Selecciona un rango de fechas.', 'warning');
         return;
     }
-
     try {
         let url =
             `${API}/unidades/rendimiento/?desde=${desde}&hasta=${hasta}`;
-        if (usuario) url += `&usuario=${usuario}`;
-        if (tarea)   url += `&tarea=${tarea}`;
+        if (usuario)  url += `&usuario=${usuario}`;
+        if (tarea)    url += `&tarea=${tarea}`;
 
         const resp = await fetch(url);
         if (!resp.ok) throw new Error();
-        const data = await resp.json();
+        let data = await resp.json();
 
+        // Filtrar por subtarea en cliente si está seleccionada
+        if (subtarea) {
+            data = data.filter(d => d.subtarea === subtarea);
+        }
         const tablaContenedor = document.getElementById('uni-tabla');
 
         if (data.length === 0) {
