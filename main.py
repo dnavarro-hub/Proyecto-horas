@@ -12,16 +12,21 @@ from openpyxl.styles import PatternFill, Font, Alignment
 import io
 import os
 from datetime import datetime
+import hashlib
 
 # ==================== BASE DE DATOS ====================
 DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql://localhost/registros")
-# Render usa "postgres://" en lugar de "postgresql://", corregimos:
 if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
 engine = create_engine(DATABASE_URL, pool_pre_ping=True)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
+
+# ==================== UTILIDADES ====================
+
+def hashear_pin(pin: str) -> str:
+    return hashlib.sha256(pin.encode()).hexdigest()
 
 # ==================== MODELOS ====================
 
@@ -83,26 +88,100 @@ class ObjetivoDB(Base):
     horas_jornada   = Column(Float, default=8.0)
     updated_at      = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-Base.metadata.create_all(bind=engine)
+class ConfiguracionDB(Base):
+    __tablename__ = "configuracion"
+    id             = Column(Integer, primary_key=True, index=True)
+    clave          = Column(String, unique=True, index=True)
+    valor          = Column(String)
+    descripcion    = Column(String, nullable=True)
+    updated_at     = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-# Crear supervisor por defecto si no existe
+class TareaDB(Base):
+    __tablename__ = "tareas"
+    id              = Column(Integer, primary_key=True, index=True)
+    nombre          = Column(String, unique=True, index=True)
+    color           = Column(String, default="#94a3b8")
+    activa          = Column(Boolean, default=True)
+    created_at      = Column(DateTime, default=datetime.utcnow)
+
+class SubtareaDB(Base):
+    __tablename__ = "subtareas"
+    id              = Column(Integer, primary_key=True, index=True)
+    tarea_nombre    = Column(String, index=True)
+    nombre          = Column(String)
+    activa          = Column(Boolean, default=True)
+    created_at      = Column(DateTime, default=datetime.utcnow)
+
+Base.metadata.create_all(bind=engine)
+# ==================== INICIALIZACIÓN DE DATOS ====================
+
+TAREAS_DEFAULT = [
+    {"nombre": "Picking",   "color": "#3b82f6"},
+    {"nombre": "Packing",   "color": "#8b5cf6"},
+    {"nombre": "Inbound",   "color": "#f59e0b"},
+    {"nombre": "Shipping",  "color": "#10b981"},
+    {"nombre": "Ecommerce", "color": "#ef4444"},
+]
+
+SUBTAREAS_DEFAULT = {
+    "Picking":   ["Picking Balda", "Picking Palletl", "Picking Percha", "Revisión de Picking","Picking Kardex","Picking Recogepedidos","Picking Obsoleto","Inventario","Reposiciones","Traspasos","Recepción  Kardex","Formacion","Compactar","Incidencias","Varios IT","Varios Trigo","Lanzar pedidos","Reuniones","Otros"],
+    "Packing":   ["Mecado Piscina", "Mercado Contenedor", "Tienda Etiquetado", "Wholesale", "Tienda RFID", "Tienda Empleado y Otros", "Materiales", "Runner","Formacion","incidencias","Reuniones","Otros","Admin"],
+    "Inbound":   ["Muelle", "Rec Pallet", "Rec balda", "Rec Percha", "Rec Zapatos", "Rec Trigo", "Devoluciones", "Compactar","Recepción Kardex", "Materiales","Formacion","incidencias","Reuniones","Otros","Admin"],
+    "Shipping":  ["COURIER (UPS, DHL EXPRESS, FEDEX) preparacion carga (ETIQUETAR Y REUBICAR)", "Courier Carga (escane+carga)", "FW preparación carga", "FW carga", "FW carga", "SERWELL carga", "Devoluciones""Formacion","incidencias","Reuniones","Inventario","Otros"],
+    "Ecommerce": ["Empaquetado", "Runner", "Store RQ Tiendo","Store RQ Tiendas","Calidad Devo","Calidad OneStock","Calidad Gestion","Calidad Otro","Formacion","Actividad","Limpieza","Otros","Reuniones",],
+}
+
 with SessionLocal() as session:
+    # Supervisor por defecto
     if not session.query(UsuarioDB).filter(UsuarioDB.rol == "supervisor").first():
-        session.add(UsuarioDB(codigo="ADMIN", nombre="Administrador", pin="1234", rol="supervisor"))
+        session.add(UsuarioDB(
+            codigo="ADMIN",
+            nombre="Administrador",
+            pin=hashear_pin("1234"),
+            rol="supervisor"
+        ))
         session.commit()
+
     # Objetivos por defecto
-    tareas_default = ["Picking", "Packing", "Inbound", "Shipping", "Ecommerce"]
-    for t in tareas_default:
-        if not session.query(ObjetivoDB).filter(ObjetivoDB.tarea_principal == t).first():
-            session.add(ObjetivoDB(tarea_principal=t, uds_hora=100.0, horas_jornada=8.0))
+    for t in TAREAS_DEFAULT:
+        if not session.query(ObjetivoDB).filter(ObjetivoDB.tarea_principal == t["nombre"]).first():
+            session.add(ObjetivoDB(tarea_principal=t["nombre"], uds_hora=100.0, horas_jornada=8.0))
+
+    # Tareas por defecto
+    for t in TAREAS_DEFAULT:
+        if not session.query(TareaDB).filter(TareaDB.nombre == t["nombre"]).first():
+            session.add(TareaDB(nombre=t["nombre"], color=t["color"], activa=True))
+
+    # Subtareas por defecto
+    for tarea_nombre, subtareas in SUBTAREAS_DEFAULT.items():
+        for sub in subtareas:
+            if not session.query(SubtareaDB).filter(
+                SubtareaDB.tarea_nombre == tarea_nombre,
+                SubtareaDB.nombre == sub
+            ).first():
+                session.add(SubtareaDB(tarea_nombre=tarea_nombre, nombre=sub, activa=True))
+
+    # Configuración por defecto
+    if not session.query(ConfiguracionDB).filter(ConfiguracionDB.clave == "minutos_jornada").first():
+        session.add(ConfiguracionDB(
+            clave="minutos_jornada",
+            valor="480",
+            descripcion="Minutos máximos por jornada laboral"
+        ))
+
     session.commit()
 
 # ==================== APP ====================
-app = FastAPI(title="API Registro de Tareas", version="9.0.0")
+
+app = FastAPI(title="API Registro de Tareas", version="10.0.0")
+
+ALLOWED_ORIGINS = [
+    "https://proyecto-horas.onrender.com",
+]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -182,6 +261,36 @@ class ObjetivoRespuesta(ObjetivoCreate):
     class Config:
         from_attributes = True
 
+class TareaCreate(BaseModel):
+    nombre: str
+    color: str = "#94a3b8"
+    activa: bool = True
+
+class TareaRespuesta(TareaCreate):
+    id: int
+    class Config:
+        from_attributes = True
+
+class SubtareaCreate(BaseModel):
+    tarea_nombre: str
+    nombre: str
+    activa: bool = True
+
+class SubtareaRespuesta(SubtareaCreate):
+    id: int
+    class Config:
+        from_attributes = True
+
+class ConfiguracionUpdate(BaseModel):
+    valor: str
+
+class ConfiguracionRespuesta(BaseModel):
+    clave: str
+    valor: str
+    descripcion: Optional[str] = None
+    class Config:
+        from_attributes = True
+
 def get_db():
     db = SessionLocal()
     try:
@@ -189,6 +298,9 @@ def get_db():
     finally:
         db.close()
 
+def get_minutos_jornada(db: Session) -> int:
+    config = db.query(ConfiguracionDB).filter(ConfiguracionDB.clave == "minutos_jornada").first()
+    return int(config.valor) if config else 480
 # ==================== RUTAS GENERALES ====================
 
 @app.get("/")
@@ -202,9 +314,10 @@ def leer_index():
 
 @app.post("/login/")
 def login(datos: LoginRequest, db: Session = Depends(get_db)):
+    pin_hasheado = hashear_pin(datos.pin)
     usuario = db.query(UsuarioDB).filter(
         UsuarioDB.codigo == datos.codigo,
-        UsuarioDB.pin == datos.pin
+        UsuarioDB.pin == pin_hasheado
     ).first()
     if not usuario:
         raise HTTPException(status_code=401, detail="Código o PIN incorrectos")
@@ -216,7 +329,9 @@ def login(datos: LoginRequest, db: Session = Depends(get_db)):
 def crear_usuario(usuario: UsuarioCreate, db: Session = Depends(get_db)):
     if db.query(UsuarioDB).filter(UsuarioDB.codigo == usuario.codigo).first():
         raise HTTPException(status_code=400, detail="Ya existe un usuario con ese código")
-    nuevo = UsuarioDB(**usuario.dict())
+    datos = usuario.dict()
+    datos["pin"] = hashear_pin(datos["pin"])
+    nuevo = UsuarioDB(**datos)
     db.add(nuevo)
     db.commit()
     db.refresh(nuevo)
@@ -234,16 +349,118 @@ def eliminar_usuario(id: int, db: Session = Depends(get_db)):
     db.delete(usuario)
     db.commit()
 
+# ==================== TAREAS ====================
+
+@app.get("/tareas/", response_model=List[TareaRespuesta])
+def obtener_tareas(solo_activas: bool = True, db: Session = Depends(get_db)):
+    query = db.query(TareaDB)
+    if solo_activas:
+        query = query.filter(TareaDB.activa == True)
+    return query.order_by(TareaDB.nombre).all()
+
+@app.post("/tareas/", response_model=TareaRespuesta, status_code=201)
+def crear_tarea(tarea: TareaCreate, db: Session = Depends(get_db)):
+    if db.query(TareaDB).filter(TareaDB.nombre == tarea.nombre).first():
+        raise HTTPException(status_code=400, detail="Ya existe una tarea con ese nombre")
+    nueva = TareaDB(**tarea.dict())
+    db.add(nueva)
+    db.commit()
+    db.refresh(nueva)
+    return nueva
+
+@app.put("/tareas/{id}", response_model=TareaRespuesta)
+def editar_tarea(id: int, tarea: TareaCreate, db: Session = Depends(get_db)):
+    db_tarea = db.query(TareaDB).filter(TareaDB.id == id).first()
+    if not db_tarea:
+        raise HTTPException(status_code=404, detail="Tarea no encontrada")
+    for k, v in tarea.dict().items():
+        setattr(db_tarea, k, v)
+    db.commit()
+    db.refresh(db_tarea)
+    return db_tarea
+
+@app.delete("/tareas/{id}", status_code=204)
+def eliminar_tarea(id: int, db: Session = Depends(get_db)):
+    db_tarea = db.query(TareaDB).filter(TareaDB.id == id).first()
+    if not db_tarea:
+        raise HTTPException(status_code=404, detail="Tarea no encontrada")
+    db.delete(db_tarea)
+    db.commit()
+
+# ==================== SUBTAREAS ====================
+
+@app.get("/subtareas/", response_model=List[SubtareaRespuesta])
+def obtener_subtareas(tarea_nombre: Optional[str] = None, solo_activas: bool = True, db: Session = Depends(get_db)):
+    query = db.query(SubtareaDB)
+    if tarea_nombre:
+        query = query.filter(SubtareaDB.tarea_nombre == tarea_nombre)
+    if solo_activas:
+        query = query.filter(SubtareaDB.activa == True)
+    return query.order_by(SubtareaDB.tarea_nombre, SubtareaDB.nombre).all()
+
+@app.post("/subtareas/", response_model=SubtareaRespuesta, status_code=201)
+def crear_subtarea(subtarea: SubtareaCreate, db: Session = Depends(get_db)):
+    if db.query(SubtareaDB).filter(
+        SubtareaDB.tarea_nombre == subtarea.tarea_nombre,
+        SubtareaDB.nombre == subtarea.nombre
+    ).first():
+        raise HTTPException(status_code=400, detail="Ya existe esa subtarea para esta tarea")
+    nueva = SubtareaDB(**subtarea.dict())
+    db.add(nueva)
+    db.commit()
+    db.refresh(nueva)
+    return nueva
+
+@app.put("/subtareas/{id}", response_model=SubtareaRespuesta)
+def editar_subtarea(id: int, subtarea: SubtareaCreate, db: Session = Depends(get_db)):
+    db_sub = db.query(SubtareaDB).filter(SubtareaDB.id == id).first()
+    if not db_sub:
+        raise HTTPException(status_code=404, detail="Subtarea no encontrada")
+    for k, v in subtarea.dict().items():
+        setattr(db_sub, k, v)
+    db.commit()
+    db.refresh(db_sub)
+    return db_sub
+
+@app.delete("/subtareas/{id}", status_code=204)
+def eliminar_subtarea(id: int, db: Session = Depends(get_db)):
+    db_sub = db.query(SubtareaDB).filter(SubtareaDB.id == id).first()
+    if not db_sub:
+        raise HTTPException(status_code=404, detail="Subtarea no encontrada")
+    db.delete(db_sub)
+    db.commit()
+
+# ==================== CONFIGURACIÓN ====================
+
+@app.get("/configuracion/", response_model=List[ConfiguracionRespuesta])
+def obtener_configuracion(db: Session = Depends(get_db)):
+    return db.query(ConfiguracionDB).all()
+
+@app.put("/configuracion/{clave}", response_model=ConfiguracionRespuesta)
+def actualizar_configuracion(clave: str, datos: ConfiguracionUpdate, db: Session = Depends(get_db)):
+    config = db.query(ConfiguracionDB).filter(ConfiguracionDB.clave == clave).first()
+    if not config:
+        raise HTTPException(status_code=404, detail="Configuración no encontrada")
+    config.valor = datos.valor
+    config.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(config)
+    return config
 # ==================== REGISTROS ====================
 
 @app.post("/registros/", response_model=RegistroTareaRespuesta, status_code=201)
 def crear_registro(registro: RegistroTarea, db: Session = Depends(get_db)):
-    total = sum(r.tiempo_minutos for r in db.query(RegistroDB).filter(
+    minutos_jornada = get_minutos_jornada(db)
+    total = db.query(RegistroDB).filter(
         RegistroDB.usuario == registro.usuario,
         RegistroDB.fecha == registro.fecha
-    ).with_entities(RegistroDB.tiempo_minutos).all())
-    if total + registro.tiempo_minutos > 480:
-        raise HTTPException(status_code=400, detail=f"No se pueden superar 8 horas. Minutos ya registrados: {total}")
+    ).with_entities(RegistroDB.tiempo_minutos).all()
+    total_mins = sum(r.tiempo_minutos for r in total)
+    if total_mins + registro.tiempo_minutos > minutos_jornada:
+        raise HTTPException(
+            status_code=400,
+            detail=f"No se pueden superar {minutos_jornada} minutos. Minutos ya registrados: {total_mins}"
+        )
     nuevo = RegistroDB(**registro.dict())
     db.add(nuevo)
     db.commit()
@@ -252,22 +469,40 @@ def crear_registro(registro: RegistroTarea, db: Session = Depends(get_db)):
 
 @app.get("/registros/", response_model=List[RegistroTareaRespuesta])
 def obtener_registros(db: Session = Depends(get_db)):
-    return db.query(RegistroDB).all()
+    return db.query(RegistroDB).order_by(RegistroDB.fecha.desc()).all()
 
 @app.get("/registros/rango/", response_model=List[RegistroTareaRespuesta])
-def obtener_registros_rango(desde: date, hasta: date, usuario: Optional[str] = None, db: Session = Depends(get_db)):
-    query = db.query(RegistroDB).filter(RegistroDB.fecha >= desde, RegistroDB.fecha <= hasta)
+def obtener_registros_rango(
+    desde: date,
+    hasta: date,
+    usuario: Optional[str] = None,
+    tarea: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    query = db.query(RegistroDB).filter(
+        RegistroDB.fecha >= desde,
+        RegistroDB.fecha <= hasta
+    )
     if usuario:
         query = query.filter(RegistroDB.usuario == usuario)
+    if tarea:
+        query = query.filter(RegistroDB.tarea_principal == tarea)
     return query.order_by(RegistroDB.fecha.desc()).all()
 
 @app.get("/registros/resumen-semanal/")
-def resumen_semanal(usuario: Optional[str] = None, fecha_ref: Optional[date] = None, db: Session = Depends(get_db)):
+def resumen_semanal(
+    usuario: Optional[str] = None,
+    fecha_ref: Optional[date] = None,
+    db: Session = Depends(get_db)
+):
     if not fecha_ref:
         fecha_ref = date.today()
     inicio = fecha_ref - timedelta(days=fecha_ref.weekday())
     fin = inicio + timedelta(days=6)
-    query = db.query(RegistroDB).filter(RegistroDB.fecha >= inicio, RegistroDB.fecha <= fin)
+    query = db.query(RegistroDB).filter(
+        RegistroDB.fecha >= inicio,
+        RegistroDB.fecha <= fin
+    )
     if usuario:
         query = query.filter(RegistroDB.usuario == usuario)
     registros = query.all()
@@ -277,17 +512,36 @@ def resumen_semanal(usuario: Optional[str] = None, fecha_ref: Optional[date] = N
         if dia not in resumen:
             resumen[dia] = {"total_minutos": 0, "tareas": {}}
         resumen[dia]["total_minutos"] += r.tiempo_minutos
-        resumen[dia]["tareas"][r.tarea_principal] = resumen[dia]["tareas"].get(r.tarea_principal, 0) + r.tiempo_minutos
-    return {"inicio": str(inicio), "fin": str(fin), "dias": resumen, "total_minutos": sum(r.tiempo_minutos for r in registros)}
+        resumen[dia]["tareas"][r.tarea_principal] = (
+            resumen[dia]["tareas"].get(r.tarea_principal, 0) + r.tiempo_minutos
+        )
+    return {
+        "inicio": str(inicio),
+        "fin": str(fin),
+        "dias": resumen,
+        "total_minutos": sum(r.tiempo_minutos for r in registros)
+    }
 
 @app.get("/registros/resumen-mensual/")
-def resumen_mensual(usuario: Optional[str] = None, anyo: Optional[int] = None, mes: Optional[int] = None, db: Session = Depends(get_db)):
+def resumen_mensual(
+    usuario: Optional[str] = None,
+    anyo: Optional[int] = None,
+    mes: Optional[int] = None,
+    db: Session = Depends(get_db)
+):
     hoy = date.today()
     anyo = anyo or hoy.year
     mes = mes or hoy.month
     inicio = date(anyo, mes, 1)
-    fin = date(anyo + 1, 1, 1) - timedelta(days=1) if mes == 12 else date(anyo, mes + 1, 1) - timedelta(days=1)
-    query = db.query(RegistroDB).filter(RegistroDB.fecha >= inicio, RegistroDB.fecha <= fin)
+    fin = (
+        date(anyo + 1, 1, 1) - timedelta(days=1)
+        if mes == 12
+        else date(anyo, mes + 1, 1) - timedelta(days=1)
+    )
+    query = db.query(RegistroDB).filter(
+        RegistroDB.fecha >= inicio,
+        RegistroDB.fecha <= fin
+    )
     if usuario:
         query = query.filter(RegistroDB.usuario == usuario)
     registros = query.all()
@@ -295,27 +549,49 @@ def resumen_mensual(usuario: Optional[str] = None, anyo: Optional[int] = None, m
     for r in registros:
         por_usuario[r.usuario] = por_usuario.get(r.usuario, 0) + r.tiempo_minutos
         por_tarea[r.tarea_principal] = por_tarea.get(r.tarea_principal, 0) + r.tiempo_minutos
-    return {"anyo": anyo, "mes": mes, "total_minutos": sum(r.tiempo_minutos for r in registros), "total_registros": len(registros), "por_usuario": por_usuario, "por_tarea": por_tarea}
+    return {
+        "anyo": anyo,
+        "mes": mes,
+        "total_minutos": sum(r.tiempo_minutos for r in registros),
+        "total_registros": len(registros),
+        "por_usuario": por_usuario,
+        "por_tarea": por_tarea
+    }
 
 @app.get("/registros/{usuario}", response_model=List[RegistroTareaRespuesta])
-def obtener_registros_por_usuario(usuario: str, db: Session = Depends(get_db)):
-    resultado = db.query(RegistroDB).filter(RegistroDB.usuario.ilike(usuario)).all()
+def obtener_registros_por_usuario(
+    usuario: str,
+    desde: Optional[date] = None,
+    hasta: Optional[date] = None,
+    db: Session = Depends(get_db)
+):
+    query = db.query(RegistroDB).filter(RegistroDB.usuario.ilike(usuario))
+    if desde:
+        query = query.filter(RegistroDB.fecha >= desde)
+    if hasta:
+        query = query.filter(RegistroDB.fecha <= hasta)
+    resultado = query.order_by(RegistroDB.fecha.desc()).all()
     if not resultado:
         raise HTTPException(status_code=404, detail="No se encontraron registros")
     return resultado
 
 @app.put("/registros/{id}", response_model=RegistroTareaRespuesta)
 def editar_registro(id: int, registro: RegistroTarea, db: Session = Depends(get_db)):
+    minutos_jornada = get_minutos_jornada(db)
     db_reg = db.query(RegistroDB).filter(RegistroDB.id == id).first()
     if not db_reg:
         raise HTTPException(status_code=404, detail="Registro no encontrado")
-    total = sum(r.tiempo_minutos for r in db.query(RegistroDB).filter(
+    total = db.query(RegistroDB).filter(
         RegistroDB.usuario == registro.usuario,
         RegistroDB.fecha == registro.fecha,
         RegistroDB.id != id
-    ).with_entities(RegistroDB.tiempo_minutos).all())
-    if total + registro.tiempo_minutos > 480:
-        raise HTTPException(status_code=400, detail=f"No se pueden superar 8 horas. Minutos ya registrados: {total}")
+    ).with_entities(RegistroDB.tiempo_minutos).all()
+    total_mins = sum(r.tiempo_minutos for r in total)
+    if total_mins + registro.tiempo_minutos > minutos_jornada:
+        raise HTTPException(
+            status_code=400,
+            detail=f"No se pueden superar {minutos_jornada} minutos. Minutos ya registrados: {total_mins}"
+        )
     for k, v in registro.dict().items():
         setattr(db_reg, k, v)
     db_reg.updated_at = datetime.utcnow()
@@ -333,20 +609,28 @@ def eliminar_registro(id: int, db: Session = Depends(get_db)):
 
 @app.post("/registros/{id}/duplicar", response_model=RegistroTareaRespuesta, status_code=201)
 def duplicar_registro(id: int, nueva_fecha: Optional[date] = None, db: Session = Depends(get_db)):
+    minutos_jornada = get_minutos_jornada(db)
     original = db.query(RegistroDB).filter(RegistroDB.id == id).first()
     if not original:
         raise HTTPException(status_code=404, detail="Registro no encontrado")
     fecha_destino = nueva_fecha or original.fecha
-    total = sum(r.tiempo_minutos for r in db.query(RegistroDB).filter(
+    total = db.query(RegistroDB).filter(
         RegistroDB.usuario == original.usuario,
         RegistroDB.fecha == fecha_destino
-    ).with_entities(RegistroDB.tiempo_minutos).all())
-    if total + original.tiempo_minutos > 480:
-        raise HTTPException(status_code=400, detail=f"No se pueden superar 8 horas. Minutos ya registrados: {total}")
+    ).with_entities(RegistroDB.tiempo_minutos).all()
+    total_mins = sum(r.tiempo_minutos for r in total)
+    if total_mins + original.tiempo_minutos > minutos_jornada:
+        raise HTTPException(
+            status_code=400,
+            detail=f"No se pueden superar {minutos_jornada} minutos. Minutos ya registrados: {total_mins}"
+        )
     nuevo = RegistroDB(
-        usuario=original.usuario, fecha=fecha_destino,
-        tarea_principal=original.tarea_principal, subtarea=original.subtarea,
-        tiempo_minutos=original.tiempo_minutos, proyecto=original.proyecto,
+        usuario=original.usuario,
+        fecha=fecha_destino,
+        tarea_principal=original.tarea_principal,
+        subtarea=original.subtarea,
+        tiempo_minutos=original.tiempo_minutos,
+        proyecto=original.proyecto,
         comentarios=original.comentarios
     )
     db.add(nuevo)
@@ -382,11 +666,21 @@ def obtener_plantillas(usuario: Optional[str] = None, db: Session = Depends(get_
     for p in query.all():
         items = db.query(PlantillaItemDB).filter(PlantillaItemDB.plantilla_id == p.id).all()
         resultado.append({
-            "id": p.id, "nombre": p.nombre, "usuario": p.usuario,
+            "id": p.id,
+            "nombre": p.nombre,
+            "usuario": p.usuario,
             "created_at": str(p.created_at),
-            "items": [{"id": i.id, "tarea_principal": i.tarea_principal, "subtarea": i.subtarea,
-                       "tiempo_minutos": i.tiempo_minutos, "proyecto": i.proyecto, "comentarios": i.comentarios}
-                      for i in items]
+            "items": [
+                {
+                    "id": i.id,
+                    "tarea_principal": i.tarea_principal,
+                    "subtarea": i.subtarea,
+                    "tiempo_minutos": i.tiempo_minutos,
+                    "proyecto": i.proyecto,
+                    "comentarios": i.comentarios
+                }
+                for i in items
+            ]
         })
     return resultado
 
@@ -409,7 +703,11 @@ def obtener_objetivos(db: Session = Depends(get_db)):
 def actualizar_objetivo(tarea: str, objetivo: ObjetivoCreate, db: Session = Depends(get_db)):
     db_obj = db.query(ObjetivoDB).filter(ObjetivoDB.tarea_principal == tarea).first()
     if not db_obj:
-        db_obj = ObjetivoDB(tarea_principal=tarea, uds_hora=objetivo.uds_hora, horas_jornada=objetivo.horas_jornada)
+        db_obj = ObjetivoDB(
+            tarea_principal=tarea,
+            uds_hora=objetivo.uds_hora,
+            horas_jornada=objetivo.horas_jornada
+        )
         db.add(db_obj)
     else:
         db_obj.uds_hora = objetivo.uds_hora
@@ -419,7 +717,7 @@ def actualizar_objetivo(tarea: str, objetivo: ObjetivoCreate, db: Session = Depe
     db.refresh(db_obj)
     return db_obj
 
-# ==================== VOLUMEN & MÉTRICAS ====================
+# ==================== VOLÚMENES ====================
 
 @app.post("/volumenes/", response_model=VolumenRespuesta, status_code=201)
 def crear_volumen(volumen: VolumenCreate, db: Session = Depends(get_db)):
@@ -430,7 +728,12 @@ def crear_volumen(volumen: VolumenCreate, db: Session = Depends(get_db)):
     return nuevo
 
 @app.get("/volumenes/", response_model=List[VolumenRespuesta])
-def obtener_volumenes(desde: Optional[date] = None, hasta: Optional[date] = None, tarea: Optional[str] = None, db: Session = Depends(get_db)):
+def obtener_volumenes(
+    desde: Optional[date] = None,
+    hasta: Optional[date] = None,
+    tarea: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
     query = db.query(VolumenDB)
     if desde:
         query = query.filter(VolumenDB.fecha >= desde)
@@ -461,30 +764,47 @@ def eliminar_volumen(id: int, db: Session = Depends(get_db)):
     db.commit()
 
 @app.get("/volumenes/metricas/")
-def obtener_metricas(desde: Optional[date] = None, hasta: Optional[date] = None, db: Session = Depends(get_db)):
+def obtener_metricas(
+    desde: Optional[date] = None,
+    hasta: Optional[date] = None,
+    db: Session = Depends(get_db)
+):
     if not desde:
         desde = date.today() - timedelta(days=30)
     if not hasta:
         hasta = date.today()
-    volumenes = db.query(VolumenDB).filter(VolumenDB.fecha >= desde, VolumenDB.fecha <= hasta).all()
-    registros = db.query(RegistroDB).filter(RegistroDB.fecha >= desde, RegistroDB.fecha <= hasta).all()
+    volumenes = db.query(VolumenDB).filter(
+        VolumenDB.fecha >= desde,
+        VolumenDB.fecha <= hasta
+    ).all()
+    registros = db.query(RegistroDB).filter(
+        RegistroDB.fecha >= desde,
+        RegistroDB.fecha <= hasta
+    ).all()
     resultado = []
     for v in volumenes:
-        horas_reales = sum(r.tiempo_minutos for r in registros
-            if str(r.fecha) == str(v.fecha) and r.tarea_principal == v.tarea_principal) / 60
+        horas_reales = sum(
+            r.tiempo_minutos for r in registros
+            if str(r.fecha) == str(v.fecha) and r.tarea_principal == v.tarea_principal
+        ) / 60
         eficiencia = round((v.horas_teoricas / horas_reales) * 100, 1) if horas_reales > 0 else None
         uds_hora_real = round(v.unidades / horas_reales, 1) if horas_reales > 0 else None
         uds_hora_teorica = round(v.unidades / v.horas_teoricas, 1) if v.horas_teoricas > 0 else None
         resultado.append({
-            "id": v.id, "fecha": str(v.fecha), "tarea_principal": v.tarea_principal,
-            "unidades": v.unidades, "horas_teoricas": v.horas_teoricas,
-            "horas_reales": round(horas_reales, 2), "eficiencia_pct": eficiencia,
-            "uds_hora_real": uds_hora_real, "uds_hora_teorica": uds_hora_teorica,
+            "id": v.id,
+            "fecha": str(v.fecha),
+            "tarea_principal": v.tarea_principal,
+            "unidades": v.unidades,
+            "horas_teoricas": v.horas_teoricas,
+            "horas_reales": round(horas_reales, 2),
+            "eficiencia_pct": eficiencia,
+            "uds_hora_real": uds_hora_real,
+            "uds_hora_teorica": uds_hora_teorica,
             "desviacion_horas": round(horas_reales - v.horas_teoricas, 2),
-            "comentarios": v.comentarios, "creado_por": v.creado_por
+            "comentarios": v.comentarios,
+            "creado_por": v.creado_por
         })
     return sorted(resultado, key=lambda x: x["fecha"], reverse=True)
-
 # ==================== ESTADÍSTICAS ====================
 
 @app.get("/estadisticas/productividad/")
@@ -492,30 +812,44 @@ def productividad(fecha_ref: Optional[date] = None, db: Session = Depends(get_db
     if not fecha_ref:
         fecha_ref = date.today()
     ayer = fecha_ref - timedelta(days=1)
+    minutos_jornada = get_minutos_jornada(db)
     usuarios = db.query(UsuarioDB).filter(UsuarioDB.rol == "operario").all()
     resultado = []
     for u in usuarios:
-        hoy_mins = sum(r.tiempo_minutos for r in db.query(RegistroDB).filter(
-            RegistroDB.usuario == u.codigo, RegistroDB.fecha == fecha_ref
-        ).with_entities(RegistroDB.tiempo_minutos).all())
-        ayer_mins = sum(r.tiempo_minutos for r in db.query(RegistroDB).filter(
-            RegistroDB.usuario == u.codigo, RegistroDB.fecha == ayer
-        ).with_entities(RegistroDB.tiempo_minutos).all())
+        hoy_mins = db.query(RegistroDB).filter(
+            RegistroDB.usuario == u.codigo,
+            RegistroDB.fecha == fecha_ref
+        ).with_entities(RegistroDB.tiempo_minutos).all()
+        ayer_mins = db.query(RegistroDB).filter(
+            RegistroDB.usuario == u.codigo,
+            RegistroDB.fecha == ayer
+        ).with_entities(RegistroDB.tiempo_minutos).all()
+        total_hoy = sum(r.tiempo_minutos for r in hoy_mins)
+        total_ayer = sum(r.tiempo_minutos for r in ayer_mins)
         resultado.append({
-            "usuario": u.codigo, "nombre": u.nombre,
-            "minutos_hoy": hoy_mins, "minutos_ayer": ayer_mins,
-            "variacion_minutos": hoy_mins - ayer_mins,
-            "porcentaje_jornada": round((hoy_mins / 480) * 100, 1)
+            "usuario": u.codigo,
+            "nombre": u.nombre,
+            "minutos_hoy": total_hoy,
+            "minutos_ayer": total_ayer,
+            "variacion_minutos": total_hoy - total_ayer,
+            "porcentaje_jornada": round((total_hoy / minutos_jornada) * 100, 1)
         })
     return resultado
 
 @app.get("/estadisticas/top-tareas/")
-def top_tareas(fecha_desde: Optional[date] = None, fecha_hasta: Optional[date] = None, db: Session = Depends(get_db)):
+def top_tareas(
+    fecha_desde: Optional[date] = None,
+    fecha_hasta: Optional[date] = None,
+    db: Session = Depends(get_db)
+):
     if not fecha_desde:
         fecha_desde = date.today() - timedelta(days=30)
     if not fecha_hasta:
         fecha_hasta = date.today()
-    registros = db.query(RegistroDB).filter(RegistroDB.fecha >= fecha_desde, RegistroDB.fecha <= fecha_hasta).all()
+    registros = db.query(RegistroDB).filter(
+        RegistroDB.fecha >= fecha_desde,
+        RegistroDB.fecha <= fecha_hasta
+    ).all()
     por_tarea = {}
     for r in registros:
         clave = f"{r.tarea_principal} - {r.subtarea}"
@@ -523,9 +857,15 @@ def top_tareas(fecha_desde: Optional[date] = None, fecha_hasta: Optional[date] =
             por_tarea[clave] = {"count": 0, "minutos": 0}
         por_tarea[clave]["count"] += 1
         por_tarea[clave]["minutos"] += r.tiempo_minutos
-    return [{"tarea": k, "count": v["count"], "minutos_totales": v["minutos"],
-             "media_minutos": round(v["minutos"] / v["count"], 1)}
-            for k, v in sorted(por_tarea.items(), key=lambda x: x[1]["minutos"], reverse=True)[:10]]
+    return [
+        {
+            "tarea": k,
+            "count": v["count"],
+            "minutos_totales": v["minutos"],
+            "media_minutos": round(v["minutos"] / v["count"], 1)
+        }
+        for k, v in sorted(por_tarea.items(), key=lambda x: x[1]["minutos"], reverse=True)[:10]
+    ]
 
 @app.get("/estadisticas/media-por-tarea/")
 def media_por_tarea(usuario: Optional[str] = None, db: Session = Depends(get_db)):
@@ -538,9 +878,15 @@ def media_por_tarea(usuario: Optional[str] = None, db: Session = Depends(get_db)
             por_tarea[r.tarea_principal] = {"count": 0, "minutos": 0}
         por_tarea[r.tarea_principal]["count"] += 1
         por_tarea[r.tarea_principal]["minutos"] += r.tiempo_minutos
-    return [{"tarea": k, "count": v["count"],
-             "media_minutos": round(v["minutos"] / v["count"], 1),
-             "total_minutos": v["minutos"]} for k, v in por_tarea.items()]
+    return [
+        {
+            "tarea": k,
+            "count": v["count"],
+            "media_minutos": round(v["minutos"] / v["count"], 1),
+            "total_minutos": v["minutos"]
+        }
+        for k, v in por_tarea.items()
+    ]
 
 # ==================== RENDIMIENTO ====================
 
@@ -554,21 +900,29 @@ def ranking_operarios(
         desde = date.today() - timedelta(days=7)
     if not hasta:
         hasta = date.today()
+    minutos_jornada = get_minutos_jornada(db)
     usuarios = db.query(UsuarioDB).filter(UsuarioDB.rol == "operario").all()
-    registros = db.query(RegistroDB).filter(RegistroDB.fecha >= desde, RegistroDB.fecha <= hasta).all()
+    registros = db.query(RegistroDB).filter(
+        RegistroDB.fecha >= desde,
+        RegistroDB.fecha <= hasta
+    ).all()
     dias_rango = (hasta - desde).days + 1
-    dias_laborables = sum(1 for i in range(dias_rango) if (desde + timedelta(days=i)).weekday() < 5)
+    dias_laborables = sum(
+        1 for i in range(dias_rango)
+        if (desde + timedelta(days=i)).weekday() < 5
+    )
     resultado = []
     for u in usuarios:
         regs_u = [r for r in registros if r.usuario == u.codigo]
         total_mins = sum(r.tiempo_minutos for r in regs_u)
         dias_activo = len(set(str(r.fecha) for r in regs_u))
-        max_mins = dias_laborables * 480
+        max_mins = dias_laborables * minutos_jornada
         pct_jornada = round((total_mins / max_mins) * 100, 1) if max_mins > 0 else 0
         consistencia = round((dias_activo / dias_laborables) * 100, 1) if dias_laborables > 0 else 0
         media_diaria = round(total_mins / dias_activo, 0) if dias_activo > 0 else 0
         resultado.append({
-            "usuario": u.codigo, "nombre": u.nombre,
+            "usuario": u.codigo,
+            "nombre": u.nombre,
             "total_minutos": total_mins,
             "total_horas": round(total_mins / 60, 1),
             "dias_activo": dias_activo,
@@ -590,11 +944,14 @@ def eficiencia_diaria(
         desde = date.today() - timedelta(days=7)
     if not hasta:
         hasta = date.today()
-    query = db.query(RegistroDB).filter(RegistroDB.fecha >= desde, RegistroDB.fecha <= hasta)
+    minutos_jornada = get_minutos_jornada(db)
+    query = db.query(RegistroDB).filter(
+        RegistroDB.fecha >= desde,
+        RegistroDB.fecha <= hasta
+    )
     if usuario:
         query = query.filter(RegistroDB.usuario == usuario)
     registros = query.all()
-    objetivos = {o.tarea_principal: o for o in db.query(ObjetivoDB).all()}
     por_dia = {}
     for r in registros:
         dia = str(r.fecha)
@@ -606,7 +963,7 @@ def eficiencia_diaria(
         por_dia[dia]["por_tarea"][r.tarea_principal] += r.tiempo_minutos
     resultado = []
     for dia, datos in sorted(por_dia.items()):
-        pct_jornada = round((datos["total_minutos"] / 480) * 100, 1)
+        pct_jornada = round((datos["total_minutos"] / minutos_jornada) * 100, 1)
         resultado.append({
             "fecha": dia,
             "total_minutos": datos["total_minutos"],
@@ -624,7 +981,10 @@ def tendencia_semanal(
 ):
     hasta = date.today()
     desde = hasta - timedelta(weeks=semanas)
-    query = db.query(RegistroDB).filter(RegistroDB.fecha >= desde, RegistroDB.fecha <= hasta)
+    query = db.query(RegistroDB).filter(
+        RegistroDB.fecha >= desde,
+        RegistroDB.fecha <= hasta
+    )
     if usuario:
         query = query.filter(RegistroDB.usuario == usuario)
     registros = query.all()
@@ -652,19 +1012,22 @@ def tendencia_semanal(
 @app.get("/rendimiento/alertas/")
 def alertas_rendimiento(db: Session = Depends(get_db)):
     hoy = date.today()
-    ayer = hoy - timedelta(days=1)
     hace_7 = hoy - timedelta(days=7)
+    minutos_jornada = get_minutos_jornada(db)
     usuarios = db.query(UsuarioDB).filter(UsuarioDB.rol == "operario").all()
     registros_hoy = db.query(RegistroDB).filter(RegistroDB.fecha == hoy).all()
-    registros_semana = db.query(RegistroDB).filter(RegistroDB.fecha >= hace_7, RegistroDB.fecha <= hoy).all()
+    registros_semana = db.query(RegistroDB).filter(
+        RegistroDB.fecha >= hace_7,
+        RegistroDB.fecha <= hoy
+    ).all()
     alertas = []
     usuarios_con_actividad_hoy = set(r.usuario for r in registros_hoy)
     for u in usuarios:
         mins_hoy = sum(r.tiempo_minutos for r in registros_hoy if r.usuario == u.codigo)
         mins_semana = sum(r.tiempo_minutos for r in registros_semana if r.usuario == u.codigo)
         dias_activo_semana = len(set(str(r.fecha) for r in registros_semana if r.usuario == u.codigo))
-        pct_hoy = round((mins_hoy / 480) * 100, 1)
-        pct_semana = round((mins_semana / (5 * 480)) * 100, 1)
+        pct_hoy = round((mins_hoy / minutos_jornada) * 100, 1)
+        pct_semana = round((mins_semana / (5 * minutos_jornada)) * 100, 1)
         if u.codigo not in usuarios_con_actividad_hoy:
             alertas.append({
                 "tipo": "sin_actividad",
@@ -681,7 +1044,7 @@ def alertas_rendimiento(db: Session = Depends(get_db)):
                 "nombre": u.nombre,
                 "mensaje": f"{u.nombre} lleva solo {pct_hoy}% de la jornada ({mins_hoy} min)"
             })
-        if dias_activo_semana < 3 and dias_activo_semana > 0:
+        if 0 < dias_activo_semana < 3:
             alertas.append({
                 "tipo": "baja_consistencia",
                 "nivel": "danger",
@@ -689,10 +1052,15 @@ def alertas_rendimiento(db: Session = Depends(get_db)):
                 "nombre": u.nombre,
                 "mensaje": f"{u.nombre} solo ha registrado {dias_activo_semana} días esta semana"
             })
-    volumenes = db.query(VolumenDB).filter(VolumenDB.fecha >= hace_7, VolumenDB.fecha <= hoy).all()
+    volumenes = db.query(VolumenDB).filter(
+        VolumenDB.fecha >= hace_7,
+        VolumenDB.fecha <= hoy
+    ).all()
     for v in volumenes:
-        horas_reales = sum(r.tiempo_minutos for r in registros_semana
-            if str(r.fecha) == str(v.fecha) and r.tarea_principal == v.tarea_principal) / 60
+        horas_reales = sum(
+            r.tiempo_minutos for r in registros_semana
+            if str(r.fecha) == str(v.fecha) and r.tarea_principal == v.tarea_principal
+        ) / 60
         if horas_reales > 0:
             eficiencia = round((v.horas_teoricas / horas_reales) * 100, 1)
             if eficiencia < 70:
@@ -723,7 +1091,10 @@ def objetivo_vs_real(
         desde = date.today() - timedelta(days=30)
     if not hasta:
         hasta = date.today()
-    registros = db.query(RegistroDB).filter(RegistroDB.fecha >= desde, RegistroDB.fecha <= hasta).all()
+    registros = db.query(RegistroDB).filter(
+        RegistroDB.fecha >= desde,
+        RegistroDB.fecha <= hasta
+    ).all()
     objetivos = {o.tarea_principal: o for o in db.query(ObjetivoDB).all()}
     por_tarea = {}
     for r in registros:
@@ -746,7 +1117,7 @@ def objetivo_vs_real(
             "registros": datos["count"]
         })
     return sorted(resultado, key=lambda x: x["horas_reales"], reverse=True)
-# ==================== EXCEL MEJORADO ====================
+# ==================== EXCEL ====================
 
 @app.get("/exportar-excel/")
 def exportar_excel(
@@ -802,26 +1173,33 @@ def exportar_excel(
     ws0.append(["Media horas/día", round(total_mins / 60 / dias_unicos, 2) if dias_unicos else 0])
     autoajustar(ws0)
 
-    # ---- HOJA 1: Registros detallados ----
+    # ---- HOJA 1: Registros Detallados ----
     ws1 = wb.create_sheet("Registros Detallados")
-    ws1.append(["ID", "Usuario", "Fecha", "Semana", "Mes", "Tarea Principal", "Subtarea",
-                "Tiempo (min)", "Horas", "Proyecto", "Comentarios"])
+    ws1.append([
+        "ID", "Usuario", "Fecha", "Semana", "Mes",
+        "Tarea Principal", "Subtarea", "Tiempo (min)",
+        "Horas", "Proyecto", "Comentarios"
+    ])
     estilo_cabecera(ws1)
-    dias_semana = ["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"]
     for r in registros:
         semana = r.fecha.isocalendar()[1]
         mes = r.fecha.strftime("%B %Y")
-        ws1.append([r.id, r.usuario, str(r.fecha), f"Semana {semana}", mes,
-                    r.tarea_principal, r.subtarea, r.tiempo_minutos,
-                    round(r.tiempo_minutos / 60, 2), r.proyecto or "", r.comentarios or ""])
+        ws1.append([
+            r.id, r.usuario, str(r.fecha), f"Semana {semana}", mes,
+            r.tarea_principal, r.subtarea, r.tiempo_minutos,
+            round(r.tiempo_minutos / 60, 2),
+            r.proyecto or "", r.comentarios or ""
+        ])
     ws1.auto_filter.ref = ws1.dimensions
     ws1.freeze_panes = "A2"
     autoajustar(ws1)
 
-    # ---- HOJA 2: Resumen por usuario ----
+    # ---- HOJA 2: Resumen por Usuario ----
     ws2 = wb.create_sheet("Resumen por Usuario")
-    ws2.append(["Usuario", "Total Registros", "Total Minutos", "Total Horas",
-                "Días Activos", "Media Min/Día", "% Jornada Media"])
+    ws2.append([
+        "Usuario", "Total Registros", "Total Minutos",
+        "Total Horas", "Días Activos", "Media Min/Día", "% Jornada Media"
+    ])
     estilo_cabecera(ws2)
     por_usuario = {}
     for r in registros:
@@ -830,18 +1208,23 @@ def exportar_excel(
         por_usuario[r.usuario]["registros"] += 1
         por_usuario[r.usuario]["minutos"] += r.tiempo_minutos
         por_usuario[r.usuario]["dias"].add(str(r.fecha))
+    minutos_jornada = get_minutos_jornada(db)
     for u, d in por_usuario.items():
         dias = len(d["dias"]) or 1
         media_dia = round(d["minutos"] / dias, 1)
-        pct = round((media_dia / 480) * 100, 1)
-        ws2.append([u, d["registros"], d["minutos"], round(d["minutos"] / 60, 2),
-                    len(d["dias"]), media_dia, pct])
+        pct = round((media_dia / minutos_jornada) * 100, 1)
+        ws2.append([
+            u, d["registros"], d["minutos"],
+            round(d["minutos"] / 60, 2), len(d["dias"]), media_dia, pct
+        ])
     autoajustar(ws2)
 
-    # ---- HOJA 3: Resumen por tarea ----
+    # ---- HOJA 3: Resumen por Tarea ----
     ws3 = wb.create_sheet("Resumen por Tarea")
-    ws3.append(["Tarea Principal", "Subtarea", "Total Registros",
-                "Total Minutos", "Total Horas", "Media Min/Registro"])
+    ws3.append([
+        "Tarea Principal", "Subtarea", "Total Registros",
+        "Total Minutos", "Total Horas", "Media Min/Registro"
+    ])
     estilo_cabecera(ws3)
     por_tarea = {}
     for r in registros:
@@ -855,11 +1238,14 @@ def exportar_excel(
         ws3.append([tp, st, d["registros"], d["minutos"], round(d["minutos"] / 60, 2), media])
     autoajustar(ws3)
 
-    # ---- HOJA 4: Resumen por día ----
+    # ---- HOJA 4: Resumen por Día ----
     ws4 = wb.create_sheet("Resumen por Día")
-    ws4.append(["Fecha", "Día Semana", "Total Registros",
-                "Total Minutos", "Total Horas", "Usuarios Activos", "% Jornada Media"])
+    ws4.append([
+        "Fecha", "Día Semana", "Total Registros",
+        "Total Minutos", "Total Horas", "Usuarios Activos", "% Jornada Media"
+    ])
     estilo_cabecera(ws4)
+    dias_semana = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
     por_dia = {}
     for r in registros:
         dia = str(r.fecha)
@@ -872,42 +1258,55 @@ def exportar_excel(
         fecha_obj = date.fromisoformat(dia)
         nombre_dia = dias_semana[fecha_obj.weekday()]
         n_usuarios = len(d["usuarios"])
-        pct = round((d["minutos"] / (n_usuarios * 480)) * 100, 1) if n_usuarios else 0
-        ws4.append([dia, nombre_dia, d["registros"], d["minutos"],
-                    round(d["minutos"] / 60, 2), n_usuarios, pct])
+        pct = round((d["minutos"] / (n_usuarios * minutos_jornada)) * 100, 1) if n_usuarios else 0
+        ws4.append([
+            dia, nombre_dia, d["registros"], d["minutos"],
+            round(d["minutos"] / 60, 2), n_usuarios, pct
+        ])
     autoajustar(ws4)
 
     # ---- HOJA 5: Métricas de Volumen ----
     ws5 = wb.create_sheet("Métricas Volumen")
-    ws5.append(["Fecha", "Tarea", "Unidades", "Horas Teóricas", "Horas Reales",
-                "Eficiencia %", "Uds/Hora Real", "Uds/Hora Teórica", "Desviación (h)", "Comentarios"])
+    ws5.append([
+        "Fecha", "Tarea", "Unidades", "Horas Teóricas", "Horas Reales",
+        "Eficiencia %", "Uds/Hora Real", "Uds/Hora Teórica",
+        "Desviación (h)", "Comentarios"
+    ])
     estilo_cabecera(ws5)
     volumenes = db.query(VolumenDB).order_by(VolumenDB.fecha.desc()).all()
     todos_registros = db.query(RegistroDB).all()
     for v in volumenes:
-        horas_reales = sum(r.tiempo_minutos for r in todos_registros
-            if str(r.fecha) == str(v.fecha) and r.tarea_principal == v.tarea_principal) / 60
+        horas_reales = sum(
+            r.tiempo_minutos for r in todos_registros
+            if str(r.fecha) == str(v.fecha) and r.tarea_principal == v.tarea_principal
+        ) / 60
         eficiencia = round((v.horas_teoricas / horas_reales) * 100, 1) if horas_reales > 0 else 0
         uds_real = round(v.unidades / horas_reales, 1) if horas_reales > 0 else 0
         uds_teo = round(v.unidades / v.horas_teoricas, 1) if v.horas_teoricas > 0 else 0
         desviacion = round(horas_reales - v.horas_teoricas, 2)
-        ws5.append([str(v.fecha), v.tarea_principal, v.unidades, v.horas_teoricas,
-                    round(horas_reales, 2), eficiencia, uds_real, uds_teo,
-                    desviacion, v.comentarios or ""])
+        ws5.append([
+            str(v.fecha), v.tarea_principal, v.unidades, v.horas_teoricas,
+            round(horas_reales, 2), eficiencia, uds_real, uds_teo,
+            desviacion, v.comentarios or ""
+        ])
     autoajustar(ws5)
 
     # ---- HOJA 6: Ranking Rendimiento ----
     ws6 = wb.create_sheet("Ranking Rendimiento")
-    ws6.append(["Posición", "Usuario", "Total Horas", "Días Activos",
-                "% Jornada Periodo", "Consistencia %", "Media Min/Día"])
+    ws6.append([
+        "Posición", "Usuario", "Total Horas", "Días Activos",
+        "% Jornada Periodo", "Consistencia %", "Media Min/Día"
+    ])
     estilo_cabecera(ws6)
     ranking = sorted(por_usuario.items(), key=lambda x: x[1]["minutos"], reverse=True)
     for pos, (u, d) in enumerate(ranking, 1):
         dias = len(d["dias"]) or 1
         media = round(d["minutos"] / dias, 1)
-        pct_periodo = round((d["minutos"] / (dias * 480)) * 100, 1)
-        ws6.append([pos, u, round(d["minutos"] / 60, 1), len(d["dias"]), pct_periodo,
-                    round((dias / max(dias_unicos, 1)) * 100, 1), media])
+        pct_periodo = round((d["minutos"] / (dias * minutos_jornada)) * 100, 1)
+        ws6.append([
+            pos, u, round(d["minutos"] / 60, 1), len(d["dias"]),
+            pct_periodo, round((dias / max(dias_unicos, 1)) * 100, 1), media
+        ])
     autoajustar(ws6)
 
     output = io.BytesIO()
