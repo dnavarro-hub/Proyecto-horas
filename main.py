@@ -112,8 +112,6 @@ class SubtareaDB(Base):
     activa          = Column(Boolean, default=True)
     created_at      = Column(DateTime, default=datetime.utcnow)
 
-# Borra todo y recrea limpio (solo usar una vez)
-Base.metadata.drop_all(bind=engine)
 Base.metadata.create_all(bind=engine)
 
 # ==================== INICIALIZACIÓN DE DATOS ====================
