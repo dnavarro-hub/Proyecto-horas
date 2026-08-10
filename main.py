@@ -282,6 +282,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 # ==================== SCHEMAS ====================
 
 class RegistroTarea(BaseModel):
@@ -700,6 +701,8 @@ def actualizar_configuracion(
     db.commit()
     db.refresh(cfg)
     return cfg
+
+
 # ==================== REGISTROS ====================
 
 @app.post(
@@ -983,7 +986,6 @@ def duplicar_registro(
     db.refresh(nuevo)
     return nuevo
 
-
 # ==================== PLANTILLAS ====================
 
 @app.post("/plantillas/", status_code=201)
@@ -1108,6 +1110,8 @@ def actualizar_objetivo(
     db.commit()
     db.refresh(db_obj)
     return db_obj
+
+
 # ==================== VOLÚMENES ====================
 
 @app.post(
@@ -1466,9 +1470,7 @@ def eficiencia_diaria(
         por_dia[dia]["total_minutos"] += r.tiempo_minutos
         if r.tarea_principal not in por_dia[dia]["por_tarea"]:
             por_dia[dia]["por_tarea"][r.tarea_principal] = 0
-        por_dia[dia]["por_tarea"][r.tarea_principal] += (
-            r.tiempo_minutos
-        )
+        por_dia[dia]["por_tarea"][r.tarea_principal] += r.tiempo_minutos
 
     return [
         {
@@ -1478,8 +1480,7 @@ def eficiencia_diaria(
                 datos["total_minutos"] / 60, 2
             ),
             "pct_jornada"   : round(
-                (datos["total_minutos"] / minutos_jornada) * 100,
-                1
+                (datos["total_minutos"] / minutos_jornada) * 100, 1
             ),
             "por_tarea"     : datos["por_tarea"]
         }
@@ -1573,9 +1574,6 @@ def alertas_rendimiento(db: Session = Depends(get_db)):
 
         if u.codigo not in usuarios_activos_hoy:
             alertas.append({
-                "tipo"   : "sin_actividad",
-                "nivel"  : "warning",
-                "usuario": u.
                 "tipo"   : "sin_actividad",
                 "nivel"  : "warning",
                 "usuario": u.codigo,
@@ -1733,13 +1731,9 @@ def obtener_unidades(
     if usuario:
         query = query.filter(UnidadDB.usuario == usuario)
     if tarea:
-        query = query.filter(
-            UnidadDB.tarea_principal == tarea
-        )
+        query = query.filter(UnidadDB.tarea_principal == tarea)
     if subtarea:
-        query = query.filter(
-            UnidadDB.subtarea == subtarea
-        )
+        query = query.filter(UnidadDB.subtarea == subtarea)
     return query.order_by(UnidadDB.fecha.desc()).all()
 
 
@@ -1756,9 +1750,7 @@ def importar_unidades(
         if file.filename.endswith(".csv"):
             import csv, io as _io
             texto  = contenido.decode("utf-8-sig")
-            reader = csv.DictReader(
-                _io.StringIO(texto)
-            )
+            reader = csv.DictReader(_io.StringIO(texto))
             filas  = list(reader)
         else:
             wb   = openpyxl.load_workbook(
@@ -1796,26 +1788,14 @@ def importar_unidades(
                     str(fecha_raw).strip()
                 )
 
-            usuario_val  = str(
-                fila.get("usuario", "")
-            ).strip()
-            tarea_val    = str(
-                fila.get("tarea_principal", "")
-            ).strip()
-            subtarea_val = str(
-                fila.get("subtarea", "") or ""
-            ).strip() or None
-            unidades_val = int(
-                float(str(fila.get("unidades", 0)))
-            )
-            comentarios_val = str(
-                fila.get("comentarios", "") or ""
-            ).strip() or None
+            usuario_val     = str(fila.get("usuario", "")).strip()
+            tarea_val       = str(fila.get("tarea_principal", "")).strip()
+            subtarea_val    = str(fila.get("subtarea", "") or "").strip() or None
+            unidades_val    = int(float(str(fila.get("unidades", 0))))
+            comentarios_val = str(fila.get("comentarios", "") or "").strip() or None
 
             if not usuario_val or not tarea_val:
-                errores.append(
-                    f"Fila {idx}: usuario o tarea vacíos"
-                )
+                errores.append(f"Fila {idx}: usuario o tarea vacíos")
                 continue
 
             existente = db.query(UnidadDB).filter(
@@ -1858,8 +1838,6 @@ def importar_unidades(
             f"{len(errores)} errores"
         )
     }
-
-
 @app.get("/unidades/plantilla-excel/")
 def plantilla_excel_unidades():
     wb = openpyxl.Workbook()
@@ -1930,13 +1908,9 @@ def rendimiento_unidades(
         UnidadDB.fecha <= hasta
     )
     if usuario:
-        query_u = query_u.filter(
-            UnidadDB.usuario == usuario
-        )
+        query_u = query_u.filter(UnidadDB.usuario == usuario)
     if subtarea:
-        query_u = query_u.filter(
-            UnidadDB.subtarea == subtarea
-        )
+        query_u = query_u.filter(UnidadDB.subtarea == subtarea)
     unidades = query_u.all()
 
     query_r = db.query(RegistroDB).filter(
@@ -1944,14 +1918,11 @@ def rendimiento_unidades(
         RegistroDB.fecha <= hasta
     )
     if usuario:
-        query_r = query_r.filter(
-            RegistroDB.usuario == usuario
-        )
+        query_r = query_r.filter(RegistroDB.usuario == usuario)
     if subtarea:
-        query_r = query_r.filter(
-            RegistroDB.subtarea == subtarea
-        )
+        query_r = query_r.filter(RegistroDB.subtarea == subtarea)
     registros = query_r.all()
+
     objetivos = {
         o.tarea_principal: o
         for o in db.query(ObjetivoDB).all()
@@ -1961,17 +1932,13 @@ def rendimiento_unidades(
     for u in unidades:
         clave = (u.usuario, u.tarea_principal, u.subtarea)
         if clave not in agrupado:
-            agrupado[clave] = {
-                "unidades": 0, "minutos": 0
-            }
+            agrupado[clave] = {"unidades": 0, "minutos": 0}
         agrupado[clave]["unidades"] += u.unidades
 
     for r in registros:
         clave = (r.usuario, r.tarea_principal, r.subtarea)
         if clave not in agrupado:
-            agrupado[clave] = {
-                "unidades": 0, "minutos": 0
-            }
+            agrupado[clave] = {"unidades": 0, "minutos": 0}
         agrupado[clave]["minutos"] += r.tiempo_minutos
 
     resultado = []
@@ -1984,9 +1951,7 @@ def rendimiento_unidades(
         obj          = objetivos.get(tarea)
         uds_hora_obj = obj.uds_hora if obj else None
         pct_vs_obj   = (
-            round(
-                (uds_hora_real / uds_hora_obj) * 100, 1
-            )
+            round((uds_hora_real / uds_hora_obj) * 100, 1)
             if uds_hora_real and uds_hora_obj else None
         )
         resultado.append({
@@ -2071,9 +2036,7 @@ def exportar_excel(
     ws0.append(["Días con actividad", dias_unicos])
     ws0.append([
         "Media horas/día",
-        round(
-            total_mins / 60 / dias_unicos, 2
-        ) if dias_unicos else 0
+        round(total_mins / 60 / dias_unicos, 2) if dias_unicos else 0
     ])
     autoajustar(ws0)
 
@@ -2123,9 +2086,7 @@ def exportar_excel(
     for u, d in por_usuario.items():
         dias      = len(d["dias"]) or 1
         media_dia = round(d["minutos"] / dias, 1)
-        pct       = round(
-            (media_dia / minutos_jornada) * 100, 1
-        )
+        pct       = round((media_dia / minutos_jornada) * 100, 1)
         ws2.append([
             u, d["registros"], d["minutos"],
             round(d["minutos"] / 60, 2),
@@ -2207,3 +2168,6 @@ if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 8000))
     uvicorn.run("main:app", host="0.0.0.0", port=port)
+
+
+
