@@ -846,9 +846,135 @@
                     <canvas id="rend-grafico-objetivo"></canvas>
                 </div>
             </div>
-            <div class="bg-slate-50 rounded-xl p-4">
+            <div class="bg-slate-50 rounded-xl p-4 mb-6">
                 <h3 class="text-sm font-semibold text-slate-700 mb-3">Tendencia semanal</h3>
                 <canvas id="rend-grafico-tendencia"></canvas>
+            </div>
+        </div>
+
+        <!-- ===== SECCIÓN RENDIMIENTO POR USUARIO ===== -->
+        <div class="bg-white shadow-lg rounded-xl p-6 md:p-8 mt-6">
+            <div class="border-b pb-4 mb-6">
+                <h2 class="text-2xl font-bold text-slate-800">
+                    📦 Rendimiento por Usuario
+                </h2>
+                <p class="text-sm text-slate-500">
+                    Importa unidades procesadas y compara con el tiempo registrado
+                </p>
+            </div>
+
+            <!-- Descarga plantilla + subida archivo -->
+            <div class="bg-slate-50 rounded-xl p-5 mb-6">
+                <h3 class="text-sm font-bold text-slate-700 mb-4">
+                    Importar unidades desde archivo
+                </h3>
+                <div class="flex flex-col md:flex-row gap-3 mb-4">
+                    <a href="/unidades/plantilla-excel/"
+                        class="flex items-center justify-center gap-2 bg-emerald-600
+                            hover:bg-emerald-700 text-white text-sm font-medium
+                            px-4 py-2.5 rounded-lg transition">
+                        📥 Descargar plantilla Excel
+                    </a>
+                    <div class="flex-1 flex items-center gap-3">
+                        <input type="file" id="input-unidades-archivo"
+                            accept=".xlsx,.csv"
+                            class="flex-1 px-3 py-2 border rounded-lg text-sm
+                                focus:outline-none focus:ring-2 focus:ring-blue-500
+                                bg-white" />
+                        <button onclick="importarUnidades()"
+                            class="bg-blue-600 hover:bg-blue-700 text-white
+                                text-sm font-medium px-4 py-2.5 rounded-lg transition">
+                            📤 Importar
+                        </button>
+                    </div>
+                </div>
+                <div id="unidades-import-resultado" class="hidden">
+                    <div id="unidades-import-msg" class="text-sm p-3 rounded-lg"></div>
+                </div>
+            </div>
+
+            <!-- Filtros consulta rendimiento -->
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1">
+                        Desde:
+                    </label>
+                    <input type="date" id="uni-desde"
+                        class="w-full px-3 py-2 border rounded-lg text-sm
+                            focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1">
+                        Hasta:
+                    </label>
+                    <input type="date" id="uni-hasta"
+                        class="w-full px-3 py-2 border rounded-lg text-sm
+                            focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1">
+                        Usuario (opcional):
+                    </label>
+                    <select id="uni-usuario"
+                        class="w-full px-3 py-2 border rounded-lg text-sm
+                            focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                        <option value="">-- Todos --</option>
+                    </select>
+                </div>
+            </div>
+            <button onclick="cargarRendimientoUnidades()"
+                class="w-full bg-slate-800 hover:bg-slate-900 text-white
+                    font-medium py-2.5 rounded-lg mb-6">
+                Consultar Rendimiento por Usuario
+            </button>
+
+            <!-- KPIs resumen -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6"
+                id="uni-kpis" style="display:none;">
+                <div class="bg-blue-50 rounded-xl p-4 text-center">
+                    <div class="text-2xl font-bold text-blue-700"
+                        id="uni-kpi-registros">—</div>
+                    <div class="text-xs text-slate-500 mt-1">Registros</div>
+                </div>
+                <div class="bg-violet-50 rounded-xl p-4 text-center">
+                    <div class="text-2xl font-bold text-violet-700"
+                        id="uni-kpi-unidades">—</div>
+                    <div class="text-xs text-slate-500 mt-1">Total unidades</div>
+                </div>
+                <div class="bg-amber-50 rounded-xl p-4 text-center">
+                    <div class="text-2xl font-bold text-amber-700"
+                        id="uni-kpi-uds-hora">—</div>
+                    <div class="text-xs text-slate-500 mt-1">Media uds/hora</div>
+                </div>
+                <div class="bg-emerald-50 rounded-xl p-4 text-center">
+                    <div class="text-2xl font-bold text-emerald-700"
+                        id="uni-kpi-rendimiento">—</div>
+                    <div class="text-xs text-slate-500 mt-1">% Rendimiento medio</div>
+                </div>
+            </div>
+
+            <!-- Gráficos -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6"
+                id="uni-graficos" style="display:none;">
+                <div class="bg-slate-50 rounded-xl p-4">
+                    <h3 class="text-sm font-semibold text-slate-700 mb-3">
+                        % Rendimiento por usuario
+                    </h3>
+                    <canvas id="uni-grafico-rendimiento"></canvas>
+                </div>
+                <div class="bg-slate-50 rounded-xl p-4">
+                    <h3 class="text-sm font-semibold text-slate-700 mb-3">
+                        Uds/hora real vs objetivo
+                    </h3>
+                    <canvas id="uni-grafico-uds"></canvas>
+                </div>
+            </div>
+
+            <!-- Tabla resultados -->
+            <div id="uni-tabla">
+                <p class="text-sm text-slate-400 text-center py-8 italic">
+                    Importa un archivo y consulta el rendimiento.
+                </p>
             </div>
         </div>
     </div>
@@ -923,19 +1049,15 @@
                 class="w-full bg-slate-700 hover:bg-slate-800 text-white font-medium py-2.5 rounded-lg mb-6">
                 Buscar Registros
             </button>
-            <!-- Paginación info -->
             <div id="edicion-paginacion-info"
                 class="flex justify-between items-center mb-3 hidden">
-                <span id="edicion-info-texto"
-                    class="text-sm text-slate-500"></span>
+                <span id="edicion-info-texto" class="text-sm text-slate-500"></span>
                 <div class="flex gap-2">
-                    <button onclick="paginaAnterior()"
-                        id="btn-pagina-anterior"
+                    <button onclick="paginaAnterior()" id="btn-pagina-anterior"
                         class="px-3 py-1.5 text-sm bg-white border rounded-lg hover:bg-slate-50 disabled:opacity-40 focus:outline-none focus:ring-2 focus:ring-blue-500">
                         ← Anterior
                     </button>
-                    <button onclick="paginaSiguiente()"
-                        id="btn-pagina-siguiente"
+                    <button onclick="paginaSiguiente()" id="btn-pagina-siguiente"
                         class="px-3 py-1.5 text-sm bg-white border rounded-lg hover:bg-slate-50 disabled:opacity-40 focus:outline-none focus:ring-2 focus:ring-blue-500">
                         Siguiente →
                     </button>
@@ -960,16 +1082,12 @@
                 <h3 class="text-sm font-bold text-slate-700 mb-3">Añadir nuevo usuario</h3>
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-xs font-medium text-slate-600 mb-1">
-                            Nombre:
-                        </label>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Nombre:</label>
                         <input type="text" id="nuevo-nombre" placeholder="Ej: Ana Gómez"
                             class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
                     </div>
                     <div>
-                        <label class="block text-xs font-medium text-slate-600 mb-1">
-                            Código:
-                        </label>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Código:</label>
                         <input type="text" id="nuevo-codigo" placeholder="Ej: EMP001"
                             class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
                     </div>
@@ -1247,6 +1365,7 @@
     let historicoGrafico = null;
     let volGraficoEficiencia = null, volGraficoComparativa = null;
     let rendGraficoEficiencia = null, rendGraficoObjetivo = null, rendGraficoTendencia = null;
+    let uniGraficoRendimiento = null, uniGraficoUds = null;
 
     // ==================== UTILIDADES ====================
 
@@ -1327,7 +1446,6 @@
         document.getElementById('historico-anyo').value = fechaActual.getFullYear();
         document.getElementById('historico-mes').value = fechaActual.getMonth() + 1;
 
-        // Cargar tareas dinámicas desde API
         await cargarTareasCache();
 
         document.getElementById('login-codigo').addEventListener('keydown', e => {
@@ -1373,9 +1491,7 @@
             const sel = document.getElementById(id);
             if (!sel) return;
             const tieneOpcionTodas = ['edicion-tarea', 'config-filtro-tarea-subtarea'].includes(id);
-            sel.innerHTML = tieneOpcionTodas
-                ? '<option value="">-- Todas --</option>'
-                : '';
+            sel.innerHTML = tieneOpcionTodas ? '<option value="">-- Todas --</option>' : '';
             tareasCache.forEach(t => {
                 const o = document.createElement('option');
                 o.value = t.nombre;
@@ -1439,6 +1555,7 @@
             cargarUsuariosGestion();
             cargarDashboard();
             cargarAlertasRendimiento();
+            cargarUsuariosSelectUnidades();
             cargarConfiguracion();
         } else {
             rolBadge.textContent = 'Operario';
@@ -1451,7 +1568,6 @@
             weekday: 'long', day: 'numeric', month: 'long'
         });
 
-        // Cargar minutos jornada desde configuración
         await cargarMinutosJornada();
 
         actualizarIndicadorTiempo();
@@ -1675,8 +1791,7 @@
             'rendimiento', 'plantillas', 'edicion', 'usuarios', 'configuracion'
         ];
         const permitidas = usuarioSesion.rol === 'supervisor'
-            ? todas
-            : ['registro', 'plantillas'];
+            ? todas : ['registro', 'plantillas'];
         if (!permitidas.includes(nombre)) {
             toast('No tienes permisos para acceder a esta sección.', 'error');
             return;
@@ -1710,6 +1825,9 @@
         if (nombre === 'rendimiento') {
             cargarUsuariosFiltrosRendimiento();
             cargarAlertasRendimiento();
+            cargarUsuariosSelectUnidades();
+            document.getElementById('uni-desde').value = hoy;
+            document.getElementById('uni-hasta').value = hoy;
         }
         if (nombre === 'volumen') {
             cargarObjetivos();
@@ -2082,6 +2200,21 @@
             const resp = await fetch(`${API}/usuarios/`);
             const usuarios = await resp.json();
             const sel = document.getElementById('rend-usuario');
+            sel.innerHTML = '<option value="">-- Todos --</option>';
+            usuarios.forEach(u => {
+                const o = document.createElement('option');
+                o.value = u.codigo;
+                o.textContent = u.nombre;
+                sel.appendChild(o);
+            });
+        } catch {}
+    }
+
+    async function cargarUsuariosSelectUnidades() {
+        try {
+            const resp = await fetch(`${API}/usuarios/`);
+            const usuarios = await resp.json();
+            const sel = document.getElementById('uni-usuario');
             sel.innerHTML = '<option value="">-- Todos --</option>';
             usuarios.forEach(u => {
                 const o = document.createElement('option');
@@ -2693,12 +2826,7 @@
                 },
                 options: {
                     responsive: true,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            max: Math.ceil(minutosJornada / 60)
-                        }
-                    }
+                    scales: { y: { beginAtZero: true, max: Math.ceil(minutosJornada / 60) } }
                 }
             });
 
@@ -2818,7 +2946,10 @@
                 document.getElementById('vol-unidades').value = '';
                 document.getElementById('vol-horas').value = '';
                 document.getElementById('vol-comentarios').value = '';
-                msg.classList.add('hidden');
+                msg.textContent = '¡Guardado correctamente!';
+                msg.className = 'mt-2 text-sm text-emerald-600 font-medium';
+                msg.classList.remove('hidden');
+                setTimeout(() => msg.classList.add('hidden'), 3000);
             } else {
                 msg.textContent = 'Error al guardar los datos.';
                 msg.className = 'mt-2 text-sm text-rose-600';
@@ -2850,7 +2981,6 @@
                 return;
             }
 
-            // KPIs
             const totalUnidades = metricas.reduce((s, m) => s + m.unidades, 0);
             const totalHorasTeo = metricas.reduce((s, m) => s + m.horas_teoricas, 0);
             const totalHorasReal = metricas.reduce((s, m) => s + m.horas_reales, 0);
@@ -2869,7 +2999,6 @@
                 `${mediaEficiencia}%`;
             document.getElementById('vol-kpis').style.display = 'grid';
 
-            // Gráfico eficiencia por tarea
             const eficienciaPorTarea = {};
             metricas.forEach(m => {
                 if (!eficienciaPorTarea[m.tarea_principal])
@@ -2907,7 +3036,6 @@
                 }
             });
 
-            // Gráfico comparativa horas teóricas vs reales
             const fechasUnicas = [...new Set(metricas.map(m => m.fecha))].sort();
             const horasTeoPorFecha = fechasUnicas.map(f =>
                 parseFloat(metricas.filter(m => m.fecha === f)
@@ -2948,7 +3076,6 @@
             });
             document.getElementById('vol-graficos').style.display = 'grid';
 
-            // Tabla métricas
             let html = `<div class="overflow-x-auto mt-4">
                 <table class="w-full text-sm">
                     <thead class="bg-slate-800 text-white">
@@ -3067,7 +3194,6 @@
             const objetivo = await respObjetivo.json();
             const alertasData = await respAlertas.json();
 
-            // Alertas
             const contAlertas = document.getElementById('rend-alertas');
             if (alertasData.alertas.length === 0) {
                 contAlertas.innerHTML = `<div class="flex items-center gap-3 p-3 rounded-xl border
@@ -3091,7 +3217,6 @@
                     </div>`).join('');
             }
 
-            // Ranking
             const contRanking = document.getElementById('rend-ranking');
             if (ranking.length === 0) {
                 contRanking.innerHTML = `<p class="text-sm text-slate-400 text-center py-4 italic">
@@ -3151,7 +3276,6 @@
                 }).join('');
             }
 
-            // Objetivo vs Real
             const contObj = document.getElementById('rend-objetivo-vs-real');
             if (objetivo.length === 0) {
                 contObj.innerHTML = `<p class="text-sm text-slate-400 text-center py-4 italic">
@@ -3194,7 +3318,6 @@
                 }).join('');
             }
 
-            // Gráfico eficiencia diaria
             if (rendGraficoEficiencia) rendGraficoEficiencia.destroy();
             rendGraficoEficiencia = new Chart(
                 document.getElementById('rend-grafico-eficiencia').getContext('2d'), {
@@ -3225,7 +3348,6 @@
                 }
             });
 
-            // Gráfico objetivo vs real
             if (rendGraficoObjetivo) rendGraficoObjetivo.destroy();
             rendGraficoObjetivo = new Chart(
                 document.getElementById('rend-grafico-objetivo').getContext('2d'), {
@@ -3256,7 +3378,6 @@
                 }
             });
 
-            // Gráfico tendencia semanal
             if (rendGraficoTendencia) rendGraficoTendencia.destroy();
             rendGraficoTendencia = new Chart(
                 document.getElementById('rend-grafico-tendencia').getContext('2d'), {
@@ -3294,6 +3415,260 @@
             toast('Error cargando rendimiento.', 'error');
         }
     }
+    // ==================== RENDIMIENTO POR USUARIO (UNIDADES) ====================
+
+    async function importarUnidades() {
+        const input = document.getElementById('input-unidades-archivo');
+        const resultadoDiv = document.getElementById('unidades-import-resultado');
+        const msgDiv = document.getElementById('unidades-import-msg');
+        if (!input.files || input.files.length === 0) {
+            toast('Selecciona un archivo Excel o CSV primero.', 'warning');
+            return;
+        }
+        const formData = new FormData();
+        formData.append('archivo', input.files[0]);
+        try {
+            const resp = await fetch(`${API}/unidades/importar/`, {
+                method: 'POST',
+                body: formData
+            });
+            const data = await resp.json();
+            resultadoDiv.classList.remove('hidden');
+            if (resp.ok) {
+                msgDiv.className = 'text-sm p-3 rounded-lg bg-emerald-50 text-emerald-700 font-medium';
+                msgDiv.innerHTML = `
+                    ✅ Importación completada:
+                    <b>${data.importadas}</b> filas procesadas.
+                    ${data.errores > 0
+                        ? `<span class="text-amber-600 ml-2">⚠️ ${data.errores} errores.</span>`
+                        : ''}
+                    ${data.detalle_errores && data.detalle_errores.length > 0
+                        ? `<div class="mt-2 text-xs text-slate-500">
+                            ${data.detalle_errores.slice(0, 3).join('<br>')}
+                           </div>`
+                        : ''}`;
+                input.value = '';
+                toast(`Importadas ${data.importadas} filas correctamente.`, 'success');
+            } else {
+                msgDiv.className = 'text-sm p-3 rounded-lg bg-rose-50 text-rose-700';
+                msgDiv.textContent = `❌ Error: ${data.detail || 'Error desconocido'}`;
+                toast('Error al importar el archivo.', 'error');
+            }
+        } catch {
+            resultadoDiv.classList.remove('hidden');
+            msgDiv.className = 'text-sm p-3 rounded-lg bg-rose-50 text-rose-700';
+            msgDiv.textContent = '❌ Error de conexión al importar.';
+            toast('Error de conexión.', 'error');
+        }
+    }
+
+    async function cargarRendimientoUnidades() {
+        const desde = document.getElementById('uni-desde').value;
+        const hasta = document.getElementById('uni-hasta').value;
+        const usuario = document.getElementById('uni-usuario').value;
+        if (!desde || !hasta) {
+            toast('Selecciona un rango de fechas.', 'warning');
+            return;
+        }
+        try {
+            let url = `${API}/unidades/rendimiento/?desde=${desde}&hasta=${hasta}`;
+            if (usuario) url += `&usuario=${usuario}`;
+            const resp = await fetch(url);
+            const datos = await resp.json();
+            const tablaContenedor = document.getElementById('uni-tabla');
+
+            if (datos.length === 0) {
+                tablaContenedor.innerHTML = `
+                    <p class="text-sm text-slate-400 text-center py-8 italic">
+                        No hay datos de unidades para este periodo.
+                        Importa un archivo primero.
+                    </p>`;
+                document.getElementById('uni-kpis').style.display = 'none';
+                document.getElementById('uni-graficos').style.display = 'none';
+                return;
+            }
+
+            // KPIs
+            const totalUnidades = datos.reduce((s, d) => s + d.unidades, 0);
+            const udsHoraValidos = datos.filter(d => d.uds_hora_real !== null);
+            const mediaUdsHora = udsHoraValidos.length > 0
+                ? round2(udsHoraValidos.reduce((s, d) => s + d.uds_hora_real, 0) / udsHoraValidos.length)
+                : 0;
+            const rendValidos = datos.filter(d => d.pct_rendimiento !== null);
+            const mediaRend = rendValidos.length > 0
+                ? Math.round(rendValidos.reduce((s, d) => s + d.pct_rendimiento, 0) / rendValidos.length)
+                : 0;
+
+            document.getElementById('uni-kpi-registros').textContent = datos.length;
+            document.getElementById('uni-kpi-unidades').textContent =
+                totalUnidades.toLocaleString();
+            document.getElementById('uni-kpi-uds-hora').textContent = mediaUdsHora;
+            document.getElementById('uni-kpi-rendimiento').textContent = `${mediaRend}%`;
+            document.getElementById('uni-kpis').style.display = 'grid';
+
+            // Gráfico % rendimiento por usuario
+            const porUsuario = {};
+            datos.forEach(d => {
+                if (!porUsuario[d.nombre]) porUsuario[d.nombre] = [];
+                if (d.pct_rendimiento !== null) porUsuario[d.nombre].push(d.pct_rendimiento);
+            });
+            const labelsUsuarios = Object.keys(porUsuario);
+            const dataRendUsuarios = labelsUsuarios.map(u =>
+                porUsuario[u].length > 0
+                    ? Math.round(porUsuario[u].reduce((s, v) => s + v, 0) / porUsuario[u].length)
+                    : 0
+            );
+            if (uniGraficoRendimiento) uniGraficoRendimiento.destroy();
+            uniGraficoRendimiento = new Chart(
+                document.getElementById('uni-grafico-rendimiento').getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: labelsUsuarios,
+                    datasets: [{
+                        label: '% Rendimiento',
+                        data: dataRendUsuarios,
+                        backgroundColor: dataRendUsuarios.map(v =>
+                            v >= 100 ? '#10b981'
+                            : v >= 80 ? '#3b82f6'
+                            : v >= 60 ? '#f59e0b' : '#ef4444'),
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { callback: v => v + '%' },
+                            title: { display: true, text: '% Rendimiento' }
+                        }
+                    }
+                }
+            });
+
+            // Gráfico uds/hora real vs objetivo
+            const porTarea = {};
+            datos.forEach(d => {
+                if (!porTarea[d.tarea]) {
+                    porTarea[d.tarea] = { real: [], objetivo: d.uds_hora_objetivo };
+                }
+                if (d.uds_hora_real !== null) porTarea[d.tarea].real.push(d.uds_hora_real);
+            });
+            const labelsTareas = Object.keys(porTarea);
+            const dataReal = labelsTareas.map(t =>
+                porTarea[t].real.length > 0
+                    ? round2(porTarea[t].real.reduce((s, v) => s + v, 0) / porTarea[t].real.length)
+                    : 0
+            );
+            const dataObjetivo = labelsTareas.map(t => porTarea[t].objetivo || 0);
+            if (uniGraficoUds) uniGraficoUds.destroy();
+            uniGraficoUds = new Chart(
+                document.getElementById('uni-grafico-uds').getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: labelsTareas,
+                    datasets: [
+                        {
+                            label: 'Uds/hora real',
+                            data: dataReal,
+                            backgroundColor: labelsTareas.map(t => getColorTarea(t)),
+                            borderRadius: 6
+                        },
+                        {
+                            label: 'Uds/hora objetivo',
+                            data: dataObjetivo,
+                            backgroundColor: 'rgba(139,92,246,0.3)',
+                            borderColor: '#8b5cf6',
+                            borderWidth: 2,
+                            borderRadius: 6
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { position: 'bottom' } },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: { display: true, text: 'Uds/hora' }
+                        }
+                    }
+                }
+            });
+            document.getElementById('uni-graficos').style.display = 'grid';
+
+            // Tabla detalle
+            let html = `<div class="overflow-x-auto mt-4">
+                <table class="w-full text-sm">
+                    <thead class="bg-slate-800 text-white">
+                        <tr>
+                            <th class="px-3 py-2 text-left">Fecha</th>
+                            <th class="px-3 py-2 text-left">Usuario</th>
+                            <th class="px-3 py-2 text-left">Tarea</th>
+                            <th class="px-3 py-2 text-left">Subtarea</th>
+                            <th class="px-3 py-2 text-right">Unidades</th>
+                            <th class="px-3 py-2 text-right">Horas</th>
+                            <th class="px-3 py-2 text-right">Uds/h Real</th>
+                            <th class="px-3 py-2 text-right">Uds/h Obj</th>
+                            <th class="px-3 py-2 text-right">% Rend.</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">`;
+            datos.forEach(d => {
+                const color = getColorTarea(d.tarea);
+                const pct = d.pct_rendimiento;
+                const pctColor = pct === null ? 'text-slate-400'
+                    : pct >= 100 ? 'text-emerald-600 font-bold'
+                    : pct >= 80 ? 'text-blue-600 font-bold'
+                    : pct >= 60 ? 'text-amber-600 font-bold'
+                    : 'text-rose-600 font-bold';
+                const pctBg = pct === null ? ''
+                    : pct >= 100 ? 'bg-emerald-50'
+                    : pct >= 80 ? 'bg-blue-50'
+                    : pct >= 60 ? 'bg-amber-50'
+                    : 'bg-rose-50';
+                html += `
+                    <tr class="hover:bg-slate-50 transition ${pctBg}">
+                        <td class="px-3 py-2 text-slate-600">${d.fecha}</td>
+                        <td class="px-3 py-2 font-medium text-slate-700">${d.nombre}</td>
+                        <td class="px-3 py-2">
+                            <span class="inline-flex items-center gap-1">
+                                <span class="w-2 h-2 rounded-full"
+                                    style="background-color:${color}"></span>
+                                ${d.tarea}
+                            </span>
+                        </td>
+                        <td class="px-3 py-2 text-slate-600">${d.subtarea}</td>
+                        <td class="px-3 py-2 text-right font-medium">
+                            ${d.unidades.toLocaleString()}
+                        </td>
+                        <td class="px-3 py-2 text-right text-slate-600">
+                            ${d.horas_reales}h
+                        </td>
+                        <td class="px-3 py-2 text-right text-blue-600">
+                            ${d.uds_hora_real !== null ? d.uds_hora_real : '—'}
+                        </td>
+                        <td class="px-3 py-2 text-right text-violet-600">
+                            ${d.uds_hora_objetivo !== null ? d.uds_hora_objetivo : '—'}
+                        </td>
+                        <td class="px-3 py-2 text-right ${pctColor}">
+                            ${pct !== null ? pct + '%' : '—'}
+                        </td>
+                    </tr>`;
+            });
+            html += `</tbody></table></div>`;
+            tablaContenedor.innerHTML = html;
+
+        } catch(e) {
+            console.error('Error rendimiento unidades:', e);
+            document.getElementById('uni-tabla').innerHTML =
+                `<p class="text-sm text-rose-500 text-center py-8">
+                    Error cargando datos de rendimiento.
+                </p>`;
+        }
+    }
+
     // ==================== EDICIÓN ====================
 
     async function cargarEdicion() {
@@ -3522,7 +3897,6 @@
                     </div>
                 </div>`).join('');
 
-            // Poblar select de subtareas en config
             const selConfig = document.getElementById('config-filtro-tarea-subtarea');
             selConfig.innerHTML = '<option value="">-- Selecciona tarea --</option>';
             tareas.filter(t => t.activa).forEach(t => {
@@ -3531,7 +3905,6 @@
                 o.textContent = t.nombre;
                 selConfig.appendChild(o);
             });
-
             poblarSelectsTareas();
         } catch {
             toast('Error cargando tareas.', 'error');
@@ -3649,6 +4022,8 @@
         const tarea = document.getElementById('config-filtro-tarea-subtarea').value;
         const nombre = document.getElementById('config-nueva-subtarea').value.trim();
         if (!tarea) {
+            toast('Sel
+        if (!tarea) {
             toast('Selecciona una tarea primero.', 'warning');
             return;
         }
@@ -3657,15 +4032,25 @@
             return;
         }
         try {
+            const tareaObj = tareasCache.find(t => t.nombre === tarea);
+            if (!tareaObj) {
+                toast('Tarea no encontrada.', 'error');
+                return;
+            }
             const resp = await fetch(`${API}/subtareas/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ tarea_nombre: tarea, nombre, activa: true })
+                body: JSON.stringify({
+                    nombre,
+                    tarea_id: tareaObj.id,
+                    activa: true
+                })
             });
             if (resp.ok) {
                 document.getElementById('config-nueva-subtarea').value = '';
                 toast('Subtarea creada correctamente.', 'success');
                 subtareasCache = {};
+                await cargarTareasCache();
                 cargarSubtareasConfig();
             } else {
                 const err = await resp.json();
@@ -3674,16 +4059,17 @@
         } catch { toast('Error de conexión.', 'error'); }
     }
 
-    async function toggleSubtarea(id, activar, tarea) {
+    async function toggleSubtarea(id, activar, tareaNombre) {
         try {
             const resp = await fetch(`${API}/subtareas/${id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ tarea_nombre: tarea, nombre: '', activa: activar })
+                body: JSON.stringify({ activa: activar })
             });
             if (resp.ok) {
                 toast(`Subtarea ${activar ? 'activada' : 'desactivada'}.`, 'success');
                 subtareasCache = {};
+                await cargarTareasCache();
                 cargarSubtareasConfig();
             } else {
                 toast('Error al actualizar la subtarea.', 'error');
@@ -3691,18 +4077,332 @@
         } catch { toast('Error de conexión.', 'error'); }
     }
 
-    async function eliminarSubtareaConfig(id, tarea) {
+    async function eliminarSubtareaConfig(id, tareaNombre) {
         if (!confirm('¿Seguro que quieres eliminar esta subtarea?')) return;
         try {
             const resp = await fetch(`${API}/subtareas/${id}`, { method: 'DELETE' });
             if (resp.ok) {
                 toast('Subtarea eliminada.', 'success');
                 subtareasCache = {};
+                await cargarTareasCache();
                 cargarSubtareasConfig();
             } else {
                 toast('Error al eliminar la subtarea.', 'error');
             }
         } catch { toast('Error de conexión.', 'error'); }
+    }
+
+    // ==================== CONFIGURACIÓN GENERAL ====================
+
+    async function cargarConfiguracion() {
+        try {
+            const resp = await fetch(`${API}/configuracion/`);
+            const config = await resp.json();
+            minutosJornada = parseInt(config.minutos_jornada) || 480;
+            document.getElementById('config-minutos-jornada').value = minutosJornada;
+        } catch {}
+    }
+
+    async function guardarConfiguracion() {
+        const minutos = parseInt(document.getElementById('config-minutos-jornada').value);
+        if (!minutos || minutos < 60 || minutos > 720) {
+            toast('Introduce un valor entre 60 y 720 minutos.', 'warning');
+            return;
+        }
+        try {
+            const resp = await fetch(`${API}/configuracion/`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ minutos_jornada: String(minutos) })
+            });
+            if (resp.ok) {
+                minutosJornada = minutos;
+                toast('Configuración guardada correctamente.', 'success');
+            } else {
+                toast('Error al guardar la configuración.', 'error');
+            }
+        } catch { toast('Error de conexión.', 'error'); }
+    }
+
+    // ==================== USUARIOS GESTIÓN ====================
+
+    async function cargarUsuariosGestion() {
+        try {
+            const resp = await fetch(`${API}/usuarios/`);
+            const usuarios = await resp.json();
+            const contenedor = document.getElementById('lista-usuarios');
+            if (usuarios.length === 0) {
+                contenedor.innerHTML = `<p class="text-sm text-slate-400 text-center py-4 italic">
+                    No hay usuarios.</p>`;
+                return;
+            }
+            contenedor.innerHTML = `<div class="space-y-2">` + usuarios.map(u => {
+                const rolColor = u.rol === 'supervisor'
+                    ? 'bg-violet-100 text-violet-700'
+                    : 'bg-blue-100 text-blue-700';
+                return `
+                    <div class="flex items-center justify-between p-3 bg-slate-50 rounded-xl fade-in">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full flex items-center justify-center
+                                text-white text-sm font-bold flex-shrink-0"
+                                style="background-color:${avatarColores[u.id % avatarColores.length]}">
+                                ${u.nombre.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                                <div class="font-medium text-slate-800 text-sm">${u.nombre}</div>
+                                <div class="text-xs text-slate-500">${u.codigo}</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs px-2 py-0.5 rounded-full font-medium ${rolColor}">
+                                ${u.rol}
+                            </span>
+                            <button onclick="eliminarUsuario(${u.id})"
+                                class="text-rose-500 hover:text-rose-700 text-xs font-medium
+                                    px-2 py-1 bg-rose-50 rounded-lg"
+                                aria-label="Eliminar usuario ${u.nombre}">
+                                Eliminar
+                            </button>
+                        </div>
+                    </div>`;
+            }).join('') + `</div>`;
+        } catch {
+            document.getElementById('lista-usuarios').innerHTML =
+                `<p class="text-sm text-rose-500 text-center py-4">Error cargando usuarios.</p>`;
+        }
+    }
+
+    async function crearUsuario() {
+        const nombre = document.getElementById('nuevo-nombre').value.trim();
+        const codigo = document.getElementById('nuevo-codigo').value.trim();
+        const pin = document.getElementById('nuevo-pin').value.trim();
+        const rol = document.getElementById('nuevo-rol').value;
+        const msg = document.getElementById('usuarios-mensaje');
+        if (!nombre || !codigo || !pin) {
+            msg.textContent = 'Rellena todos los campos.';
+            msg.className = 'mt-2 text-sm text-rose-600';
+            msg.classList.remove('hidden');
+            return;
+        }
+        try {
+            const resp = await fetch(`${API}/usuarios/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nombre, codigo, pin, rol })
+            });
+            if (resp.ok) {
+                toast('Usuario creado correctamente.', 'success');
+                msg.classList.add('hidden');
+                document.getElementById('nuevo-nombre').value = '';
+                document.getElementById('nuevo-codigo').value = '';
+                document.getElementById('nuevo-pin').value = '';
+                cargarUsuariosGestion();
+            } else {
+                const err = await resp.json();
+                msg.textContent = err.detail || 'Error al crear usuario.';
+                msg.className = 'mt-2 text-sm text-rose-600';
+                msg.classList.remove('hidden');
+            }
+        } catch {
+            msg.textContent = 'Error de conexión.';
+            msg.className = 'mt-2 text-sm text-rose-600';
+            msg.classList.remove('hidden');
+        }
+    }
+
+    async function eliminarUsuario(id) {
+        if (!confirm('¿Seguro que quieres eliminar este usuario?')) return;
+        try {
+            const resp = await fetch(`${API}/usuarios/${id}`, { method: 'DELETE' });
+            if (resp.ok) {
+                cargarUsuariosGestion();
+                toast('Usuario eliminado.', 'success');
+            } else {
+                toast('Error al eliminar usuario.', 'error');
+            }
+        } catch { toast('Error de conexión.', 'error'); }
+    }
+
+    // ==================== PLANTILLAS ====================
+
+    function guardarComoPlantilla() {
+        if (tareasPendientes.length === 0) {
+            toast('Añade tareas a la lista antes de guardar una plantilla.', 'warning');
+            return;
+        }
+        document.getElementById('plantilla-nombre').value = '';
+        document.getElementById('modal-plantilla').style.display = 'flex';
+        setTimeout(() => document.getElementById('plantilla-nombre').focus(), 100);
+    }
+
+    function cerrarModalPlantilla() {
+        document.getElementById('modal-plantilla').style.display = 'none';
+    }
+
+    async function confirmarGuardarPlantilla() {
+        const nombre = document.getElementById('plantilla-nombre').value.trim();
+        if (!nombre) {
+            toast('Introduce un nombre para la plantilla.', 'warning');
+            return;
+        }
+        const plantilla = {
+            nombre,
+            usuario: usuarioSesion.codigo,
+            items: tareasPendientes.map(t => ({
+                tarea_principal: t.tarea_principal,
+                subtarea: t.subtarea,
+                tiempo_minutos: t.tiempo_minutos,
+                proyecto: t.proyecto,
+                comentarios: t.comentarios
+            }))
+        };
+        try {
+            const resp = await fetch(`${API}/plantillas/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(plantilla)
+            });
+            if (resp.ok) {
+                cerrarModalPlantilla();
+                toast('Plantilla guardada correctamente.', 'success');
+                cargarPlantillas();
+            } else {
+                toast('Error al guardar la plantilla.', 'error');
+            }
+        } catch { toast('Error de conexión.', 'error'); }
+    }
+
+    async function cargarPlantillas() {
+        try {
+            const resp = await fetch(`${API}/plantillas/?usuario=${usuarioSesion.codigo}`);
+            const plantillas = await resp.json();
+            const contenedor = document.getElementById('lista-plantillas');
+            if (plantillas.length === 0) {
+                contenedor.innerHTML = `<p class="text-sm text-slate-400 text-center py-8 italic">
+                    No tienes plantillas guardadas.</p>`;
+                return;
+            }
+            contenedor.innerHTML = `<div class="space-y-4">` + plantillas.map(p => `
+                <div class="bg-slate-50 rounded-xl p-4 border border-slate-200 fade-in">
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 class="font-bold text-slate-800">${p.nombre}</h3>
+                        <div class="flex gap-2">
+                            <button onclick="usarPlantilla(${p.id})"
+                                class="text-xs bg-blue-600 hover:bg-blue-700 text-white
+                                    font-medium px-3 py-1.5 rounded-lg">
+                                Cargar
+                            </button>
+                            <button onclick="eliminarPlantilla(${p.id})"
+                                class="text-xs bg-rose-100 hover:bg-rose-200 text-rose-700
+                                    font-medium px-3 py-1.5 rounded-lg">
+                                Eliminar
+                            </button>
+                        </div>
+                    </div>
+                    <div class="space-y-1">
+                        ${p.items.map(i => {
+                            const color = getColorTarea(i.tarea_principal);
+                            return `<div class="flex justify-between text-sm p-2 rounded-lg"
+                                style="background-color:${color}18">
+                                <span style="color:${color}" class="font-medium">
+                                    ${i.tarea_principal} - ${i.subtarea}
+                                </span>
+                                <span class="text-slate-500">${formatTiempo(i.tiempo_minutos)}</span>
+                            </div>`;
+                        }).join('')}
+                    </div>
+                    <div class="mt-2 text-xs text-slate-400">
+                        Total: ${formatTiempo(p.items.reduce((s, i) => s + i.tiempo_minutos, 0))}
+                    </div>
+                </div>`).join('') + `</div>`;
+        } catch {
+            document.getElementById('lista-plantillas').innerHTML =
+                `<p class="text-sm text-rose-500 text-center py-4">Error cargando plantillas.</p>`;
+        }
+    }
+
+    async function usarPlantilla(id) {
+        try {
+            const resp = await fetch(`${API}/plantillas/?usuario=${usuarioSesion.codigo}`);
+            const plantillas = await resp.json();
+            const plantilla = plantillas.find(p => p.id === id);
+            if (!plantilla) return;
+            if (tareasPendientes.length > 0) {
+                if (!confirm('Se reemplazará la lista actual con la plantilla. ¿Continuar?')) return;
+            }
+            tareasPendientes = plantilla.items.map(i => ({
+                usuario: usuarioSesion.codigo,
+                fecha: document.getElementById('fecha').value,
+                tarea_principal: i.tarea_principal,
+                subtarea: i.subtarea,
+                tiempo_minutos: i.tiempo_minutos,
+                proyecto: i.proyecto,
+                comentarios: i.comentarios
+            }));
+            actualizarLista();
+            actualizarTarjetaEstado(tareasPendientes.reduce((s, t) => s + t.tiempo_minutos, 0));
+            mostrarPestana('registro');
+            toast(`Plantilla "${plantilla.nombre}" cargada.`, 'success');
+        } catch { toast('Error cargando plantilla.', 'error'); }
+    }
+
+    async function eliminarPlantilla(id) {
+        if (!confirm('¿Seguro que quieres eliminar esta plantilla?')) return;
+        try {
+            const resp = await fetch(`${API}/plantillas/${id}`, { method: 'DELETE' });
+            if (resp.ok) {
+                cargarPlantillas();
+                toast('Plantilla eliminada.', 'success');
+            } else {
+                toast('Error al eliminar la plantilla.', 'error');
+            }
+        } catch { toast('Error de conexión.', 'error'); }
+    }
+
+    // ==================== EXCEL ====================
+
+    function abrirModalExcel() {
+        document.getElementById('excel-desde').value = hoy;
+        document.getElementById('excel-hasta').value = hoy;
+        cargarUsuariosSelectExcel();
+        document.getElementById('modal-excel').style.display = 'flex';
+    }
+
+    function cerrarModalExcel() {
+        document.getElementById('modal-excel').style.display = 'none';
+    }
+
+    async function cargarUsuariosSelectExcel() {
+        try {
+            const resp = await fetch(`${API}/usuarios/`);
+            const usuarios = await resp.json();
+            const sel = document.getElementById('excel-usuario');
+            sel.innerHTML = '<option value="">-- Todos --</option>';
+            usuarios.forEach(u => {
+                const o = document.createElement('option');
+                o.value = u.codigo;
+                o.textContent = u.nombre;
+                sel.appendChild(o);
+            });
+        } catch {}
+    }
+
+    function descargarExcel() {
+        const desde = document.getElementById('excel-desde').value;
+        const hasta = document.getElementById('excel-hasta').value;
+        const usuario = document.getElementById('excel-usuario').value;
+        let url = `${API}/exportar-excel/?`;
+        if (desde) url += `desde=${desde}&`;
+        if (hasta) url += `hasta=${hasta}&`;
+        if (usuario) url += `usuario=${usuario}`;
+        window.open(url, '_blank');
+        cerrarModalExcel();
+        toast('Descargando Excel...', 'info');
+    }
+
+    function descargarPlantillaExcel() {
+        window.open(`${API}/unidades/plantilla-excel/`, '_blank');
+        toast('Descargando plantilla...', 'info');
     }
 
     // ==================== ESCAPE MODALES ====================
