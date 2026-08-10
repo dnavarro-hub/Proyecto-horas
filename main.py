@@ -1,6 +1,6 @@
 from datetime import date, timedelta
 from typing import List, Optional
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, UploadFile, File
 from fastapi.responses import StreamingResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -11,8 +11,9 @@ import openpyxl
 from openpyxl.styles import PatternFill, Font, Alignment
 import io
 import os
-from datetime import datetime
+import csv
 import hashlib
+from datetime import datetime
 
 # ==================== BASE DE DATOS ====================
 DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql://localhost/registros")
@@ -88,32 +89,42 @@ class ObjetivoDB(Base):
     horas_jornada   = Column(Float, default=8.0)
     updated_at      = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+class UnidadesRegistroDB(Base):
+    __tablename__ = "unidades_registro"
+    id          = Column(Integer, primary_key=True, index=True)
+    fecha       = Column(Date, index=True)
+    usuario     = Column(String, index=True)
+    tarea       = Column(String, index=True)
+    subtarea    = Column(String, index=True)
+    unidades    = Column(Integer)
+    created_at  = Column(DateTime, default=datetime.utcnow)
+    updated_at  = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
 class ConfiguracionDB(Base):
     __tablename__ = "configuracion"
-    id             = Column(Integer, primary_key=True, index=True)
-    clave          = Column(String, unique=True, index=True)
-    valor          = Column(String)
-    descripcion    = Column(String, nullable=True)
-    updated_at     = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    id          = Column(Integer, primary_key=True, index=True)
+    clave       = Column(String, unique=True, index=True)
+    valor       = Column(String)
+    descripcion = Column(String, nullable=True)
+    updated_at  = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 class TareaDB(Base):
     __tablename__ = "tareas"
-    id              = Column(Integer, primary_key=True, index=True)
-    nombre          = Column(String, unique=True, index=True)
-    color           = Column(String, default="#94a3b8")
-    activa          = Column(Boolean, default=True)
-    created_at      = Column(DateTime, default=datetime.utcnow)
+    id         = Column(Integer, primary_key=True, index=True)
+    nombre     = Column(String, unique=True, index=True)
+    color      = Column(String, default="#94a3b8")
+    activa     = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
 
 class SubtareaDB(Base):
     __tablename__ = "subtareas"
-    id              = Column(Integer, primary_key=True, index=True)
-    tarea_nombre    = Column(String, index=True)
-    nombre          = Column(String)
-    activa          = Column(Boolean, default=True)
-    created_at      = Column(DateTime, default=datetime.utcnow)
+    id           = Column(Integer, primary_key=True, index=True)
+    tarea_nombre = Column(String, index=True)
+    nombre       = Column(String)
+    activa       = Column(Boolean, default=True)
+    created_at   = Column(DateTime, default=datetime.utcnow)
 
 Base.metadata.create_all(bind=engine)
-
 # ==================== INICIALIZACIÓN DE DATOS ====================
 
 TAREAS_DEFAULT = [
@@ -125,11 +136,11 @@ TAREAS_DEFAULT = [
 ]
 
 SUBTAREAS_DEFAULT = {
-    "Picking":   ["Picking Balda", "Picking Palletl", "Picking Percha", "Revisión de Picking","Picking Kardex","Picking Recogepedidos","Picking Obsoleto","Inventario","Reposiciones","Traspasos","Recepción  Kardex","Formacion","Compactar","Incidencias","Varios IT","Varios Trigo","Lanzar pedidos","Reuniones","Otros"],
-    "Packing":   ["Mecado Piscina", "Mercado Contenedor", "Tienda Etiquetado", "Wholesale", "Tienda RFID", "Tienda Empleado y Otros", "Materiales", "Runner","Formacion","incidencias","Reuniones","Otros","Admin"],
-    "Inbound":   ["Muelle", "Rec Pallet", "Rec balda", "Rec Percha", "Rec Zapatos", "Rec Trigo", "Devoluciones", "Compactar","Recepción Kardex", "Materiales","Formacion","incidencias","Reuniones","Otros","Admin"],
-    "Shipping":  ["COURIER (UPS, DHL EXPRESS, FEDEX) preparacion carga (ETIQUETAR Y REUBICAR)", "Courier Carga (escane+carga)", "FW preparación carga", "FW carga", "FW carga", "SERWELL carga", "Devoluciones""Formacion","incidencias","Reuniones","Inventario","Otros"],
-    "Ecommerce": ["Empaquetado", "Runner", "Store RQ Tiendo","Store RQ Tiendas","Calidad Devo","Calidad OneStock","Calidad Gestion","Calidad Otro","Formacion","Actividad","Limpieza","Otros","Reuniones",],
+    "Picking":   ["Picking RF", "Picking Manual", "Picking Lote", "Revisión de Picking"],
+    "Packing":   ["Embalaje Estándar", "Embalaje Frágil", "Etiquetado", "Precintado"],
+    "Inbound":   ["Recepción de mercancía", "Desconsolidación", "Control de calidad", "Ubicación en estantería"],
+    "Shipping":  ["Carga de camión", "Validación de albaranes", "Expedición urgente"],
+    "Ecommerce": ["Preparación de pedidos B2C", "Gestión de devoluciones", "Embalaje especial E-commerce"],
 }
 
 with SessionLocal() as session:
@@ -174,7 +185,7 @@ with SessionLocal() as session:
 
 # ==================== APP ====================
 
-app = FastAPI(title="API Registro de Tareas", version="10.0.0")
+app = FastAPI(title="API Registro de Tareas", version="11.0.0")
 
 ALLOWED_ORIGINS = [
     "https://proyecto-horas.onrender.com",
@@ -292,6 +303,20 @@ class ConfiguracionRespuesta(BaseModel):
     class Config:
         from_attributes = True
 
+class UnidadesRegistroCreate(BaseModel):
+    fecha: date
+    usuario: str
+    tarea: str
+    subtarea: str
+    unidades: int
+
+class UnidadesRegistroRespuesta(UnidadesRegistroCreate):
+    id: int
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+    class Config:
+        from_attributes = True
+
 def get_db():
     db = SessionLocal()
     try:
@@ -300,7 +325,9 @@ def get_db():
         db.close()
 
 def get_minutos_jornada(db: Session) -> int:
-    config = db.query(ConfiguracionDB).filter(ConfiguracionDB.clave == "minutos_jornada").first()
+    config = db.query(ConfiguracionDB).filter(
+        ConfiguracionDB.clave == "minutos_jornada"
+    ).first()
     return int(config.valor) if config else 480
 # ==================== RUTAS GENERALES ====================
 
@@ -322,7 +349,12 @@ def login(datos: LoginRequest, db: Session = Depends(get_db)):
     ).first()
     if not usuario:
         raise HTTPException(status_code=401, detail="Código o PIN incorrectos")
-    return {"id": usuario.id, "codigo": usuario.codigo, "nombre": usuario.nombre, "rol": usuario.rol}
+    return {
+        "id": usuario.id,
+        "codigo": usuario.codigo,
+        "nombre": usuario.nombre,
+        "rol": usuario.rol
+    }
 
 # ==================== USUARIOS ====================
 
@@ -391,7 +423,11 @@ def eliminar_tarea(id: int, db: Session = Depends(get_db)):
 # ==================== SUBTAREAS ====================
 
 @app.get("/subtareas/", response_model=List[SubtareaRespuesta])
-def obtener_subtareas(tarea_nombre: Optional[str] = None, solo_activas: bool = True, db: Session = Depends(get_db)):
+def obtener_subtareas(
+    tarea_nombre: Optional[str] = None,
+    solo_activas: bool = True,
+    db: Session = Depends(get_db)
+):
     query = db.query(SubtareaDB)
     if tarea_nombre:
         query = query.filter(SubtareaDB.tarea_nombre == tarea_nombre)
@@ -438,7 +474,11 @@ def obtener_configuracion(db: Session = Depends(get_db)):
     return db.query(ConfiguracionDB).all()
 
 @app.put("/configuracion/{clave}", response_model=ConfiguracionRespuesta)
-def actualizar_configuracion(clave: str, datos: ConfiguracionUpdate, db: Session = Depends(get_db)):
+def actualizar_configuracion(
+    clave: str,
+    datos: ConfiguracionUpdate,
+    db: Session = Depends(get_db)
+):
     config = db.query(ConfiguracionDB).filter(ConfiguracionDB.clave == clave).first()
     if not config:
         raise HTTPException(status_code=404, detail="Configuración no encontrada")
@@ -609,7 +649,11 @@ def eliminar_registro(id: int, db: Session = Depends(get_db)):
     db.commit()
 
 @app.post("/registros/{id}/duplicar", response_model=RegistroTareaRespuesta, status_code=201)
-def duplicar_registro(id: int, nueva_fecha: Optional[date] = None, db: Session = Depends(get_db)):
+def duplicar_registro(
+    id: int,
+    nueva_fecha: Optional[date] = None,
+    db: Session = Depends(get_db)
+):
     minutos_jornada = get_minutos_jornada(db)
     original = db.query(RegistroDB).filter(RegistroDB.id == id).first()
     if not original:
@@ -786,7 +830,8 @@ def obtener_metricas(
     for v in volumenes:
         horas_reales = sum(
             r.tiempo_minutos for r in registros
-            if str(r.fecha) == str(v.fecha) and r.tarea_principal == v.tarea_principal
+            if str(r.fecha) == str(v.fecha)
+            and r.tarea_principal == v.tarea_principal
         ) / 60
         eficiencia = round((v.horas_teoricas / horas_reales) * 100, 1) if horas_reales > 0 else None
         uds_hora_real = round(v.unidades / horas_reales, 1) if horas_reales > 0 else None
@@ -865,7 +910,11 @@ def top_tareas(
             "minutos_totales": v["minutos"],
             "media_minutos": round(v["minutos"] / v["count"], 1)
         }
-        for k, v in sorted(por_tarea.items(), key=lambda x: x[1]["minutos"], reverse=True)[:10]
+        for k, v in sorted(
+            por_tarea.items(),
+            key=lambda x: x[1]["minutos"],
+            reverse=True
+        )[:10]
     ]
 
 @app.get("/estadisticas/media-por-tarea/")
@@ -1026,7 +1075,9 @@ def alertas_rendimiento(db: Session = Depends(get_db)):
     for u in usuarios:
         mins_hoy = sum(r.tiempo_minutos for r in registros_hoy if r.usuario == u.codigo)
         mins_semana = sum(r.tiempo_minutos for r in registros_semana if r.usuario == u.codigo)
-        dias_activo_semana = len(set(str(r.fecha) for r in registros_semana if r.usuario == u.codigo))
+        dias_activo_semana = len(set(
+            str(r.fecha) for r in registros_semana if r.usuario == u.codigo
+        ))
         pct_hoy = round((mins_hoy / minutos_jornada) * 100, 1)
         pct_semana = round((mins_semana / (5 * minutos_jornada)) * 100, 1)
         if u.codigo not in usuarios_con_actividad_hoy:
@@ -1060,7 +1111,8 @@ def alertas_rendimiento(db: Session = Depends(get_db)):
     for v in volumenes:
         horas_reales = sum(
             r.tiempo_minutos for r in registros_semana
-            if str(r.fecha) == str(v.fecha) and r.tarea_principal == v.tarea_principal
+            if str(r.fecha) == str(v.fecha)
+            and r.tarea_principal == v.tarea_principal
         ) / 60
         if horas_reales > 0:
             eficiencia = round((v.horas_teoricas / horas_reales) * 100, 1)
@@ -1118,6 +1170,202 @@ def objetivo_vs_real(
             "registros": datos["count"]
         })
     return sorted(resultado, key=lambda x: x["horas_reales"], reverse=True)
+# ==================== UNIDADES & RENDIMIENTO POR USUARIO ====================
+
+@app.get("/unidades/plantilla-excel/")
+def descargar_plantilla_excel():
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Unidades"
+    HEADER_FILL = PatternFill("solid", fgColor="1e293b")
+    HEADER_FONT = Font(bold=True, color="FFFFFF")
+    HEADER_ALIGN = Alignment(horizontal="center")
+    headers = ["Fecha", "Usuario", "Tarea", "Subtarea", "Unidades"]
+    ws.append(headers)
+    for cell in ws[1]:
+        cell.font = HEADER_FONT
+        cell.fill = HEADER_FILL
+        cell.alignment = HEADER_ALIGN
+    ejemplos = [
+        ["2024-01-15", "EMP001", "Picking", "Picking RF", 250],
+        ["2024-01-15", "EMP002", "Packing", "Embalaje Estándar", 180],
+        ["2024-01-16", "EMP001", "Picking", "Picking Manual", 310],
+    ]
+    for fila in ejemplos:
+        ws.append(fila)
+    for col in ws.columns:
+        max_length = max(len(str(cell.value or "")) for cell in col)
+        ws.column_dimensions[col[0].column_letter].width = min(max_length + 4, 40)
+    output = io.BytesIO()
+    wb.save(output)
+    output.seek(0)
+    return StreamingResponse(
+        output,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": "attachment; filename=plantilla_unidades.xlsx"}
+    )
+
+@app.post("/unidades/importar/")
+async def importar_unidades_archivo(
+    archivo: UploadFile = File(...),
+    db: Session = Depends(get_db)
+):
+    contenido = await archivo.read()
+    nombre = archivo.filename.lower()
+    filas = []
+    errores = []
+
+    try:
+        if nombre.endswith(".xlsx"):
+            wb = openpyxl.load_workbook(io.BytesIO(contenido))
+            ws = wb.active
+            headers = [
+                str(cell.value).strip().lower() if cell.value else ""
+                for cell in ws[1]
+            ]
+            for i, row in enumerate(ws.iter_rows(min_row=2, values_only=True), start=2):
+                if not any(row):
+                    continue
+                try:
+                    fila = dict(zip(headers, row))
+                    filas.append({
+                        "fecha": date.fromisoformat(str(fila.get("fecha", "")).strip()),
+                        "usuario": str(fila.get("usuario", "")).strip(),
+                        "tarea": str(fila.get("tarea", "")).strip(),
+                        "subtarea": str(fila.get("subtarea", "")).strip(),
+                        "unidades": int(fila.get("unidades", 0))
+                    })
+                except Exception as e:
+                    errores.append(f"Fila {i}: {str(e)}")
+
+        elif nombre.endswith(".csv"):
+            texto = contenido.decode("utf-8-sig")
+            reader = csv.DictReader(io.StringIO(texto))
+            for i, row in enumerate(reader, start=2):
+                try:
+                    row = {k.strip().lower(): v.strip() for k, v in row.items()}
+                    filas.append({
+                        "fecha": date.fromisoformat(row.get("fecha", "").strip()),
+                        "usuario": row.get("usuario", "").strip(),
+                        "tarea": row.get("tarea", "").strip(),
+                        "subtarea": row.get("subtarea", "").strip(),
+                        "unidades": int(row.get("unidades", 0))
+                    })
+                except Exception as e:
+                    errores.append(f"Fila {i}: {str(e)}")
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail="Formato no soportado. Usa .xlsx o .csv"
+            )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error leyendo el archivo: {str(e)}")
+
+    importadas = 0
+    for f in filas:
+        try:
+            existente = db.query(UnidadesRegistroDB).filter(
+                UnidadesRegistroDB.fecha == f["fecha"],
+                UnidadesRegistroDB.usuario == f["usuario"],
+                UnidadesRegistroDB.subtarea == f["subtarea"]
+            ).first()
+            if existente:
+                existente.unidades = f["unidades"]
+                existente.tarea = f["tarea"]
+                existente.updated_at = datetime.utcnow()
+            else:
+                db.add(UnidadesRegistroDB(**f))
+            importadas += 1
+        except Exception as e:
+            errores.append(f"Error guardando fila {f}: {str(e)}")
+    db.commit()
+
+    return {
+        "importadas": importadas,
+        "errores": len(errores),
+        "detalle_errores": errores
+    }
+
+@app.get("/unidades/")
+def obtener_unidades(
+    desde: Optional[date] = None,
+    hasta: Optional[date] = None,
+    usuario: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    query = db.query(UnidadesRegistroDB)
+    if desde:
+        query = query.filter(UnidadesRegistroDB.fecha >= desde)
+    if hasta:
+        query = query.filter(UnidadesRegistroDB.fecha <= hasta)
+    if usuario:
+        query = query.filter(UnidadesRegistroDB.usuario == usuario)
+    return query.order_by(UnidadesRegistroDB.fecha.desc()).all()
+
+@app.get("/unidades/rendimiento/")
+def rendimiento_por_usuario(
+    desde: Optional[date] = None,
+    hasta: Optional[date] = None,
+    usuario: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    if not desde:
+        desde = date.today() - timedelta(days=7)
+    if not hasta:
+        hasta = date.today()
+
+    query_uni = db.query(UnidadesRegistroDB).filter(
+        UnidadesRegistroDB.fecha >= desde,
+        UnidadesRegistroDB.fecha <= hasta
+    )
+    if usuario:
+        query_uni = query_uni.filter(UnidadesRegistroDB.usuario == usuario)
+    unidades = query_uni.all()
+
+    query_reg = db.query(RegistroDB).filter(
+        RegistroDB.fecha >= desde,
+        RegistroDB.fecha <= hasta
+    )
+    if usuario:
+        query_reg = query_reg.filter(RegistroDB.usuario == usuario)
+    registros = query_reg.all()
+
+    objetivos = {o.tarea_principal: o for o in db.query(ObjetivoDB).all()}
+    usuarios_db = {u.codigo: u.nombre for u in db.query(UsuarioDB).all()}
+
+    resultado = []
+    for u in unidades:
+        horas_reales = sum(
+            r.tiempo_minutos for r in registros
+            if r.usuario == u.usuario
+            and str(r.fecha) == str(u.fecha)
+            and r.tarea_principal == u.tarea
+            and r.subtarea == u.subtarea
+        ) / 60
+        obj = objetivos.get(u.tarea)
+        uds_hora_objetivo = obj.uds_hora if obj else None
+        uds_hora_real = round(u.unidades / horas_reales, 1) if horas_reales > 0 else None
+        pct_rendimiento = round(
+            (uds_hora_real / uds_hora_objetivo) * 100, 1
+        ) if uds_hora_real and uds_hora_objetivo else None
+
+        resultado.append({
+            "fecha": str(u.fecha),
+            "usuario": u.usuario,
+            "nombre": usuarios_db.get(u.usuario, u.usuario),
+            "tarea": u.tarea,
+            "subtarea": u.subtarea,
+            "unidades": u.unidades,
+            "horas_reales": round(horas_reales, 2),
+            "uds_hora_real": uds_hora_real,
+            "uds_hora_objetivo": uds_hora_objetivo,
+            "pct_rendimiento": pct_rendimiento
+        })
+
+    return sorted(resultado, key=lambda x: (x["fecha"], x["usuario"]), reverse=True)
+
 # ==================== EXCEL ====================
 
 @app.get("/exportar-excel/")
@@ -1279,7 +1527,8 @@ def exportar_excel(
     for v in volumenes:
         horas_reales = sum(
             r.tiempo_minutos for r in todos_registros
-            if str(r.fecha) == str(v.fecha) and r.tarea_principal == v.tarea_principal
+            if str(r.fecha) == str(v.fecha)
+            and r.tarea_principal == v.tarea_principal
         ) / 60
         eficiencia = round((v.horas_teoricas / horas_reales) * 100, 1) if horas_reales > 0 else 0
         uds_real = round(v.unidades / horas_reales, 1) if horas_reales > 0 else 0
@@ -1309,6 +1558,47 @@ def exportar_excel(
             pct_periodo, round((dias / max(dias_unicos, 1)) * 100, 1), media
         ])
     autoajustar(ws6)
+
+    # ---- HOJA 7: Rendimiento por Usuario ----
+    ws7 = wb.create_sheet("Rendimiento por Usuario")
+    ws7.append([
+        "Fecha", "Usuario", "Nombre", "Tarea", "Subtarea",
+        "Unidades", "Horas Reales", "Uds/Hora Real",
+        "Uds/Hora Objetivo", "% Rendimiento"
+    ])
+    estilo_cabecera(ws7)
+    unidades_all = db.query(UnidadesRegistroDB).order_by(
+        UnidadesRegistroDB.fecha.desc()
+    ).all()
+    objetivos_all = {o.tarea_principal: o for o in db.query(ObjetivoDB).all()}
+    usuarios_nombres = {u.codigo: u.nombre for u in db.query(UsuarioDB).all()}
+    for u in unidades_all:
+        horas_r = sum(
+            r.tiempo_minutos for r in todos_registros
+            if r.usuario == u.usuario
+            and str(r.fecha) == str(u.fecha)
+            and r.tarea_principal == u.tarea
+            and r.subtarea == u.subtarea
+        ) / 60
+        obj = objetivos_all.get(u.tarea)
+        uds_hora_obj = obj.uds_hora if obj else None
+        uds_hora_r = round(u.unidades / horas_r, 1) if horas_r > 0 else None
+        pct_rend = round(
+            (uds_hora_r / uds_hora_obj) * 100, 1
+        ) if uds_hora_r and uds_hora_obj else None
+        ws7.append([
+            str(u.fecha),
+            u.usuario,
+            usuarios_nombres.get(u.usuario, u.usuario),
+            u.tarea,
+            u.subtarea,
+            u.unidades,
+            round(horas_r, 2),
+            uds_hora_r or 0,
+            uds_hora_obj or 0,
+            pct_rend or 0
+        ])
+    autoajustar(ws7)
 
     output = io.BytesIO()
     wb.save(output)
