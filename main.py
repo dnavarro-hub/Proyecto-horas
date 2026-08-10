@@ -1710,11 +1710,12 @@ def objetivo_vs_real(
     response_model=List[UnidadRespuesta]
 )
 def obtener_unidades(
-    desde   : Optional[date] = None,
-    hasta   : Optional[date] = None,
-    usuario : Optional[str]  = None,
-    tarea   : Optional[str]  = None,
-    db      : Session = Depends(get_db)
+    desde    : Optional[date] = None,
+    hasta    : Optional[date] = None,
+    usuario  : Optional[str]  = None,
+    tarea    : Optional[str]  = None,
+    subtarea : Optional[str]  = None,
+    db       : Session = Depends(get_db)
 ):
     query = db.query(UnidadDB)
     if desde:
@@ -1726,6 +1727,10 @@ def obtener_unidades(
     if tarea:
         query = query.filter(
             UnidadDB.tarea_principal == tarea
+        )
+    if subtarea:
+        query = query.filter(
+            UnidadDB.subtarea == subtarea
         )
     return query.order_by(UnidadDB.fecha.desc()).all()
 
@@ -1901,10 +1906,11 @@ def plantilla_excel_unidades():
 
 @app.get("/unidades/rendimiento/")
 def rendimiento_unidades(
-    desde   : Optional[date] = None,
-    hasta   : Optional[date] = None,
-    usuario : Optional[str]  = None,
-    db      : Session = Depends(get_db)
+    desde    : Optional[date] = None,
+    hasta    : Optional[date] = None,
+    usuario  : Optional[str]  = None,
+    subtarea : Optional[str]  = None,
+    db       : Session = Depends(get_db)
 ):
     if not desde:
         desde = date.today() - timedelta(days=30)
@@ -1919,6 +1925,10 @@ def rendimiento_unidades(
         query_u = query_u.filter(
             UnidadDB.usuario == usuario
         )
+    if subtarea:
+        query_u = query_u.filter(
+            UnidadDB.subtarea == subtarea
+        )
     unidades = query_u.all()
 
     query_r = db.query(RegistroDB).filter(
@@ -1929,6 +1939,10 @@ def rendimiento_unidades(
         query_r = query_r.filter(
             RegistroDB.usuario == usuario
         )
+    if subtarea:
+        query_r = query_r.filter(
+            RegistroDB.subtarea == subtarea
+        )
     registros = query_r.all()
     objetivos = {
         o.tarea_principal: o
@@ -1937,7 +1951,7 @@ def rendimiento_unidades(
 
     agrupado: dict = {}
     for u in unidades:
-        clave = (u.usuario, u.tarea_principal)
+        clave = (u.usuario, u.tarea_principal, u.subtarea)
         if clave not in agrupado:
             agrupado[clave] = {
                 "unidades": 0, "minutos": 0
@@ -1945,7 +1959,7 @@ def rendimiento_unidades(
         agrupado[clave]["unidades"] += u.unidades
 
     for r in registros:
-        clave = (r.usuario, r.tarea_principal)
+        clave = (r.usuario, r.tarea_principal, r.subtarea)
         if clave not in agrupado:
             agrupado[clave] = {
                 "unidades": 0, "minutos": 0
@@ -1953,7 +1967,7 @@ def rendimiento_unidades(
         agrupado[clave]["minutos"] += r.tiempo_minutos
 
     resultado = []
-    for (usu, tarea), datos in agrupado.items():
+    for (usu, tarea, sub), datos in agrupado.items():
         horas_reales  = round(datos["minutos"] / 60, 2)
         uds_hora_real = (
             round(datos["unidades"] / horas_reales, 1)
@@ -1970,6 +1984,7 @@ def rendimiento_unidades(
         resultado.append({
             "usuario"        : usu,
             "tarea_principal": tarea,
+            "subtarea"       : sub,
             "unidades_total" : datos["unidades"],
             "horas_reales"   : horas_reales,
             "uds_hora_real"  : uds_hora_real,
@@ -2138,7 +2153,7 @@ def exportar_excel(
     # Hoja 4: Unidades y Productividad
     ws4       = wb.create_sheet("Unidades Productividad")
     ws4.append([
-        "Usuario", "Tarea", "Unidades Total",
+        "Usuario", "Tarea", "Subtarea", "Unidades Total",
         "Horas Reales", "Uds/Hora Real",
         "Uds/Hora Objetivo", "% vs Objetivo"
     ])
@@ -2151,6 +2166,7 @@ def exportar_excel(
         ws4.append([
             row["usuario"],
             row["tarea_principal"],
+            row["subtarea"] or "",
             row["unidades_total"],
             row["horas_reales"],
             row["uds_hora_real"]  or 0,
@@ -2176,10 +2192,10 @@ def exportar_excel(
         }
     )
 
+
 # ==================== ARRANQUE ====================
 
 if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 8000))
     uvicorn.run("main:app", host="0.0.0.0", port=port)
-
