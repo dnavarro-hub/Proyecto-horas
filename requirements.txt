@@ -1,8 +1,5 @@
 fastapi
 uvicorn
 sqlalchemy
-psycopg2-binary
-pydantic
-pandas
 openpyxl
-python-multipart
+pydantic
