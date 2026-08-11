@@ -1,9 +1,9 @@
 from datetime import date, timedelta
 from typing import List, Optional
-from fastapi import FastAPI, HTTPException, Depends, UploadFile, File
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.responses import StreamingResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, validator
+from pydantic import BaseModel
 from sqlalchemy import create_engine, Column, Integer, String, Date, DateTime, Float, Boolean
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
@@ -83,8 +83,7 @@ class VolumenDB(Base):
 class ObjetivoDB(Base):
     __tablename__ = "objetivos"
     id              = Column(Integer, primary_key=True, index=True)
-    tarea_principal = Column(String, index=True)
-    subtarea        = Column(String, nullable=True)
+    tarea_principal = Column(String, unique=True, index=True)
     uds_hora        = Column(Float)
     horas_jornada   = Column(Float, default=8.0)
     updated_at      = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -113,20 +112,7 @@ class SubtareaDB(Base):
     activa          = Column(Boolean, default=True)
     created_at      = Column(DateTime, default=datetime.utcnow)
 
-# NUEVO: Modelo para productividad por Excel
-class ProductividadExcelDB(Base):
-    __tablename__ = "productividad_excel"
-    id              = Column(Integer, primary_key=True, index=True)
-    fecha           = Column(Date, index=True)
-    usuario         = Column(String, index=True)
-    tarea_principal = Column(String, index=True)
-    subtarea        = Column(String, index=True)
-    unidades        = Column(Integer)
-    subido_por      = Column(String)
-    created_at      = Column(DateTime, default=datetime.utcnow)
-
 Base.metadata.create_all(bind=engine)
-
 # ==================== INICIALIZACIÓN DE DATOS ====================
 
 TAREAS_DEFAULT = [
@@ -138,22 +124,11 @@ TAREAS_DEFAULT = [
 ]
 
 SUBTAREAS_DEFAULT = {
-    "Picking":   ["Picking Balda","Picking Palletl","Picking Percha","Revisión de Picking",
-                  "Picking Kardex","Picking Recogepedidos","Picking Obsoleto","Inventario",
-                  "Reposiciones","Traspasos","Recepción Kardex","Formacion","Compactar",
-                  "Incidencias","Varios IT","Varios Trigo","Lanzar pedidos","Reuniones","Otros"],
-    "Packing":   ["Mecado Piscina","Mercado Contenedor","Tienda Etiquetado","Wholesale",
-                  "Tienda RFID","Tienda Empleado y Otros","Materiales","Runner","Formacion",
-                  "incidencias","Reuniones","Otros","Admin"],
-    "Inbound":   ["Muelle","Rec Pallet","Rec balda","Rec Percha","Rec Zapatos","Rec Trigo",
-                  "Devoluciones","Compactar","Recepción Kardex","Materiales","Formacion",
-                  "incidencias","Reuniones","Otros","Admin"],
-    "Shipping":  ["COURIER preparacion carga","Courier Carga","FW preparación carga",
-                  "FW carga","SERWELL carga","Devoluciones","Formacion","incidencias",
-                  "Reuniones","Inventario","Otros"],
-    "Ecommerce": ["Empaquetado","Runner","Store RQ Tienda","Calidad Devo","Calidad OneStock",
-                  "Calidad Gestion","Calidad Otro","Formacion","Actividad","Limpieza",
-                  "Otros","Reuniones"],
+    "Picking":   ["Picking Balda", "Picking Palletl", "Picking Percha", "Revisión de Picking","Picking Kardex","Picking Recogepedidos","Picking Obsoleto","Inventario","Reposiciones","Traspasos","Recepción  Kardex","Formacion","Compactar","Incidencias","Varios IT","Varios Trigo","Lanzar pedidos","Reuniones","Otros"],
+    "Packing":   ["Mecado Piscina", "Mercado Contenedor", "Tienda Etiquetado", "Wholesale", "Tienda RFID", "Tienda Empleado y Otros", "Materiales", "Runner","Formacion","incidencias","Reuniones","Otros","Admin"],
+    "Inbound":   ["Muelle", "Rec Pallet", "Rec balda", "Rec Percha", "Rec Zapatos", "Rec Trigo", "Devoluciones", "Compactar","Recepción Kardex", "Materiales","Formacion","incidencias","Reuniones","Otros","Admin"],
+    "Shipping":  ["COURIER (UPS, DHL EXPRESS, FEDEX) preparacion carga (ETIQUETAR Y REUBICAR)", "Courier Carga (escane+carga)", "FW preparación carga", "FW carga", "FW carga", "SERWELL carga", "Devoluciones""Formacion","incidencias","Reuniones","Inventario","Otros"],
+    "Ecommerce": ["Empaquetado", "Runner", "Store RQ Tiendo","Store RQ Tiendas","Calidad Devo","Calidad OneStock","Calidad Gestion","Calidad Otro","Formacion","Actividad","Limpieza","Otros","Reuniones",],
 }
 
 with SessionLocal() as session:
@@ -169,16 +144,8 @@ with SessionLocal() as session:
 
     # Objetivos por defecto
     for t in TAREAS_DEFAULT:
-        if not session.query(ObjetivoDB).filter(
-            ObjetivoDB.tarea_principal == t["nombre"],
-            ObjetivoDB.subtarea == None
-        ).first():
-            session.add(ObjetivoDB(
-                tarea_principal=t["nombre"],
-                subtarea=None,
-                uds_hora=100.0,
-                horas_jornada=8.0
-            ))
+        if not session.query(ObjetivoDB).filter(ObjetivoDB.tarea_principal == t["nombre"]).first():
+            session.add(ObjetivoDB(tarea_principal=t["nombre"], uds_hora=100.0, horas_jornada=8.0))
 
     # Tareas por defecto
     for t in TAREAS_DEFAULT:
@@ -195,9 +162,7 @@ with SessionLocal() as session:
                 session.add(SubtareaDB(tarea_nombre=tarea_nombre, nombre=sub, activa=True))
 
     # Configuración por defecto
-    if not session.query(ConfiguracionDB).filter(
-        ConfiguracionDB.clave == "minutos_jornada"
-    ).first():
+    if not session.query(ConfiguracionDB).filter(ConfiguracionDB.clave == "minutos_jornada").first():
         session.add(ConfiguracionDB(
             clave="minutos_jornada",
             valor="480",
@@ -205,9 +170,10 @@ with SessionLocal() as session:
         ))
 
     session.commit()
+
 # ==================== APP ====================
 
-app = FastAPI(title="API Registro de Tareas", version="11.0.0")
+app = FastAPI(title="API Registro de Tareas", version="10.0.0")
 
 ALLOWED_ORIGINS = [
     "https://proyecto-horas.onrender.com",
@@ -217,8 +183,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE"],
-    allow_headers=["Content-Type", "Authorization"],
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # ==================== SCHEMAS ====================
@@ -232,20 +198,6 @@ class RegistroTarea(BaseModel):
     proyecto: Optional[str] = None
     comentarios: Optional[str] = None
 
-    @validator("tiempo_minutos")
-    def validar_tiempo(cls, v):
-        if v <= 0:
-            raise ValueError("El tiempo debe ser mayor que 0")
-        if v > 720:
-            raise ValueError("El tiempo no puede superar 720 minutos")
-        return v
-
-    @validator("fecha")
-    def validar_fecha(cls, v):
-        if v > date.today():
-            raise ValueError("La fecha no puede ser futura")
-        return v
-
 class RegistroTareaRespuesta(RegistroTarea):
     id: int
     created_at: Optional[datetime] = None
@@ -258,18 +210,6 @@ class UsuarioCreate(BaseModel):
     nombre: str
     pin: str
     rol: str = "operario"
-
-    @validator("pin")
-    def validar_pin(cls, v):
-        if len(v) < 4:
-            raise ValueError("El PIN debe tener al menos 4 caracteres")
-        return v
-
-    @validator("rol")
-    def validar_rol(cls, v):
-        if v not in ["operario", "supervisor"]:
-            raise ValueError("Rol no válido")
-        return v
 
 class UsuarioRespuesta(BaseModel):
     id: int
@@ -303,18 +243,6 @@ class VolumenCreate(BaseModel):
     creado_por: str
     comentarios: Optional[str] = None
 
-    @validator("unidades")
-    def validar_unidades(cls, v):
-        if v <= 0:
-            raise ValueError("Las unidades deben ser mayores que 0")
-        return v
-
-    @validator("horas_teoricas")
-    def validar_horas(cls, v):
-        if v <= 0:
-            raise ValueError("Las horas teóricas deben ser mayores que 0")
-        return v
-
 class VolumenRespuesta(VolumenCreate):
     id: int
     created_at: Optional[datetime] = None
@@ -324,15 +252,8 @@ class VolumenRespuesta(VolumenCreate):
 
 class ObjetivoCreate(BaseModel):
     tarea_principal: str
-    subtarea: Optional[str] = None
     uds_hora: float
     horas_jornada: float = 8.0
-
-    @validator("uds_hora")
-    def validar_uds_hora(cls, v):
-        if v <= 0:
-            raise ValueError("Las unidades por hora deben ser mayores que 0")
-        return v
 
 class ObjetivoRespuesta(ObjetivoCreate):
     id: int
@@ -370,33 +291,6 @@ class ConfiguracionRespuesta(BaseModel):
     class Config:
         from_attributes = True
 
-# NUEVO: Schema productividad Excel
-class ProductividadExcelRespuesta(BaseModel):
-    id: int
-    fecha: date
-    usuario: str
-    tarea_principal: str
-    subtarea: str
-    unidades: int
-    subido_por: str
-    created_at: Optional[datetime] = None
-    class Config:
-        from_attributes = True
-
-class ProductividadCalculada(BaseModel):
-    usuario: str
-    fecha: date
-    tarea_principal: str
-    subtarea: str
-    unidades: int
-    minutos_reales: int
-    horas_reales: float
-    uds_hora_real: Optional[float]
-    uds_hora_objetivo: Optional[float]
-    eficiencia_pct: Optional[float]
-
-# ==================== DEPENDENCIAS ====================
-
 def get_db():
     db = SessionLocal()
     try:
@@ -405,18 +299,8 @@ def get_db():
         db.close()
 
 def get_minutos_jornada(db: Session) -> int:
-    config = db.query(ConfiguracionDB).filter(
-        ConfiguracionDB.clave == "minutos_jornada"
-    ).first()
+    config = db.query(ConfiguracionDB).filter(ConfiguracionDB.clave == "minutos_jornada").first()
     return int(config.valor) if config else 480
-
-def validar_rango_fechas(desde: date, hasta: date):
-    if hasta < desde:
-        raise HTTPException(
-            status_code=400,
-            detail="La fecha 'hasta' no puede ser anterior a 'desde'"
-        )
-
 # ==================== RUTAS GENERALES ====================
 
 @app.get("/")
@@ -437,12 +321,7 @@ def login(datos: LoginRequest, db: Session = Depends(get_db)):
     ).first()
     if not usuario:
         raise HTTPException(status_code=401, detail="Código o PIN incorrectos")
-    return {
-        "id": usuario.id,
-        "codigo": usuario.codigo,
-        "nombre": usuario.nombre,
-        "rol": usuario.rol
-    }
+    return {"id": usuario.id, "codigo": usuario.codigo, "nombre": usuario.nombre, "rol": usuario.rol}
 
 # ==================== USUARIOS ====================
 
@@ -511,11 +390,7 @@ def eliminar_tarea(id: int, db: Session = Depends(get_db)):
 # ==================== SUBTAREAS ====================
 
 @app.get("/subtareas/", response_model=List[SubtareaRespuesta])
-def obtener_subtareas(
-    tarea_nombre: Optional[str] = None,
-    solo_activas: bool = True,
-    db: Session = Depends(get_db)
-):
+def obtener_subtareas(tarea_nombre: Optional[str] = None, solo_activas: bool = True, db: Session = Depends(get_db)):
     query = db.query(SubtareaDB)
     if tarea_nombre:
         query = query.filter(SubtareaDB.tarea_nombre == tarea_nombre)
@@ -562,11 +437,7 @@ def obtener_configuracion(db: Session = Depends(get_db)):
     return db.query(ConfiguracionDB).all()
 
 @app.put("/configuracion/{clave}", response_model=ConfiguracionRespuesta)
-def actualizar_configuracion(
-    clave: str,
-    datos: ConfiguracionUpdate,
-    db: Session = Depends(get_db)
-):
+def actualizar_configuracion(clave: str, datos: ConfiguracionUpdate, db: Session = Depends(get_db)):
     config = db.query(ConfiguracionDB).filter(ConfiguracionDB.clave == clave).first()
     if not config:
         raise HTTPException(status_code=404, detail="Configuración no encontrada")
@@ -588,8 +459,7 @@ def crear_registro(registro: RegistroTarea, db: Session = Depends(get_db)):
     if total_mins + registro.tiempo_minutos > minutos_jornada:
         raise HTTPException(
             status_code=400,
-            detail=f"No se pueden superar {minutos_jornada} minutos. "
-                   f"Minutos ya registrados: {total_mins}"
+            detail=f"No se pueden superar {minutos_jornada} minutos. Minutos ya registrados: {total_mins}"
         )
     nuevo = RegistroDB(**registro.dict())
     db.add(nuevo)
@@ -598,18 +468,8 @@ def crear_registro(registro: RegistroTarea, db: Session = Depends(get_db)):
     return nuevo
 
 @app.get("/registros/", response_model=List[RegistroTareaRespuesta])
-def obtener_registros(
-    skip: int = 0,
-    limit: int = 200,
-    db: Session = Depends(get_db)
-):
-    return (
-        db.query(RegistroDB)
-        .order_by(RegistroDB.fecha.desc())
-        .offset(skip)
-        .limit(limit)
-        .all()
-    )
+def obtener_registros(db: Session = Depends(get_db)):
+    return db.query(RegistroDB).order_by(RegistroDB.fecha.desc()).all()
 
 @app.get("/registros/rango/", response_model=List[RegistroTareaRespuesta])
 def obtener_registros_rango(
@@ -619,7 +479,6 @@ def obtener_registros_rango(
     tarea: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
-    validar_rango_fechas(desde, hasta)
     query = db.query(RegistroDB).filter(
         RegistroDB.fecha >= desde,
         RegistroDB.fecha <= hasta
@@ -706,8 +565,6 @@ def obtener_registros_por_usuario(
     hasta: Optional[date] = None,
     db: Session = Depends(get_db)
 ):
-    if desde and hasta:
-        validar_rango_fechas(desde, hasta)
     query = db.query(RegistroDB).filter(RegistroDB.usuario.ilike(usuario))
     if desde:
         query = query.filter(RegistroDB.fecha >= desde)
@@ -733,8 +590,7 @@ def editar_registro(id: int, registro: RegistroTarea, db: Session = Depends(get_
     if total_mins + registro.tiempo_minutos > minutos_jornada:
         raise HTTPException(
             status_code=400,
-            detail=f"No se pueden superar {minutos_jornada} minutos. "
-                   f"Minutos ya registrados: {total_mins}"
+            detail=f"No se pueden superar {minutos_jornada} minutos. Minutos ya registrados: {total_mins}"
         )
     for k, v in registro.dict().items():
         setattr(db_reg, k, v)
@@ -752,11 +608,7 @@ def eliminar_registro(id: int, db: Session = Depends(get_db)):
     db.commit()
 
 @app.post("/registros/{id}/duplicar", response_model=RegistroTareaRespuesta, status_code=201)
-def duplicar_registro(
-    id: int,
-    nueva_fecha: Optional[date] = None,
-    db: Session = Depends(get_db)
-):
+def duplicar_registro(id: int, nueva_fecha: Optional[date] = None, db: Session = Depends(get_db)):
     minutos_jornada = get_minutos_jornada(db)
     original = db.query(RegistroDB).filter(RegistroDB.id == id).first()
     if not original:
@@ -770,8 +622,7 @@ def duplicar_registro(
     if total_mins + original.tiempo_minutos > minutos_jornada:
         raise HTTPException(
             status_code=400,
-            detail=f"No se pueden superar {minutos_jornada} minutos. "
-                   f"Minutos ya registrados: {total_mins}"
+            detail=f"No se pueden superar {minutos_jornada} minutos. Minutos ya registrados: {total_mins}"
         )
     nuevo = RegistroDB(
         usuario=original.usuario,
@@ -786,7 +637,6 @@ def duplicar_registro(
     db.commit()
     db.refresh(nuevo)
     return nuevo
-
 # ==================== PLANTILLAS ====================
 
 @app.post("/plantillas/", status_code=201)
@@ -850,19 +700,11 @@ def obtener_objetivos(db: Session = Depends(get_db)):
     return db.query(ObjetivoDB).all()
 
 @app.put("/objetivos/{tarea}", response_model=ObjetivoRespuesta)
-def actualizar_objetivo(
-    tarea: str,
-    objetivo: ObjetivoCreate,
-    db: Session = Depends(get_db)
-):
-    db_obj = db.query(ObjetivoDB).filter(
-        ObjetivoDB.tarea_principal == tarea,
-        ObjetivoDB.subtarea == objetivo.subtarea
-    ).first()
+def actualizar_objetivo(tarea: str, objetivo: ObjetivoCreate, db: Session = Depends(get_db)):
+    db_obj = db.query(ObjetivoDB).filter(ObjetivoDB.tarea_principal == tarea).first()
     if not db_obj:
         db_obj = ObjetivoDB(
             tarea_principal=tarea,
-            subtarea=objetivo.subtarea,
             uds_hora=objetivo.uds_hora,
             horas_jornada=objetivo.horas_jornada
         )
@@ -892,8 +734,6 @@ def obtener_volumenes(
     tarea: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
-    if desde and hasta:
-        validar_rango_fechas(desde, hasta)
     query = db.query(VolumenDB)
     if desde:
         query = query.filter(VolumenDB.fecha >= desde)
@@ -933,7 +773,6 @@ def obtener_metricas(
         desde = date.today() - timedelta(days=30)
     if not hasta:
         hasta = date.today()
-    validar_rango_fechas(desde, hasta)
     volumenes = db.query(VolumenDB).filter(
         VolumenDB.fecha >= desde,
         VolumenDB.fecha <= hasta
@@ -966,356 +805,6 @@ def obtener_metricas(
             "creado_por": v.creado_por
         })
     return sorted(resultado, key=lambda x: x["fecha"], reverse=True)
-
-# ==================== PRODUCTIVIDAD EXCEL ====================
-
-@app.post("/productividad/subir-excel/")
-async def subir_excel_productividad(
-    file: UploadFile = File(...),
-    subido_por: str = "ADMIN",
-    db: Session = Depends(get_db)
-):
-    """
-    Sube un Excel con columnas obligatorias:
-    fecha | operario | tarea | subtarea | unidades
-    Calcula productividad cruzando con horas registradas.
-    """
-    if not file.filename.endswith((".xlsx", ".xls")):
-        raise HTTPException(status_code=400, detail="El fichero debe ser .xlsx o .xls")
-
-    contenido = await file.read()
-    try:
-        df = pd.read_excel(io.BytesIO(contenido))
-    except Exception:
-        raise HTTPException(status_code=400, detail="No se pudo leer el fichero Excel")
-
-    # Normalizar nombres de columnas
-    df.columns = [c.strip().lower() for c in df.columns]
-
-    columnas_requeridas = {"fecha", "operario", "tarea", "subtarea", "unidades"}
-    if not columnas_requeridas.issubset(set(df.columns)):
-        raise HTTPException(
-            status_code=400,
-            detail=f"El Excel debe tener las columnas: {', '.join(columnas_requeridas)}"
-        )
-
-    # Limpiar datos
-    df = df.dropna(subset=["fecha", "operario", "tarea", "subtarea", "unidades"])
-    df["fecha"] = pd.to_datetime(df["fecha"]).dt.date
-    df["unidades"] = pd.to_numeric(df["unidades"], errors="coerce").fillna(0).astype(int)
-    df = df[df["unidades"] > 0]
-
-    insertados = 0
-    errores = []
-
-    for _, fila in df.iterrows():
-        try:
-            # Verificar que el usuario existe
-            usuario_db = db.query(UsuarioDB).filter(
-                UsuarioDB.codigo == str(fila["operario"]).strip()
-            ).first()
-            if not usuario_db:
-                errores.append(f"Operario no encontrado: {fila['operario']}")
-                continue
-
-            nuevo = ProductividadExcelDB(
-                fecha=fila["fecha"],
-                usuario=str(fila["operario"]).strip(),
-                tarea_principal=str(fila["tarea"]).strip(),
-                subtarea=str(fila["subtarea"]).strip(),
-                unidades=int(fila["unidades"]),
-                subido_por=subido_por
-            )
-            db.add(nuevo)
-            insertados += 1
-        except Exception as e:
-            errores.append(f"Fila con error: {str(e)}")
-
-    db.commit()
-
-    return {
-        "insertados": insertados,
-        "errores": errores,
-        "total_filas": len(df),
-        "mensaje": f"{insertados} registros importados correctamente"
-    }
-
-
-@app.get("/productividad/calcular/")
-def calcular_productividad(
-    desde: Optional[date] = None,
-    hasta: Optional[date] = None,
-    usuario: Optional[str] = None,
-    tarea: Optional[str] = None,
-    subtarea: Optional[str] = None,
-    ordenar_por: str = "uds_hora_real",
-    orden: str = "desc",
-    db: Session = Depends(get_db)
-):
-    """
-    Cruza los datos del Excel subido con los registros de horas
-    y calcula productividad por operario/subtarea.
-    Permite ordenar por cualquier campo: uds_hora_real, eficiencia_pct, unidades, horas_reales.
-    orden: 'asc' o 'desc'
-    """
-    if not desde:
-        desde = date.today() - timedelta(days=30)
-    if not hasta:
-        hasta = date.today()
-    validar_rango_fechas(desde, hasta)
-
-    query_excel = db.query(ProductividadExcelDB).filter(
-        ProductividadExcelDB.fecha >= desde,
-        ProductividadExcelDB.fecha <= hasta
-    )
-    if usuario:
-        query_excel = query_excel.filter(ProductividadExcelDB.usuario == usuario)
-    if tarea:
-        query_excel = query_excel.filter(ProductividadExcelDB.tarea_principal == tarea)
-    if subtarea:
-        query_excel = query_excel.filter(ProductividadExcelDB.subtarea == subtarea)
-
-    registros_excel = query_excel.all()
-
-    if not registros_excel:
-        return []
-
-    registros_horas = db.query(RegistroDB).filter(
-        RegistroDB.fecha >= desde,
-        RegistroDB.fecha <= hasta
-    ).all()
-
-    objetivos = {
-        (o.tarea_principal, o.subtarea): o
-        for o in db.query(ObjetivoDB).all()
-    }
-
-    resultado = []
-    for ex in registros_excel:
-        # Minutos reales del operario en esa subtarea y fecha
-        minutos_reales = sum(
-            r.tiempo_minutos for r in registros_horas
-            if (r.usuario == ex.usuario
-                and str(r.fecha) == str(ex.fecha)
-                and r.tarea_principal == ex.tarea_principal
-                and r.subtarea == ex.subtarea)
-        )
-
-        horas_reales = round(minutos_reales / 60, 2) if minutos_reales > 0 else 0
-        uds_hora_real = round(ex.unidades / horas_reales, 1) if horas_reales > 0 else None
-
-        # Buscar objetivo: primero por tarea+subtarea, luego solo por tarea
-        obj = (
-            objetivos.get((ex.tarea_principal, ex.subtarea))
-            or objetivos.get((ex.tarea_principal, None))
-        )
-        uds_hora_objetivo = obj.uds_hora if obj else None
-        eficiencia_pct = (
-            round((uds_hora_real / uds_hora_objetivo) * 100, 1)
-            if uds_hora_real and uds_hora_objetivo
-            else None
-        )
-
-        # Nombre del operario
-        usuario_db = db.query(UsuarioDB).filter(
-            UsuarioDB.codigo == ex.usuario
-        ).first()
-        nombre_operario = usuario_db.nombre if usuario_db else ex.usuario
-
-        resultado.append({
-            "id": ex.id,
-            "usuario": ex.usuario,
-            "nombre_operario": nombre_operario,
-            "fecha": str(ex.fecha),
-            "tarea_principal": ex.tarea_principal,
-            "subtarea": ex.subtarea,
-            "unidades": ex.unidades,
-            "minutos_reales": minutos_reales,
-            "horas_reales": horas_reales,
-            "uds_hora_real": uds_hora_real,
-            "uds_hora_objetivo": uds_hora_objetivo,
-            "eficiencia_pct": eficiencia_pct
-        })
-
-    # Ordenación
-    campos_validos = {"uds_hora_real", "eficiencia_pct", "unidades", "horas_reales", "fecha"}
-    if ordenar_por not in campos_validos:
-        ordenar_por = "uds_hora_real"
-
-    resultado = sorted(
-        resultado,
-        key=lambda x: (x[ordenar_por] is None, x[ordenar_por] or 0),
-        reverse=(orden == "desc")
-    )
-
-    return resultado
-
-
-@app.get("/productividad/resumen/")
-def resumen_productividad(
-    desde: Optional[date] = None,
-    hasta: Optional[date] = None,
-    db: Session = Depends(get_db)
-):
-    """
-    Resumen agregado por operario: total unidades, media uds/hora, eficiencia media.
-    """
-    if not desde:
-        desde = date.today() - timedelta(days=30)
-    if not hasta:
-        hasta = date.today()
-    validar_rango_fechas(desde, hasta)
-
-    detalle = calcular_productividad(
-        desde=desde, hasta=hasta, db=db,
-        ordenar_por="uds_hora_real", orden="desc"
-    )
-
-    resumen = {}
-    for d in detalle:
-        u = d["usuario"]
-        if u not in resumen:
-            resumen[u] = {
-                "usuario": u,
-                "nombre_operario": d["nombre_operario"],
-                "total_unidades": 0,
-                "total_horas": 0,
-                "eficiencias": [],
-                "uds_hora_values": []
-            }
-        resumen[u]["total_unidades"] += d["unidades"]
-        resumen[u]["total_horas"] += d["horas_reales"]
-        if d["eficiencia_pct"] is not None:
-            resumen[u]["eficiencias"].append(d["eficiencia_pct"])
-        if d["uds_hora_real"] is not None:
-            resumen[u]["uds_hora_values"].append(d["uds_hora_real"])
-
-    resultado = []
-    for u, datos in resumen.items():
-        uds_hora_media = (
-            round(sum(datos["uds_hora_values"]) / len(datos["uds_hora_values"]), 1)
-            if datos["uds_hora_values"] else None
-        )
-        eficiencia_media = (
-            round(sum(datos["eficiencias"]) / len(datos["eficiencias"]), 1)
-            if datos["eficiencias"] else None
-        )
-        resultado.append({
-            "usuario": datos["usuario"],
-            "nombre_operario": datos["nombre_operario"],
-            "total_unidades": datos["total_unidades"],
-            "total_horas": round(datos["total_horas"], 2),
-            "uds_hora_media": uds_hora_media,
-            "eficiencia_media_pct": eficiencia_media
-        })
-
-    return sorted(
-        resultado,
-        key=lambda x: (x["uds_hora_media"] is None, x["uds_hora_media"] or 0),
-        reverse=True
-    )
-
-
-@app.delete("/productividad/limpiar/", status_code=204)
-def limpiar_productividad(
-    desde: Optional[date] = None,
-    hasta: Optional[date] = None,
-    db: Session = Depends(get_db)
-):
-    """Elimina registros de productividad Excel en un rango de fechas."""
-    query = db.query(ProductividadExcelDB)
-    if desde:
-        query = query.filter(ProductividadExcelDB.fecha >= desde)
-    if hasta:
-        query = query.filter(ProductividadExcelDB.fecha <= hasta)
-    query.delete()
-    db.commit()
-# Reemplaza la función subir_excel_productividad de la Parte 3 con esta versión:
-
-@app.post("/productividad/subir-excel/")
-async def subir_excel_productividad(
-    file: UploadFile = File(...),
-    subido_por: str = "ADMIN",
-    db: Session = Depends(get_db)
-):
-    """
-    Sube un Excel con columnas obligatorias:
-    fecha | operario | tarea | subtarea | unidades
-    Si ya existe fecha+operario+tarea+subtarea, sobreescribe las unidades.
-    """
-    if not file.filename.endswith((".xlsx", ".xls")):
-        raise HTTPException(status_code=400, detail="El fichero debe ser .xlsx o .xls")
-
-    contenido = await file.read()
-    try:
-        df = pd.read_excel(io.BytesIO(contenido))
-    except Exception:
-        raise HTTPException(status_code=400, detail="No se pudo leer el fichero Excel")
-
-    df.columns = [c.strip().lower() for c in df.columns]
-
-    columnas_requeridas = {"fecha", "operario", "tarea", "subtarea", "unidades"}
-    if not columnas_requeridas.issubset(set(df.columns)):
-        raise HTTPException(
-            status_code=400,
-            detail=f"El Excel debe tener las columnas: {', '.join(columnas_requeridas)}"
-        )
-
-    df = df.dropna(subset=["fecha", "operario", "tarea", "subtarea", "unidades"])
-    df["fecha"] = pd.to_datetime(df["fecha"]).dt.date
-    df["unidades"] = pd.to_numeric(df["unidades"], errors="coerce").fillna(0).astype(int)
-    df = df[df["unidades"] > 0]
-
-    insertados = 0
-    actualizados = 0
-    errores = []
-
-    for _, fila in df.iterrows():
-        try:
-            usuario_db = db.query(UsuarioDB).filter(
-                UsuarioDB.codigo == str(fila["operario"]).strip()
-            ).first()
-            if not usuario_db:
-                errores.append(f"Operario no encontrado: {fila['operario']}")
-                continue
-
-            existente = db.query(ProductividadExcelDB).filter(
-                ProductividadExcelDB.fecha == fila["fecha"],
-                ProductividadExcelDB.usuario == str(fila["operario"]).strip(),
-                ProductividadExcelDB.tarea_principal == str(fila["tarea"]).strip(),
-                ProductividadExcelDB.subtarea == str(fila["subtarea"]).strip()
-            ).first()
-
-            if existente:
-                existente.unidades = int(fila["unidades"])
-                existente.subido_por = subido_por
-                actualizados += 1
-            else:
-                nuevo = ProductividadExcelDB(
-                    fecha=fila["fecha"],
-                    usuario=str(fila["operario"]).strip(),
-                    tarea_principal=str(fila["tarea"]).strip(),
-                    subtarea=str(fila["subtarea"]).strip(),
-                    unidades=int(fila["unidades"]),
-                    subido_por=subido_por
-                )
-                db.add(nuevo)
-                insertados += 1
-
-        except Exception as e:
-            errores.append(f"Fila con error: {str(e)}")
-
-    db.commit()
-
-    return {
-        "insertados": insertados,
-        "actualizados": actualizados,
-        "errores": errores,
-        "total_filas": len(df),
-        "mensaje": f"{insertados} registros nuevos, {actualizados} actualizados"
-    }
-
-
 # ==================== ESTADÍSTICAS ====================
 
 @app.get("/estadisticas/productividad/")
@@ -1357,7 +846,6 @@ def top_tareas(
         fecha_desde = date.today() - timedelta(days=30)
     if not fecha_hasta:
         fecha_hasta = date.today()
-    validar_rango_fechas(fecha_desde, fecha_hasta)
     registros = db.query(RegistroDB).filter(
         RegistroDB.fecha >= fecha_desde,
         RegistroDB.fecha <= fecha_hasta
@@ -1376,11 +864,7 @@ def top_tareas(
             "minutos_totales": v["minutos"],
             "media_minutos": round(v["minutos"] / v["count"], 1)
         }
-        for k, v in sorted(
-            por_tarea.items(),
-            key=lambda x: x[1]["minutos"],
-            reverse=True
-        )[:10]
+        for k, v in sorted(por_tarea.items(), key=lambda x: x[1]["minutos"], reverse=True)[:10]
     ]
 
 @app.get("/estadisticas/media-por-tarea/")
@@ -1416,7 +900,6 @@ def ranking_operarios(
         desde = date.today() - timedelta(days=7)
     if not hasta:
         hasta = date.today()
-    validar_rango_fechas(desde, hasta)
     minutos_jornada = get_minutos_jornada(db)
     usuarios = db.query(UsuarioDB).filter(UsuarioDB.rol == "operario").all()
     registros = db.query(RegistroDB).filter(
@@ -1461,7 +944,6 @@ def eficiencia_diaria(
         desde = date.today() - timedelta(days=7)
     if not hasta:
         hasta = date.today()
-    validar_rango_fechas(desde, hasta)
     minutos_jornada = get_minutos_jornada(db)
     query = db.query(RegistroDB).filter(
         RegistroDB.fecha >= desde,
@@ -1542,10 +1024,10 @@ def alertas_rendimiento(db: Session = Depends(get_db)):
     usuarios_con_actividad_hoy = set(r.usuario for r in registros_hoy)
     for u in usuarios:
         mins_hoy = sum(r.tiempo_minutos for r in registros_hoy if r.usuario == u.codigo)
-        dias_activo_semana = len(set(
-            str(r.fecha) for r in registros_semana if r.usuario == u.codigo
-        ))
+        mins_semana = sum(r.tiempo_minutos for r in registros_semana if r.usuario == u.codigo)
+        dias_activo_semana = len(set(str(r.fecha) for r in registros_semana if r.usuario == u.codigo))
         pct_hoy = round((mins_hoy / minutos_jornada) * 100, 1)
+        pct_semana = round((mins_semana / (5 * minutos_jornada)) * 100, 1)
         if u.codigo not in usuarios_con_actividad_hoy:
             alertas.append({
                 "tipo": "sin_actividad",
@@ -1595,8 +1077,7 @@ def alertas_rendimiento(db: Session = Depends(get_db)):
                     "nivel": "warning",
                     "usuario": None,
                     "nombre": v.tarea_principal,
-                    "mensaje": f"Desviación >20% en {v.tarea_principal} el {v.fecha}: "
-                               f"{round(horas_reales - v.horas_teoricas, 1)}h"
+                    "mensaje": f"Desviación >20% en {v.tarea_principal} el {v.fecha}: {round(horas_reales - v.horas_teoricas, 1)}h"
                 })
     return {"total": len(alertas), "alertas": alertas}
 
@@ -1610,7 +1091,6 @@ def objetivo_vs_real(
         desde = date.today() - timedelta(days=30)
     if not hasta:
         hasta = date.today()
-    validar_rango_fechas(desde, hasta)
     registros = db.query(RegistroDB).filter(
         RegistroDB.fecha >= desde,
         RegistroDB.fecha <= hasta
@@ -1637,8 +1117,7 @@ def objetivo_vs_real(
             "registros": datos["count"]
         })
     return sorted(resultado, key=lambda x: x["horas_reales"], reverse=True)
-
-# ==================== EXCEL EXPORTACIÓN ====================
+# ==================== EXCEL ====================
 
 @app.get("/exportar-excel/")
 def exportar_excel(
@@ -1647,8 +1126,6 @@ def exportar_excel(
     usuario: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
-    if desde and hasta:
-        validar_rango_fechas(desde, hasta)
     query = db.query(RegistroDB)
     if desde:
         query = query.filter(RegistroDB.fecha >= desde)
@@ -1674,7 +1151,7 @@ def exportar_excel(
             max_length = max(len(str(cell.value or "")) for cell in col)
             ws.column_dimensions[col[0].column_letter].width = min(max_length + 4, 40)
 
-    # Hoja 0: Resumen Ejecutivo
+    # ---- HOJA 0: Resumen Ejecutivo ----
     ws0 = wb.active
     ws0.title = "Resumen Ejecutivo"
     ws0.append(["RESUMEN EJECUTIVO", ""])
@@ -1696,7 +1173,7 @@ def exportar_excel(
     ws0.append(["Media horas/día", round(total_mins / 60 / dias_unicos, 2) if dias_unicos else 0])
     autoajustar(ws0)
 
-    # Hoja 1: Registros Detallados
+    # ---- HOJA 1: Registros Detallados ----
     ws1 = wb.create_sheet("Registros Detallados")
     ws1.append([
         "ID", "Usuario", "Fecha", "Semana", "Mes",
@@ -1717,7 +1194,7 @@ def exportar_excel(
     ws1.freeze_panes = "A2"
     autoajustar(ws1)
 
-    # Hoja 2: Resumen por Usuario
+    # ---- HOJA 2: Resumen por Usuario ----
     ws2 = wb.create_sheet("Resumen por Usuario")
     ws2.append([
         "Usuario", "Total Registros", "Total Minutos",
@@ -1742,7 +1219,7 @@ def exportar_excel(
         ])
     autoajustar(ws2)
 
-    # Hoja 3: Resumen por Tarea
+    # ---- HOJA 3: Resumen por Tarea ----
     ws3 = wb.create_sheet("Resumen por Tarea")
     ws3.append([
         "Tarea Principal", "Subtarea", "Total Registros",
@@ -1761,7 +1238,7 @@ def exportar_excel(
         ws3.append([tp, st, d["registros"], d["minutos"], round(d["minutos"] / 60, 2), media])
     autoajustar(ws3)
 
-    # Hoja 4: Resumen por Día
+    # ---- HOJA 4: Resumen por Día ----
     ws4 = wb.create_sheet("Resumen por Día")
     ws4.append([
         "Fecha", "Día Semana", "Total Registros",
@@ -1788,7 +1265,7 @@ def exportar_excel(
         ])
     autoajustar(ws4)
 
-    # Hoja 5: Métricas Volumen
+    # ---- HOJA 5: Métricas de Volumen ----
     ws5 = wb.create_sheet("Métricas Volumen")
     ws5.append([
         "Fecha", "Tarea", "Unidades", "Horas Teóricas", "Horas Reales",
@@ -1814,20 +1291,21 @@ def exportar_excel(
         ])
     autoajustar(ws5)
 
-    # Hoja 6: Productividad desde Excel subido
-    ws6 = wb.create_sheet("Productividad Operarios")
+    # ---- HOJA 6: Ranking Rendimiento ----
+    ws6 = wb.create_sheet("Ranking Rendimiento")
     ws6.append([
-        "Operario", "Fecha", "Tarea", "Subtarea", "Unidades",
-        "Horas Reales", "Uds/Hora Real", "Uds/Hora Objetivo", "Eficiencia %"
+        "Posición", "Usuario", "Total Horas", "Días Activos",
+        "% Jornada Periodo", "Consistencia %", "Media Min/Día"
     ])
     estilo_cabecera(ws6)
-    prod_data = calcular_productividad(db=db)
-    for p in prod_data:
+    ranking = sorted(por_usuario.items(), key=lambda x: x[1]["minutos"], reverse=True)
+    for pos, (u, d) in enumerate(ranking, 1):
+        dias = len(d["dias"]) or 1
+        media = round(d["minutos"] / dias, 1)
+        pct_periodo = round((d["minutos"] / (dias * minutos_jornada)) * 100, 1)
         ws6.append([
-            p["nombre_operario"], p["fecha"], p["tarea_principal"],
-            p["subtarea"], p["unidades"], p["horas_reales"],
-            p["uds_hora_real"] or "—", p["uds_hora_objetivo"] or "—",
-            p["eficiencia_pct"] or "—"
+            pos, u, round(d["minutos"] / 60, 1), len(d["dias"]),
+            pct_periodo, round((dias / max(dias_unicos, 1)) * 100, 1), media
         ])
     autoajustar(ws6)
 
@@ -1846,4 +1324,3 @@ if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 8000))
     uvicorn.run("main:app", host="0.0.0.0", port=port)
-
