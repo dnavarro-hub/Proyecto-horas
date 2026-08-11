@@ -13,7 +13,6 @@ import io
 import os
 from datetime import datetime
 import hashlib
-import pandas as pd
 
 # ==================== BASE DE DATOS ====================
 DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql://localhost/registros")
