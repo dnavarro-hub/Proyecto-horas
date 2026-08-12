@@ -4977,6 +4977,422 @@ async function cargarProgreso() {
         }
     });
 
+<script>
+    // ==================== EXPOSICIÓN GLOBAL DE FUNCIONES CRÍTICAS ====================
+
+    window.cambiarPeriodo = function(tipo) {
+        periodoHistorico = tipo;
+
+        const btnSemana = document.getElementById('btn-periodo-semana');
+        const btnMes = document.getElementById('btn-periodo-mes');
+        const filtrosSemana = document.getElementById('filtros-semana');
+        const filtrosMes = document.getElementById('filtros-mes');
+
+        if (btnSemana && btnMes) {
+            btnSemana.className = tipo === 'semana'
+                ? 'px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white'
+                : 'px-4 py-2 rounded-lg text-sm font-medium bg-white text-slate-600 border';
+            btnMes.className = tipo === 'mes'
+                ? 'px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white'
+                : 'px-4 py-2 rounded-lg text-sm font-medium bg-white text-slate-600 border';
+        }
+
+        if (filtrosSemana) filtrosSemana.classList.toggle('hidden', tipo !== 'semana');
+        if (filtrosMes) filtrosMes.classList.toggle('hidden', tipo !== 'mes');
+
+        const contenedor = document.getElementById('historico-resultado');
+        const contenedorGrafico = document.getElementById('historico-grafico-contenedor');
+        
+        if (contenedor) {
+            contenedor.innerHTML = `<p class="text-sm text-slate-400 text-center py-8 italic">
+                Selecciona un periodo y consulta.</p>`;
+        }
+        if (contenedorGrafico) {
+            contenedorGrafico.classList.add('hidden');
+        }
+    };
+
+    window.cargarHistorico = async function() {
+        const contenedor        = document.getElementById('historico-resultado');
+        const contenedorGrafico = document.getElementById('historico-grafico-contenedor');
+
+        if (!contenedor) return;
+
+        contenedor.innerHTML = `<p class="text-sm text-slate-400 text-center py-8">
+            <span class="inline-block animate-pulse">Cargando histórico...</span></p>`;
+        if (contenedorGrafico) contenedorGrafico.classList.add('hidden');
+
+        if (periodoHistorico === 'semana') {
+            const usuarioEl = document.getElementById('historico-usuario-semana');
+            const fechaEl = document.getElementById('historico-fecha-semana');
+            const usuario  = usuarioEl ? usuarioEl.value : '';
+            const fechaRef = (fechaEl && fechaEl.value) ? fechaEl.value : hoy;
+
+            let url = `${API}/registros/resumen-semanal/?fecha_ref=${fechaRef}`;
+            if (usuario) url += `&usuario=${usuario}`;
+
+            try {
+                const resp = await fetch(url);
+                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                const data = await resp.json();
+
+                let html = `<div class="mb-4 p-3 bg-blue-50 rounded-lg text-sm text-slate-600">
+                    Semana del <b>${data.inicio}</b> al <b>${data.fin}</b> |
+                    Total: <b>${((data.total_minutos || 0) / 60).toFixed(1)} horas</b>
+                </div><div class="space-y-3">`;
+
+                const labels = [], valores = [];
+
+                if (!data.dias || Object.keys(data.dias).length === 0) {
+                    html += `<p class="text-sm text-slate-400 text-center py-4 italic">
+                        No hay registros para esta semana.</p>`;
+                } else {
+                    Object.entries(data.dias).sort().forEach(([dia, info]) => {
+                        labels.push(dia);
+                        valores.push(parseFloat(((info.total_minutos || 0) / 60).toFixed(2)));
+                        const pct   = Math.min(((info.total_minutos || 0) / minutosJornada) * 100, 100);
+                        const color = pct >= 100 ? 'bg-emerald-500'
+                            : pct >= 60 ? 'bg-blue-500'
+                            : pct >= 30 ? 'bg-amber-400' : 'bg-slate-300';
+                        html += `<div class="p-3 bg-slate-50 rounded-xl fade-in">
+                            <div class="flex justify-between text-sm mb-2">
+                                <span class="font-medium text-slate-700">${dia}</span>
+                                <span class="font-bold text-blue-600">
+                                    ${((info.total_minutos || 0) / 60).toFixed(1)}h
+                                </span>
+                            </div>
+                            <div class="w-full bg-slate-200 rounded-full h-2">
+                                <div class="${color} h-2 rounded-full" style="width:${pct}%"></div>
+                            </div>
+                        </div>`;
+                    });
+                }
+
+                html += `</div>`;
+                contenedor.innerHTML = html;
+
+                if (labels.length > 0 && contenedorGrafico) {
+                    if (window.historicoGrafico) window.historicoGrafico.destroy();
+                    window.historicoGrafico = new Chart(
+                        document.getElementById('historico-grafico').getContext('2d'), {
+                        type: 'bar',
+                        data: {
+                            labels,
+                            datasets: [{
+                                label:           'Horas',
+                                data:            valores,
+                                backgroundColor: '#3b82f6',
+                                borderRadius:    6
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            scales: { y: {
+                                beginAtZero: true,
+                                max:         Math.ceil(minutosJornada / 60),
+                                title:       { display: true, text: 'Horas' }
+                            }}
+                        }
+                    });
+                    contenedorGrafico.classList.remove('hidden');
+                }
+            } catch(e) {
+                console.error('Error cargarHistorico semana:', e);
+                contenedor.innerHTML = `<p class="text-sm text-rose-500 text-center py-8">
+                    Error cargando histórico semanal. Comprueba la consola.</p>`;
+            }
+
+        } else {
+            const usuarioEl = document.getElementById('historico-usuario-mes');
+            const anyoEl = document.getElementById('historico-anyo');
+            const mesEl = document.getElementById('historico-mes');
+
+            const usuario = usuarioEl ? usuarioEl.value : '';
+            const anyo    = anyoEl ? anyoEl.value : new Date().getFullYear();
+            const mes     = mesEl ? mesEl.value : new Date().getMonth() + 1;
+
+            let url = `${API}/registros/resumen-mensual/?anyo=${anyo}&mes=${mes}`;
+            if (usuario) url += `&usuario=${usuario}`;
+
+            try {
+                const resp = await fetch(url);
+                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                const data = await resp.json();
+
+                let html = `<div class="mb-4 p-3 bg-blue-50 rounded-lg text-sm text-slate-600">
+                    Mes: <b>${mes}/${anyo}</b> | Registros: <b>${data.total_registros || 0}</b> |
+                    Total: <b>${((data.total_minutos || 0) / 60).toFixed(1)} horas</b>
+                </div>`;
+
+                if (!data.total_registros || data.total_registros === 0) {
+                    html += `<p class="text-sm text-slate-400 text-center py-4 italic">
+                        No hay registros para este mes.</p>`;
+                } else {
+                    html += `<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="bg-slate-50 p-4 rounded-xl">
+                            <h4 class="font-bold text-slate-700 mb-3">Por Tarea</h4>
+                            ${Object.entries(data.por_tarea || {}).map(([t, m]) => {
+                                const color = getColorTarea(t);
+                                return `<div class="flex justify-between items-center text-sm py-2 border-b border-slate-200">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-3 h-3 rounded-full" style="background-color:${color}"></div>
+                                        <span>${t}</span>
+                                    </div>
+                                    <span class="font-bold text-slate-700">${(m / 60).toFixed(1)}h</span>
+                                </div>`;
+                            }).join('')}
+                        </div>
+                        <div class="bg-slate-50 p-4 rounded-xl">
+                            <h4 class="font-bold text-slate-700 mb-3">Por Usuario</h4>
+                            ${Object.entries(data.por_usuario || {}).map(([u, m]) => `
+                                <div class="flex justify-between items-center text-sm py-2 border-b border-slate-200">
+                                    <span>${u}</span>
+                                    <span class="font-bold text-slate-700">${(m / 60).toFixed(1)}h</span>
+                                </div>`).join('')}
+                        </div>
+                    </div>`;
+                }
+
+                contenedor.innerHTML = html;
+                if (contenedorGrafico) contenedorGrafico.classList.add('hidden');
+            } catch(e) {
+                console.error('Error cargarHistorico mes:', e);
+                contenedor.innerHTML = `<p class="text-sm text-rose-500 text-center py-8">
+                    Error cargando histórico mensual. Comprueba la consola.</p>`;
+            }
+        }
+    };
+
+    window.cargarProgreso = async function() {
+        const usuario  = document.getElementById('filtro-usuario').value;
+        const usuario2 = document.getElementById('filtro-usuario2').value;
+        const fecha    = document.getElementById('filtro-fecha').value;
+        const contenedor = document.getElementById('progreso-resultado');
+        const graficos   = document.getElementById('graficos-contenedor');
+
+        if (!usuario) {
+            toast('Selecciona un usuario.', 'warning');
+            return;
+        }
+        if (!fecha) {
+            toast('Selecciona una fecha.', 'warning');
+            return;
+        }
+
+        if (!contenedor) return;
+
+        contenedor.innerHTML = `<p class="text-sm text-slate-400 text-center py-8">
+            <span class="inline-block animate-pulse">Cargando progreso...</span></p>`;
+        if (graficos) graficos.classList.add('hidden');
+
+        try {
+            const resp  = await fetch(`${API}/registros/${usuario}`);
+            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+            const todos = await resp.json();
+
+            const registros = todos.filter(r => r.fecha === fecha);
+
+            if (registros.length === 0) {
+                contenedor.innerHTML = `<p class="text-sm text-slate-400 text-center py-8 italic">
+                    No hay registros para esta fecha.</p>`;
+                if (graficos) graficos.classList.add('hidden');
+                return;
+            }
+
+            const totalMinutos = registros.reduce((s, r) => s + r.tiempo_minutos, 0);
+            const porcentaje   = Math.min((totalMinutos / minutosJornada) * 100, 100);
+
+            contenedor.innerHTML = `
+                <div class="grid grid-cols-3 gap-4 mb-4">
+                    <div class="bg-blue-50 rounded-xl p-4 text-center fade-in">
+                        <div class="text-2xl font-bold text-blue-700">${registros.length}</div>
+                        <div class="text-xs text-slate-500 mt-1">Registros</div>
+                    </div>
+                    <div class="bg-violet-50 rounded-xl p-4 text-center fade-in">
+                        <div class="text-2xl font-bold text-violet-700">
+                            ${formatTiempo(totalMinutos)}
+                        </div>
+                        <div class="text-xs text-slate-500 mt-1">Tiempo total</div>
+                    </div>
+                    <div class="bg-emerald-50 rounded-xl p-4 text-center fade-in">
+                        <div class="text-2xl font-bold text-emerald-700">
+                            ${porcentaje.toFixed(0)}%
+                        </div>
+                        <div class="text-xs text-slate-500 mt-1">Jornada</div>
+                    </div>
+                </div>`;
+
+            // Barra segmentada
+            const barraSeg = document.getElementById('barra-segmentada');
+            const leyenda  = document.getElementById('leyenda-barra');
+            if (barraSeg && leyenda) {
+                barraSeg.innerHTML = '';
+                leyenda.innerHTML  = '';
+                const agrupado = {};
+                registros.forEach(r => {
+                    agrupado[r.tarea_principal] =
+                        (agrupado[r.tarea_principal] || 0) + r.tiempo_minutos;
+                });
+                Object.entries(agrupado).forEach(([tarea, minutos]) => {
+                    const pct   = (minutos / minutosJornada) * 100;
+                    const color = getColorTarea(tarea);
+                    barraSeg.innerHTML += `<div style="width:${pct}%;background-color:${color}"
+                        title="${tarea}: ${minutos}min" class="h-full transition-all duration-700"></div>`;
+                    leyenda.innerHTML  += `
+                        <div class="flex justify-between items-center text-sm">
+                            <div class="flex items-center gap-2">
+                                <div class="w-3 h-3 rounded-full" style="background-color:${color}"></div>
+                                <span class="text-slate-700">${tarea}</span>
+                            </div>
+                            <span class="font-medium text-slate-600">
+                                ${minutos} min (${formatTiempo(minutos)})
+                            </span>
+                        </div>`;
+                });
+            }
+
+            const barraTotal = document.getElementById('barra-total');
+            const porcLabel = document.getElementById('porcentaje-label');
+            if (barraTotal) barraTotal.style.width = `${porcentaje}%`;
+            if (porcLabel) porcLabel.textContent = `${porcentaje.toFixed(0)}%`;
+
+            // Gráfico tarta
+            const labelsP = Object.keys(agrupado);
+            const dataP   = Object.values(agrupado);
+            const bgP     = labelsP.map(l => getColorTarea(l));
+            if (window.graficaTarta) window.graficaTarta.destroy();
+            const canvasTarta = document.getElementById('grafico-tarta');
+            if (canvasTarta) {
+                window.graficaTarta = new Chart(canvasTarta.getContext('2d'), {
+                    type: 'pie',
+                    data: { labels: labelsP, datasets: [{ data: dataP, backgroundColor: bgP }] },
+                    options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+                });
+            }
+
+            // Gráfico barras subtarea
+            const labelsB = registros.map(r => r.subtarea);
+            const dataB   = registros.map(r => r.tiempo_minutos);
+            const bgB     = registros.map(r => getColorTarea(r.tarea_principal));
+            if (window.graficaBarras) window.graficaBarras.destroy();
+            const canvasBarras = document.getElementById('grafico-barras');
+            if (canvasBarras) {
+                window.graficaBarras = new Chart(canvasBarras.getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels:   labelsB,
+                        datasets: [{
+                            label:           'Minutos',
+                            data:            dataB,
+                            backgroundColor: bgB,
+                            borderRadius:    6
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        indexAxis: 'y',
+                        plugins:   { legend: { display: false } },
+                        scales:    { x: { beginAtZero: true } }
+                    }
+                });
+            }
+
+            // Comparación usuario 2
+            const contComp = document.getElementById('grafico-comparacion-contenedor');
+            if (usuario2 && contComp) {
+                const resp2      = await fetch(`${API}/registros/${usuario2}`);
+                const todos2     = await resp2.json();
+                const registros2 = todos2.filter(r => r.fecha === fecha);
+                const agrupado2  = {};
+                registros2.forEach(r => {
+                    agrupado2[r.tarea_principal] =
+                        (agrupado2[r.tarea_principal] || 0) + r.tiempo_minutos;
+                });
+                const todasTareas = [...new Set([
+                    ...Object.keys(agrupado),
+                    ...Object.keys(agrupado2)
+                ])];
+                if (window.graficaComparacion) window.graficaComparacion.destroy();
+                const canvasComp = document.getElementById('grafico-comparacion');
+                if (canvasComp) {
+                    window.graficaComparacion = new Chart(canvasComp.getContext('2d'), {
+                        type: 'bar',
+                        data: {
+                            labels:   todasTareas,
+                            datasets: [
+                                {
+                                    label:           usuario,
+                                    data:            todasTareas.map(t => agrupado[t] || 0),
+                                    backgroundColor: '#3b82f6',
+                                    borderRadius:    6
+                                },
+                                {
+                                    label:           usuario2,
+                                    data:            todasTareas.map(t => agrupado2[t] || 0),
+                                    backgroundColor: '#8b5cf6',
+                                    borderRadius:    6
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            plugins: { legend: { position: 'bottom' } },
+                            scales:  { y: { beginAtZero: true, title: { display: true, text: 'Minutos' } } }
+                        }
+                    });
+                }
+                contComp.classList.remove('hidden');
+            } else if (contComp) {
+                contComp.classList.add('hidden');
+                if (window.graficaComparacion) { window.graficaComparacion.destroy(); window.graficaComparacion = null; }
+            }
+
+            // Gráfico semanal
+            const diasSemana = [];
+            for (let i = 6; i >= 0; i--) {
+                const d = new Date(fecha);
+                d.setDate(d.getDate() - i);
+                diasSemana.push(d.toISOString().split('T')[0]);
+            }
+            const horasSemana = diasSemana.map(dia =>
+                parseFloat((todos.filter(r => r.fecha === dia)
+                    .reduce((s, r) => s + r.tiempo_minutos, 0) / 60).toFixed(2))
+            );
+            if (window.graficaSemanal) window.graficaSemanal.destroy();
+            const canvasSemanal = document.getElementById('grafico-semanal');
+            if (canvasSemanal) {
+                window.graficaSemanal = new Chart(canvasSemanal.getContext('2d'), {
+                    type: 'line',
+                    data: {
+                        labels:   diasSemana.map(d => new Date(d + 'T00:00:00')
+                            .toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric' })),
+                        datasets: [{
+                            label:           'Horas',
+                            data:            horasSemana,
+                            borderColor:     '#3b82f6',
+                            backgroundColor: 'rgba(59,130,246,0.1)',
+                            borderWidth:     2,
+                            fill:            true,
+                            tension:         0.4,
+                            pointBackgroundColor: '#3b82f6'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: { y: { beginAtZero: true, max: Math.ceil(minutosJornada / 60) } }
+                    }
+                });
+            }
+
+            if (graficos) graficos.classList.remove('hidden');
+        } catch(e) {
+            console.error('Error cargarProgreso:', e);
+            if (contenedor) {
+                contenedor.innerHTML = `<p class="text-sm text-rose-500 text-center py-8">
+                    Error cargando progreso. Comprueba la consola.</p>`;
+            }
+        }
+    };
 </script>
 </body>
 </html>
