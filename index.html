@@ -26,9 +26,17 @@
             60%  { transform: scale(1.05); opacity: 1; }
             100% { transform: scale(1); }
         }
-        .fade-in    { animation: fadeIn 0.3s ease forwards; }
-        .slide-in   { animation: slideIn 0.25s ease forwards; }
-        .bounce-in  { animation: bounceIn 0.35s ease forwards; }
+        @keyframes shimmer {
+            0%   { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        @keyframes fadeOut {
+            to { opacity: 0; transform: translateX(20px); }
+        }
+
+        .fade-in       { animation: fadeIn 0.3s ease forwards; }
+        .slide-in      { animation: slideIn 0.25s ease forwards; }
+        .bounce-in     { animation: bounceIn 0.35s ease forwards; }
         .pestana-content { animation: fadeIn 0.25s ease forwards; }
 
         /* ===== SKELETON ===== */
@@ -37,10 +45,6 @@
             background-size: 200% 100%;
             animation: shimmer 1.4s infinite;
             border-radius: 8px;
-        }
-        @keyframes shimmer {
-            0%   { background-position: 200% 0; }
-            100% { background-position: -200% 0; }
         }
 
         /* ===== TOAST ===== */
@@ -71,12 +75,7 @@
         .toast.error   { background: linear-gradient(135deg, #ef4444, #dc2626); }
         .toast.warning { background: linear-gradient(135deg, #f59e0b, #d97706); }
         .toast.info    { background: linear-gradient(135deg, #3b82f6, #2563eb); }
-        .toast-exit {
-            animation: fadeOut 0.3s ease forwards;
-        }
-        @keyframes fadeOut {
-            to { opacity: 0; transform: translateX(20px); }
-        }
+        .toast-exit    { animation: fadeOut 0.3s ease forwards; }
 
         /* ===== ALERTAS BADGE ===== */
         .alert-badge {
@@ -95,7 +94,7 @@
         }
 
         /* ===== SCROLLBAR ===== */
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar       { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
 
@@ -124,6 +123,69 @@
             backdrop-filter: blur(4px);
             background: rgba(0,0,0,0.5);
         }
+
+        /* ===== SEMÁFORO ===== */
+        .semaforo-verde  { background: linear-gradient(135deg, #d1fae5, #a7f3d0); border-left: 4px solid #10b981; }
+        .semaforo-ambar  { background: linear-gradient(135deg, #fef3c7, #fde68a); border-left: 4px solid #f59e0b; }
+        .semaforo-rojo   { background: linear-gradient(135deg, #fee2e2, #fecaca); border-left: 4px solid #ef4444; }
+        .semaforo-neutro { background: linear-gradient(135deg, #f1f5f9, #e2e8f0); border-left: 4px solid #94a3b8; }
+
+        /* ===== GRUPOS ALERTAS ===== */
+        .alerta-grupo {
+            border-radius: 12px;
+            padding: 12px 16px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .alerta-grupo:hover { filter: brightness(0.97); }
+        .alerta-detalle {
+            display: none;
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid rgba(0,0,0,0.08);
+            font-size: 12px;
+        }
+        .alerta-grupo.abierto .alerta-detalle { display: block; }
+
+        /* ===== IMPORTACIÓN ===== */
+        .drop-zone {
+            border: 2px dashed #94a3b8;
+            border-radius: 16px;
+            padding: 40px;
+            text-align: center;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        .drop-zone:hover,
+        .drop-zone.dragover {
+            border-color: #3b82f6;
+            background: #eff6ff;
+        }
+
+        /* ===== TABS AGRUPADOS ===== */
+        .tab-grupo-label {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #94a3b8;
+            padding: 2px 8px;
+            white-space: nowrap;
+        }
+        .tab-separador {
+            width: 1px;
+            background: #e2e8f0;
+            margin: 4px 4px;
+            flex-shrink: 0;
+        }
+
+        /* ===== PRODUCTIVIDAD ===== */
+        .prod-card {
+            border-radius: 12px;
+            padding: 14px 16px;
+            transition: box-shadow 0.2s;
+        }
+        .prod-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
     </style>
 </head>
 <body class="bg-slate-100 min-h-screen transition-colors duration-300">
@@ -134,7 +196,7 @@
 <div id="pantalla-login" class="flex items-center justify-center min-h-screen px-4">
     <div class="bg-white shadow-xl rounded-2xl p-10 w-full max-w-sm text-center fade-in">
         <div class="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <svg class="w-8 h-8 text-white fill-none stroke-currentColor viewBox-0 0 24 24">
+            <svg class="w-8 h-8 text-white fill-none stroke-current viewBox-0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                     d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
             </svg>
@@ -210,12 +272,26 @@
         </div>
     </div>
 
-    <!-- PESTAÑAS -->
+    <!-- PESTAÑAS AGRUPADAS -->
     <div class="bg-white border-b px-2 md:px-6 sticky top-16 z-30">
-        <div id="tabs-container" class="flex gap-1 py-2 overflow-x-auto scrollbar-hide">
+        <div id="tabs-container" class="flex gap-1 py-2 overflow-x-auto scrollbar-hide items-center">
+
+            <!-- GRUPO OPERATIVA -->
+            <span class="tab-grupo-label">Operativa</span>
             <button onclick="mostrarPestana('registro')" id="tab-registro"
                 class="tab-btn px-3 md:px-4 py-2 rounded-lg font-medium text-sm bg-blue-600 text-white whitespace-nowrap transition focus:outline-none focus:ring-2 focus:ring-blue-500"
                 aria-selected="true" role="tab">📋 Registro</button>
+            <button onclick="mostrarPestana('plantillas')" id="tab-plantillas"
+                class="tab-btn px-3 md:px-4 py-2 rounded-lg font-medium text-sm bg-white text-slate-600 border whitespace-nowrap transition hidden focus:outline-none focus:ring-2 focus:ring-blue-500"
+                aria-selected="false" role="tab">📋 Plantillas</button>
+            <button onclick="mostrarPestana('edicion')" id="tab-edicion"
+                class="tab-btn px-3 md:px-4 py-2 rounded-lg font-medium text-sm bg-white text-slate-600 border whitespace-nowrap transition hidden focus:outline-none focus:ring-2 focus:ring-blue-500"
+                aria-selected="false" role="tab">✏️ Editar</button>
+
+            <div class="tab-separador"></div>
+
+            <!-- GRUPO ANÁLISIS -->
+            <span class="tab-grupo-label hidden" id="label-analisis">Análisis</span>
             <button onclick="mostrarPestana('dashboard')" id="tab-dashboard"
                 class="tab-btn px-3 md:px-4 py-2 rounded-lg font-medium text-sm bg-white text-slate-600 border whitespace-nowrap transition hidden focus:outline-none focus:ring-2 focus:ring-blue-500"
                 aria-selected="false" role="tab">🏠 Dashboard</button>
@@ -225,18 +301,23 @@
             <button onclick="mostrarPestana('progreso')" id="tab-progreso"
                 class="tab-btn px-3 md:px-4 py-2 rounded-lg font-medium text-sm bg-white text-slate-600 border whitespace-nowrap transition hidden focus:outline-none focus:ring-2 focus:ring-blue-500"
                 aria-selected="false" role="tab">📊 Progreso</button>
-            <button onclick="mostrarPestana('volumen')" id="tab-volumen"
+            <button onclick="mostrarPestana('productividad')" id="tab-productividad"
                 class="tab-btn px-3 md:px-4 py-2 rounded-lg font-medium text-sm bg-white text-slate-600 border whitespace-nowrap transition hidden focus:outline-none focus:ring-2 focus:ring-blue-500"
-                aria-selected="false" role="tab">📈 Volumen</button>
+                aria-selected="false" role="tab">⚡ Productividad</button>
             <button onclick="mostrarPestana('rendimiento')" id="tab-rendimiento"
                 class="tab-btn px-3 md:px-4 py-2 rounded-lg font-medium text-sm bg-white text-slate-600 border whitespace-nowrap transition hidden focus:outline-none focus:ring-2 focus:ring-blue-500"
-                aria-selected="false" role="tab">⚡ Rendimiento</button>
-            <button onclick="mostrarPestana('plantillas')" id="tab-plantillas"
+                aria-selected="false" role="tab">📈 Rendimiento</button>
+            <button onclick="mostrarPestana('volumen')" id="tab-volumen"
                 class="tab-btn px-3 md:px-4 py-2 rounded-lg font-medium text-sm bg-white text-slate-600 border whitespace-nowrap transition hidden focus:outline-none focus:ring-2 focus:ring-blue-500"
-                aria-selected="false" role="tab">📋 Plantillas</button>
-            <button onclick="mostrarPestana('edicion')" id="tab-edicion"
+                aria-selected="false" role="tab">📦 Volumen</button>
+
+            <div class="tab-separador"></div>
+
+            <!-- GRUPO ADMINISTRACIÓN -->
+            <span class="tab-grupo-label hidden" id="label-admin">Administración</span>
+            <button onclick="mostrarPestana('importacion')" id="tab-importacion"
                 class="tab-btn px-3 md:px-4 py-2 rounded-lg font-medium text-sm bg-white text-slate-600 border whitespace-nowrap transition hidden focus:outline-none focus:ring-2 focus:ring-blue-500"
-                aria-selected="false" role="tab">✏️ Editar</button>
+                aria-selected="false" role="tab">📥 Importar</button>
             <button onclick="mostrarPestana('usuarios')" id="tab-usuarios"
                 class="tab-btn px-3 md:px-4 py-2 rounded-lg font-medium text-sm bg-white text-slate-600 border whitespace-nowrap transition hidden focus:outline-none focus:ring-2 focus:ring-blue-500"
                 aria-selected="false" role="tab">👥 Usuarios</button>
@@ -275,7 +356,14 @@
         <!-- Resumen tareas guardadas hoy -->
         <div id="resumen-hoy-contenedor"
             class="bg-white rounded-xl shadow p-4 mb-4 hidden">
-            <h3 class="text-sm font-semibold text-slate-700 mb-3">Tareas ya guardadas hoy</h3>
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="text-sm font-semibold text-slate-700">Tareas ya guardadas hoy</h3>
+                <button onclick="toggleResumenHoy()"
+                    id="btn-toggle-resumen"
+                    class="text-xs text-blue-600 hover:text-blue-800 font-medium">
+                    Ocultar
+                </button>
+            </div>
             <div id="resumen-hoy" class="space-y-1"></div>
         </div>
 
@@ -307,6 +395,26 @@
                     </select>
                 </div>
             </div>
+
+            <!-- Buscador rápido de subtarea -->
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-slate-700 mb-1">
+                    🔍 Buscar subtarea:
+                </label>
+                <input type="text" id="buscador-subtarea"
+                    oninput="filtrarSubtareas()"
+                    placeholder="Escribe para filtrar subtareas..."
+                    class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
+            </div>
+
+            <!-- Subtareas frecuentes -->
+            <div id="subtareas-frecuentes-contenedor" class="mb-4 hidden">
+                <p class="text-xs font-semibold text-slate-500 mb-2 uppercase tracking-wide">
+                    Usadas recientemente:
+                </p>
+                <div id="subtareas-frecuentes" class="flex flex-wrap gap-2"></div>
+            </div>
+
             <label class="block text-sm font-medium text-slate-700 mb-2">Tiempo dedicado:</label>
             <div class="grid grid-cols-4 gap-2 mb-3">
                 <button onclick="seleccionarTiempo(15)"
@@ -354,7 +462,6 @@
                 </div>
             </div>
         </div>
-
         <div class="flex gap-3 mb-4">
             <button onclick="añadirTarea()"
                 class="flex-1 bg-slate-800 hover:bg-slate-900 text-white font-bold py-4 rounded-xl text-lg transition duration-200 focus:outline-none focus:ring-2 focus:ring-slate-500"
@@ -400,6 +507,7 @@
                 aria-label="Limpiar lista de tareas">🗑️</button>
         </div>
     </div>
+
     <!-- ===== PESTAÑA DASHBOARD ===== -->
     <div id="pestana-dashboard" class="hidden" role="tabpanel">
         <div class="flex justify-between items-center mb-6">
@@ -407,7 +515,11 @@
             <input type="date" id="dashboard-fecha" onchange="cargarDashboard()"
                 class="px-3 py-1.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
         </div>
+
+        <!-- Alertas agrupadas dashboard -->
         <div id="dashboard-alertas" class="mb-6 space-y-2"></div>
+
+        <!-- KPIs -->
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             <div class="bg-white rounded-xl shadow p-4 text-center">
                 <div class="text-3xl font-bold text-blue-600" id="kpi-registros">—</div>
@@ -426,6 +538,23 @@
                 <div class="text-xs text-slate-500 mt-1">% jornada media</div>
             </div>
         </div>
+
+        <!-- KPIs Productividad -->
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6" id="dashboard-kpis-prod">
+            <div class="bg-white rounded-xl shadow p-4 text-center">
+                <div class="text-3xl font-bold text-emerald-600" id="kpi-prod-verde">—</div>
+                <div class="text-xs text-slate-500 mt-1">Subtareas en objetivo</div>
+            </div>
+            <div class="bg-white rounded-xl shadow p-4 text-center">
+                <div class="text-3xl font-bold text-amber-500" id="kpi-prod-ambar">—</div>
+                <div class="text-xs text-slate-500 mt-1">Subtareas mejorables</div>
+            </div>
+            <div class="bg-white rounded-xl shadow p-4 text-center">
+                <div class="text-3xl font-bold text-rose-500" id="kpi-prod-rojo">—</div>
+                <div class="text-xs text-slate-500 mt-1">Subtareas bajo objetivo</div>
+            </div>
+        </div>
+
         <div class="bg-white rounded-xl shadow p-6 mb-6">
             <h3 class="font-bold text-slate-800 mb-4">Productividad por usuario</h3>
             <div id="dashboard-productividad" class="space-y-3">
@@ -464,7 +593,6 @@
             </div>
         </div>
     </div>
-
     <!-- ===== PESTAÑA HISTÓRICO ===== -->
     <div id="pestana-historico" class="hidden" role="tabpanel">
         <div class="bg-white shadow-lg rounded-xl p-6 md:p-8">
@@ -482,6 +610,8 @@
                     Por mes
                 </button>
             </div>
+
+            <!-- Filtros semana -->
             <div id="filtros-semana" class="grid grid-cols-2 gap-4 mb-4">
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-1">Usuario:</label>
@@ -498,6 +628,8 @@
                         class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
                 </div>
             </div>
+
+            <!-- Filtros mes -->
             <div id="filtros-mes" class="grid grid-cols-3 gap-4 mb-4 hidden">
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-1">Usuario:</label>
@@ -530,6 +662,7 @@
                     </select>
                 </div>
             </div>
+
             <button onclick="cargarHistorico()"
                 class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-lg mb-6">
                 Consultar
@@ -545,6 +678,7 @@
             </div>
         </div>
     </div>
+
     <!-- ===== PESTAÑA PROGRESO ===== -->
     <div id="pestana-progreso" class="hidden" role="tabpanel">
         <div class="bg-white shadow-lg rounded-xl p-6 md:p-8">
@@ -634,7 +768,6 @@
             </div>
         </div>
     </div>
-
     <!-- ===== PESTAÑA VOLUMEN & MÉTRICAS ===== -->
     <div id="pestana-volumen" class="hidden" role="tabpanel">
         <div class="bg-white shadow-lg rounded-xl p-6 md:p-8 mb-6">
@@ -728,29 +861,29 @@
                     class="w-full bg-slate-700 hover:bg-slate-800 text-white text-sm font-medium py-2.5 rounded-lg mb-6">
                     Consultar métricas
                 </button>
+
+                <!-- KPIs volumen -->
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6"
                     id="vol-kpis" style="display:none;">
                     <div class="bg-blue-50 rounded-xl p-4 text-center">
-                        <div class="text-2xl font-bold text-blue-700"
-                            id="vol-kpi-unidades">—</div>
+                        <div class="text-2xl font-bold text-blue-700" id="vol-kpi-unidades">—</div>
                         <div class="text-xs text-slate-500 mt-1">Total unidades</div>
                     </div>
                     <div class="bg-violet-50 rounded-xl p-4 text-center">
-                        <div class="text-2xl font-bold text-violet-700"
-                            id="vol-kpi-horas-teo">—</div>
+                        <div class="text-2xl font-bold text-violet-700" id="vol-kpi-horas-teo">—</div>
                         <div class="text-xs text-slate-500 mt-1">Horas teóricas</div>
                     </div>
                     <div class="bg-amber-50 rounded-xl p-4 text-center">
-                        <div class="text-2xl font-bold text-amber-700"
-                            id="vol-kpi-horas-real">—</div>
+                        <div class="text-2xl font-bold text-amber-700" id="vol-kpi-horas-real">—</div>
                         <div class="text-xs text-slate-500 mt-1">Horas reales</div>
                     </div>
                     <div class="bg-emerald-50 rounded-xl p-4 text-center">
-                        <div class="text-2xl font-bold text-emerald-700"
-                            id="vol-kpi-eficiencia">—</div>
+                        <div class="text-2xl font-bold text-emerald-700" id="vol-kpi-eficiencia">—</div>
                         <div class="text-xs text-slate-500 mt-1">Eficiencia media</div>
                     </div>
                 </div>
+
+                <!-- Gráficos volumen -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6"
                     id="vol-graficos" style="display:none;">
                     <div class="bg-slate-50 rounded-xl p-4">
@@ -766,6 +899,7 @@
                         <canvas id="vol-grafico-comparativa"></canvas>
                     </div>
                 </div>
+
                 <div id="vol-tabla">
                     <p class="text-sm text-slate-400 text-center py-8 italic">
                         Selecciona un rango de fechas y consulta.
@@ -774,11 +908,12 @@
             </div>
         </div>
     </div>
+
     <!-- ===== PESTAÑA RENDIMIENTO ===== -->
     <div id="pestana-rendimiento" class="hidden" role="tabpanel">
         <div class="bg-white shadow-lg rounded-xl p-6 md:p-8 mb-6">
             <div class="border-b pb-4 mb-6">
-                <h1 class="text-2xl font-bold text-slate-800">⚡ Rendimiento</h1>
+                <h1 class="text-2xl font-bold text-slate-800">📈 Rendimiento</h1>
                 <p class="text-sm text-slate-500">
                     Análisis avanzado de productividad, objetivos y alertas
                 </p>
@@ -808,14 +943,25 @@
                 class="w-full bg-slate-800 hover:bg-slate-900 text-white font-medium py-2.5 rounded-lg mb-6">
                 Analizar Rendimiento
             </button>
+
+            <!-- Alertas agrupadas rendimiento -->
             <div class="mb-6">
-                <h3 class="font-bold text-slate-800 mb-3">Alertas activas</h3>
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="font-bold text-slate-800">Alertas activas</h3>
+                    <button onclick="toggleTodasAlertas()"
+                        id="btn-ver-todas-alertas"
+                        class="text-xs text-blue-600 hover:text-blue-800 font-medium hidden">
+                        Ver todas
+                    </button>
+                </div>
                 <div id="rend-alertas" class="space-y-2">
                     <p class="text-sm text-slate-400 text-center py-4 italic">
                         Cargando alertas...
                     </p>
                 </div>
             </div>
+
+            <!-- Ranking -->
             <div class="mb-6">
                 <h3 class="font-bold text-slate-800 mb-3">Ranking de operarios</h3>
                 <div id="rend-ranking" class="space-y-3">
@@ -824,6 +970,8 @@
                     </p>
                 </div>
             </div>
+
+            <!-- Objetivo vs Real -->
             <div class="mb-6">
                 <h3 class="font-bold text-slate-800 mb-3">Objetivo vs Real por tarea</h3>
                 <div id="rend-objetivo-vs-real" class="space-y-3">
@@ -832,6 +980,8 @@
                     </p>
                 </div>
             </div>
+
+            <!-- Gráficos rendimiento -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div class="bg-slate-50 rounded-xl p-4">
                     <h3 class="text-sm font-semibold text-slate-700 mb-3">
@@ -852,7 +1002,193 @@
             </div>
         </div>
     </div>
+    <!-- ===== PESTAÑA PRODUCTIVIDAD ===== -->
+    <div id="pestana-productividad" class="hidden" role="tabpanel">
+        <div class="bg-white shadow-lg rounded-xl p-6 md:p-8 mb-6">
+            <div class="border-b pb-4 mb-6">
+                <h1 class="text-2xl font-bold text-slate-800">⚡ Productividad</h1>
+                <p class="text-sm text-slate-500">
+                    Análisis de Ud/hora real vs target por operario y subtarea
+                </p>
+            </div>
 
+            <!-- Filtros -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1">Desde:</label>
+                    <input type="date" id="prod-desde"
+                        class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1">Hasta:</label>
+                    <input type="date" id="prod-hasta"
+                        class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1">Operario:</label>
+                    <select id="prod-usuario"
+                        class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                        <option value="">-- Todos --</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1">Subtarea:</label>
+                    <select id="prod-subtarea"
+                        class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                        <option value="">-- Todas --</option>
+                    </select>
+                </div>
+            </div>
+            <button onclick="cargarProductividad()"
+                class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-lg mb-6">
+                Consultar Productividad
+            </button>
+
+            <!-- KPIs productividad -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6" id="prod-kpis" style="display:none;">
+                <div class="bg-emerald-50 rounded-xl p-4 text-center">
+                    <div class="text-2xl font-bold text-emerald-700" id="prod-kpi-verde">—</div>
+                    <div class="text-xs text-slate-500 mt-1">En objetivo ✅</div>
+                </div>
+                <div class="bg-amber-50 rounded-xl p-4 text-center">
+                    <div class="text-2xl font-bold text-amber-700" id="prod-kpi-ambar">—</div>
+                    <div class="text-xs text-slate-500 mt-1">Mejorable ⚠️</div>
+                </div>
+                <div class="bg-rose-50 rounded-xl p-4 text-center">
+                    <div class="text-2xl font-bold text-rose-700" id="prod-kpi-rojo">—</div>
+                    <div class="text-xs text-slate-500 mt-1">Bajo objetivo 🔴</div>
+                </div>
+                <div class="bg-slate-50 rounded-xl p-4 text-center">
+                    <div class="text-2xl font-bold text-slate-700" id="prod-kpi-sin-target">—</div>
+                    <div class="text-xs text-slate-500 mt-1">Sin target —</div>
+                </div>
+            </div>
+
+            <!-- Resumen por subtarea -->
+            <div class="mb-6" id="prod-resumen-contenedor" style="display:none;">
+                <h3 class="font-bold text-slate-800 mb-3">Resumen por subtarea</h3>
+                <div id="prod-resumen" class="space-y-3"></div>
+            </div>
+
+            <!-- Gráfico productividad -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6"
+                id="prod-graficos" style="display:none;">
+                <div class="bg-slate-50 rounded-xl p-4">
+                    <h3 class="text-sm font-semibold text-slate-700 mb-3">
+                        Ud/h real vs target por subtarea
+                    </h3>
+                    <canvas id="prod-grafico-barras"></canvas>
+                </div>
+                <div class="bg-slate-50 rounded-xl p-4">
+                    <h3 class="text-sm font-semibold text-slate-700 mb-3">
+                        % cumplimiento por subtarea
+                    </h3>
+                    <canvas id="prod-grafico-pct"></canvas>
+                </div>
+            </div>
+
+            <!-- Tabla detalle productividad -->
+            <div id="prod-tabla">
+                <p class="text-sm text-slate-400 text-center py-8 italic">
+                    Selecciona un rango de fechas y consulta.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== PESTAÑA IMPORTACIÓN ===== -->
+    <div id="pestana-importacion" class="hidden" role="tabpanel">
+        <div class="bg-white shadow-lg rounded-xl p-6 md:p-8 mb-6">
+            <div class="border-b pb-4 mb-6">
+                <h1 class="text-2xl font-bold text-slate-800">📥 Importar Producción</h1>
+                <p class="text-sm text-slate-500">
+                    Carga un fichero Excel o CSV con las unidades producidas por operario y subtarea
+                </p>
+            </div>
+
+            <!-- Zona de carga -->
+            <div class="drop-zone mb-6" id="drop-zone" onclick="document.getElementById('input-fichero').click()">
+                <div class="text-4xl mb-3">📂</div>
+                <p class="text-slate-700 font-semibold mb-1">Arrastra tu fichero aquí</p>
+                <p class="text-slate-400 text-sm mb-3">o haz clic para seleccionarlo</p>
+                <p class="text-xs text-slate-400">Formatos soportados: .xlsx, .xls, .csv</p>
+                <input type="file" id="input-fichero" accept=".xlsx,.xls,.csv"
+                    class="hidden" onchange="seleccionarFichero(event)" />
+            </div>
+
+            <!-- Info fichero seleccionado -->
+            <div id="fichero-seleccionado" class="hidden bg-blue-50 rounded-xl p-4 mb-6">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <span class="text-2xl">📄</span>
+                        <div>
+                            <p id="fichero-nombre" class="font-semibold text-slate-800 text-sm"></p>
+                            <p id="fichero-tamanyo" class="text-xs text-slate-500"></p>
+                        </div>
+                    </div>
+                    <button onclick="limpiarFichero()"
+                        class="text-slate-400 hover:text-slate-600 text-xl leading-none">×</button>
+                </div>
+            </div>
+
+            <!-- Columnas detectadas -->
+            <div id="columnas-detectadas" class="hidden bg-slate-50 rounded-xl p-5 mb-6">
+                <h3 class="text-sm font-bold text-slate-700 mb-3">Columnas detectadas automáticamente</h3>
+                <div id="mapeo-columnas" class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3"></div>
+                <div id="columnas-no-mapeadas-contenedor" class="hidden">
+                    <p class="text-xs text-slate-500 mb-1">Columnas ignoradas:</p>
+                    <div id="columnas-no-mapeadas" class="flex flex-wrap gap-1"></div>
+                </div>
+            </div>
+
+            <!-- Botón importar -->
+            <button onclick="importarFichero()" id="btn-importar"
+                class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl mb-6 hidden">
+                📥 Importar datos
+            </button>
+
+            <!-- Resultado importación -->
+            <div id="resultado-importacion" class="hidden">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                    <div class="bg-blue-50 rounded-xl p-4 text-center">
+                        <div class="text-2xl font-bold text-blue-700" id="imp-procesadas">—</div>
+                        <div class="text-xs text-slate-500 mt-1">Filas procesadas</div>
+                    </div>
+                    <div class="bg-emerald-50 rounded-xl p-4 text-center">
+                        <div class="text-2xl font-bold text-emerald-700" id="imp-insertadas">—</div>
+                        <div class="text-xs text-slate-500 mt-1">Insertadas</div>
+                    </div>
+                    <div class="bg-amber-50 rounded-xl p-4 text-center">
+                        <div class="text-2xl font-bold text-amber-700" id="imp-actualizadas">—</div>
+                        <div class="text-xs text-slate-500 mt-1">Actualizadas</div>
+                    </div>
+                    <div class="bg-rose-50 rounded-xl p-4 text-center">
+                        <div class="text-2xl font-bold text-rose-700" id="imp-errores">—</div>
+                        <div class="text-xs text-slate-500 mt-1">Errores</div>
+                    </div>
+                </div>
+                <div id="imp-errores-detalle" class="hidden bg-rose-50 rounded-xl p-4 mb-4">
+                    <h4 class="text-sm font-bold text-rose-800 mb-2">Detalle de errores:</h4>
+                    <div id="imp-errores-lista" class="space-y-1 max-h-48 overflow-y-auto"></div>
+                </div>
+            </div>
+
+            <!-- Historial importaciones -->
+            <div class="border-t pt-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-bold text-slate-800">Historial de importaciones</h3>
+                    <button onclick="cargarHistorialImportaciones()"
+                        class="text-xs text-blue-600 hover:text-blue-800 font-medium">
+                        Actualizar
+                    </button>
+                </div>
+                <div id="historial-importaciones">
+                    <div class="skeleton h-10 w-full mb-2"></div>
+                    <div class="skeleton h-10 w-full"></div>
+                </div>
+            </div>
+        </div>
+    </div>
     <!-- ===== PESTAÑA PLANTILLAS ===== -->
     <div id="pestana-plantillas" class="hidden" role="tabpanel">
         <div class="bg-white shadow-lg rounded-xl p-6 md:p-8">
@@ -923,11 +1259,11 @@
                 class="w-full bg-slate-700 hover:bg-slate-800 text-white font-medium py-2.5 rounded-lg mb-6">
                 Buscar Registros
             </button>
+
             <!-- Paginación info -->
             <div id="edicion-paginacion-info"
                 class="flex justify-between items-center mb-3 hidden">
-                <span id="edicion-info-texto"
-                    class="text-sm text-slate-500"></span>
+                <span id="edicion-info-texto" class="text-sm text-slate-500"></span>
                 <div class="flex gap-2">
                     <button onclick="paginaAnterior()"
                         id="btn-pagina-anterior"
@@ -960,16 +1296,12 @@
                 <h3 class="text-sm font-bold text-slate-700 mb-3">Añadir nuevo usuario</h3>
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-xs font-medium text-slate-600 mb-1">
-                            Nombre:
-                        </label>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Nombre:</label>
                         <input type="text" id="nuevo-nombre" placeholder="Ej: Ana Gómez"
                             class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
                     </div>
                     <div>
-                        <label class="block text-xs font-medium text-slate-600 mb-1">
-                            Código:
-                        </label>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Código:</label>
                         <input type="text" id="nuevo-codigo" placeholder="Ej: EMP001"
                             class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
                     </div>
@@ -1006,7 +1338,7 @@
             <div class="border-b pb-4 mb-6">
                 <h1 class="text-2xl font-bold text-slate-800">⚙️ Configuración</h1>
                 <p class="text-sm text-slate-500">
-                    Gestiona tareas, subtareas y parámetros del sistema
+                    Gestiona tareas, subtareas, targets y parámetros del sistema
                 </p>
             </div>
 
@@ -1029,6 +1361,35 @@
                 </div>
                 <p class="text-xs text-slate-400 mt-2">
                     Valor actual usado para calcular límites diarios y productividad.
+                </p>
+            </div>
+
+            <!-- Targets por subtarea -->
+            <div class="bg-slate-50 rounded-xl p-5 mb-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-sm font-bold text-slate-700">
+                        Targets de productividad por subtarea (Ud/hora)
+                    </h3>
+                    <button onclick="guardarTargetsSubtarea()"
+                        class="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium px-4 py-2 rounded-lg">
+                        Guardar targets
+                    </button>
+                </div>
+                <!-- Filtro por tarea -->
+                <div class="mb-4">
+                    <select id="config-filtro-tarea-targets"
+                        onchange="filtrarTargetsPorTarea()"
+                        class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                        <option value="">-- Todas las tareas --</option>
+                    </select>
+                </div>
+                <div id="config-targets-subtarea" class="space-y-2 max-h-96 overflow-y-auto">
+                    <div class="skeleton h-10 w-full mb-2"></div>
+                    <div class="skeleton h-10 w-full"></div>
+                </div>
+                <p class="text-xs text-slate-400 mt-3">
+                    Define cuántas unidades por hora debe producir cada operario en cada subtarea.
+                    Usa 0 para subtareas sin target definido.
                 </p>
             </div>
 
@@ -1221,32 +1582,79 @@
         </div>
     </div>
 
+    <!-- ===== MODAL CONFIRMACIÓN IMPORTACIÓN ===== -->
+    <div id="modal-confirmar-importacion" style="display:none;"
+        class="modal-overlay fixed inset-0 flex items-center justify-center z-50"
+        role="dialog" aria-modal="true">
+        <div class="bg-white rounded-xl p-6 w-full max-w-sm mx-4 shadow-xl">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold text-slate-800">
+                    Confirmar importación
+                </h3>
+                <button onclick="cerrarModalImportacion()"
+                    class="text-slate-400 hover:text-slate-600 text-2xl leading-none">&times;</button>
+            </div>
+            <div class="bg-amber-50 rounded-lg p-4 mb-4">
+                <p class="text-sm text-amber-800">
+                    Los registros existentes con el mismo operario, fecha y subtarea
+                    serán <strong>sobrescritos</strong>. ¿Deseas continuar?
+                </p>
+            </div>
+            <div id="modal-importacion-resumen" class="text-sm text-slate-600 mb-4"></div>
+            <div class="flex gap-3">
+                <button onclick="confirmarImportacion()"
+                    class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded-lg">
+                    Sí, importar
+                </button>
+                <button onclick="cerrarModalImportacion()"
+                    class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-2 px-4 rounded-lg">
+                    Cancelar
+                </button>
+            </div>
+        </div>
+    </div>
+
 </div><!-- fin app-principal -->
 <script>
     const API = '';
     const hoy = new Date().toISOString().split('T')[0];
 
-    let usuarioSesion = null;
-    let tareasPendientes = [];
-    let tiempoSeleccionado = 0;
-    let periodoHistorico = 'semana';
-    let objetivosCache = {};
-    let tareasCache = [];
-    let subtareasCache = {};
-    let minutosJornada = 480;
+    // ==================== VARIABLES GLOBALES ====================
+
+    let usuarioSesion       = null;
+    let tareasPendientes    = [];
+    let tiempoSeleccionado  = 0;
+    let periodoHistorico    = 'semana';
+    let objetivosCache      = {};
+    let tareasCache         = [];
+    let subtareasCache      = {};
+    let minutosJornada      = 480;
+    let targetsSubtareaCache = {};
+    let ficheroSeleccionado = null;
+    let mostrandoTodasAlertas = false;
+    let subtareasFrecuentes = [];
 
     // Paginación edición
-    let registrosTodos = [];
-    let paginaActual = 1;
+    let registrosTodos        = [];
+    let paginaActual          = 1;
     const REGISTROS_POR_PAGINA = 20;
 
     // Gráficas
-    let graficaTarta = null, graficaBarras = null, graficaSemanal = null;
-    let graficaComparacion = null;
-    let dashboardGraficoTareas = null, dashboardGraficoUsuarios = null, dashboardGraficoMedia = null;
-    let historicoGrafico = null;
-    let volGraficoEficiencia = null, volGraficoComparativa = null;
-    let rendGraficoEficiencia = null, rendGraficoObjetivo = null, rendGraficoTendencia = null;
+    let graficaTarta        = null;
+    let graficaBarras       = null;
+    let graficaSemanal      = null;
+    let graficaComparacion  = null;
+    let dashboardGraficoTareas   = null;
+    let dashboardGraficoUsuarios = null;
+    let dashboardGraficoMedia    = null;
+    let historicoGrafico         = null;
+    let volGraficoEficiencia     = null;
+    let volGraficoComparativa    = null;
+    let rendGraficoEficiencia    = null;
+    let rendGraficoObjetivo      = null;
+    let rendGraficoTendencia     = null;
+    let prodGraficoBarras        = null;
+    let prodGraficoPct           = null;
 
     // ==================== UTILIDADES ====================
 
@@ -1269,17 +1677,50 @@
         return Math.round(n * 100) / 100;
     }
 
-    const avatarColores = ['#3b82f6','#8b5cf6','#f59e0b','#10b981','#ef4444','#ec4899','#06b6d4'];
+    function getSemaforoClase(semaforo) {
+        const clases = {
+            'verde':      'semaforo-verde',
+            'ambar':      'semaforo-ambar',
+            'rojo':       'semaforo-rojo',
+            'sin_target': 'semaforo-neutro'
+        };
+        return clases[semaforo] || 'semaforo-neutro';
+    }
+
+    function getSemaforoIcono(semaforo) {
+        const iconos = {
+            'verde':      '✅',
+            'ambar':      '⚠️',
+            'rojo':       '🔴',
+            'sin_target': '—'
+        };
+        return iconos[semaforo] || '—';
+    }
+
+    function getSemaforoTexto(semaforo) {
+        const textos = {
+            'verde':      'En objetivo',
+            'ambar':      'Mejorable',
+            'rojo':       'Bajo objetivo',
+            'sin_target': 'Sin target'
+        };
+        return textos[semaforo] || '—';
+    }
+
+    const avatarColores = [
+        '#3b82f6','#8b5cf6','#f59e0b',
+        '#10b981','#ef4444','#ec4899','#06b6d4'
+    ];
 
     // ==================== TOAST ====================
 
     function toast(mensaje, tipo = 'success', duracion = 3500) {
-        const iconos = { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️' };
+        const iconos     = { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️' };
         const contenedor = document.getElementById('toast-container');
-        const t = document.createElement('div');
-        t.className = `toast ${tipo}`;
-        t.innerHTML = `<span>${iconos[tipo]}</span><span>${mensaje}</span>`;
-        t.onclick = () => cerrarToast(t);
+        const t          = document.createElement('div');
+        t.className      = `toast ${tipo}`;
+        t.innerHTML      = `<span>${iconos[tipo]}</span><span>${mensaje}</span>`;
+        t.onclick        = () => cerrarToast(t);
         contenedor.appendChild(t);
         setTimeout(() => cerrarToast(t), duracion);
     }
@@ -1308,15 +1749,17 @@
         iniciarReloj();
 
         document.getElementById('login-codigo').focus();
-        document.getElementById('fecha').value = hoy;
-        document.getElementById('filtro-fecha').value = hoy;
+        document.getElementById('fecha').value              = hoy;
+        document.getElementById('filtro-fecha').value       = hoy;
         document.getElementById('edicion-fecha-desde').value = hoy;
         document.getElementById('edicion-fecha-hasta').value = hoy;
-        document.getElementById('dashboard-fecha').value = hoy;
+        document.getElementById('dashboard-fecha').value    = hoy;
         document.getElementById('historico-fecha-semana').value = hoy;
-        document.getElementById('vol-fecha').value = hoy;
-        document.getElementById('vol-desde').value = hoy;
-        document.getElementById('vol-hasta').value = hoy;
+        document.getElementById('vol-fecha').value          = hoy;
+        document.getElementById('vol-desde').value          = hoy;
+        document.getElementById('vol-hasta').value          = hoy;
+        document.getElementById('prod-desde').value         = hoy;
+        document.getElementById('prod-hasta').value         = hoy;
 
         const hace7 = new Date();
         hace7.setDate(hace7.getDate() - 7);
@@ -1325,9 +1768,8 @@
 
         const fechaActual = new Date();
         document.getElementById('historico-anyo').value = fechaActual.getFullYear();
-        document.getElementById('historico-mes').value = fechaActual.getMonth() + 1;
+        document.getElementById('historico-mes').value  = fechaActual.getMonth() + 1;
 
-        // Cargar tareas dinámicas desde API
         await cargarTareasCache();
 
         document.getElementById('login-codigo').addEventListener('keydown', e => {
@@ -1338,13 +1780,31 @@
         });
         document.getElementById('edicion-tarea').addEventListener('change',
             actualizarSubtareasEdicionFiltro);
+
+        // Drag & drop zona importación
+        const dropZone = document.getElementById('drop-zone');
+        if (dropZone) {
+            dropZone.addEventListener('dragover', e => {
+                e.preventDefault();
+                dropZone.classList.add('dragover');
+            });
+            dropZone.addEventListener('dragleave', () => {
+                dropZone.classList.remove('dragover');
+            });
+            dropZone.addEventListener('drop', e => {
+                e.preventDefault();
+                dropZone.classList.remove('dragover');
+                const file = e.dataTransfer.files[0];
+                if (file) procesarFicheroSeleccionado(file);
+            });
+        }
     };
 
     // ==================== CARGA DE TAREAS Y SUBTAREAS ====================
 
     async function cargarTareasCache() {
         try {
-            const resp = await fetch(`${API}/tareas/`);
+            const resp  = await fetch(`${API}/tareas/`);
             tareasCache = await resp.json();
             poblarSelectsTareas();
         } catch {
@@ -1367,29 +1827,106 @@
     function poblarSelectsTareas() {
         const selectIds = [
             'tarea_principal', 'vol-tarea', 'edicion-tarea',
-            'edit-tarea-principal', 'config-filtro-tarea-subtarea'
+            'edit-tarea-principal', 'config-filtro-tarea-subtarea',
+            'config-filtro-tarea-targets'
         ];
         selectIds.forEach(id => {
             const sel = document.getElementById(id);
             if (!sel) return;
-            const tieneOpcionTodas = ['edicion-tarea', 'config-filtro-tarea-subtarea'].includes(id);
+            const tieneOpcionTodas = [
+                'edicion-tarea',
+                'config-filtro-tarea-subtarea',
+                'config-filtro-tarea-targets'
+            ].includes(id);
             sel.innerHTML = tieneOpcionTodas
                 ? '<option value="">-- Todas --</option>'
                 : '';
             tareasCache.forEach(t => {
-                const o = document.createElement('option');
-                o.value = t.nombre;
+                const o       = document.createElement('option');
+                o.value       = t.nombre;
                 o.textContent = t.nombre;
                 sel.appendChild(o);
             });
         });
     }
 
+    // ==================== SUBTAREAS FRECUENTES ====================
+
+    function registrarSubtareaFrecuente(tarea, subtarea) {
+        const clave = `${tarea}|||${subtarea}`;
+        subtareasFrecuentes = subtareasFrecuentes.filter(s => s !== clave);
+        subtareasFrecuentes.unshift(clave);
+        subtareasFrecuentes = subtareasFrecuentes.slice(0, 5);
+        localStorage.setItem('subtareas_frecuentes', JSON.stringify(subtareasFrecuentes));
+        mostrarSubtareasFrecuentes();
+    }
+
+    function cargarSubtareasFrecuentes() {
+        try {
+            subtareasFrecuentes = JSON.parse(
+                localStorage.getItem('subtareas_frecuentes') || '[]'
+            );
+        } catch {
+            subtareasFrecuentes = [];
+        }
+        mostrarSubtareasFrecuentes();
+    }
+
+    function mostrarSubtareasFrecuentes() {
+        const contenedor = document.getElementById('subtareas-frecuentes-contenedor');
+        const lista      = document.getElementById('subtareas-frecuentes');
+        if (!subtareasFrecuentes.length) {
+            contenedor.classList.add('hidden');
+            return;
+        }
+        contenedor.classList.remove('hidden');
+        lista.innerHTML = subtareasFrecuentes.map(clave => {
+            const [tarea, subtarea] = clave.split('|||');
+            const color = getColorTarea(tarea);
+            return `<button onclick="usarSubtareaFrecuente('${tarea}','${subtarea}')"
+                class="text-xs px-3 py-1.5 rounded-full font-medium border-2 transition hover:opacity-80"
+                style="border-color:${color};color:${color};background:${getColorLight(color)}">
+                ${subtarea}
+            </button>`;
+        }).join('');
+    }
+
+    async function usarSubtareaFrecuente(tarea, subtarea) {
+        document.getElementById('tarea_principal').value = tarea;
+        await actualizarSubtareas();
+        document.getElementById('subtarea').value = subtarea;
+    }
+
+    // ==================== BUSCADOR SUBTAREA ====================
+
+    function filtrarSubtareas() {
+        const texto = document.getElementById('buscador-subtarea').value.toLowerCase().trim();
+        const sel   = document.getElementById('subtarea');
+        Array.from(sel.options).forEach(opt => {
+            opt.style.display = opt.text.toLowerCase().includes(texto) ? '' : 'none';
+        });
+    }
+
+    // ==================== RESUMEN HOY TOGGLE ====================
+
+    function toggleResumenHoy() {
+        const lista = document.getElementById('resumen-hoy');
+        const btn   = document.getElementById('btn-toggle-resumen');
+        if (lista.style.display === 'none') {
+            lista.style.display = '';
+            btn.textContent = 'Ocultar';
+        } else {
+            lista.style.display = 'none';
+            btn.textContent = 'Mostrar';
+        }
+    }
+</script>
+<script>
     // ==================== LOGIN ====================
 
     async function hacerLogin() {
-        const codigo = document.getElementById('login-codigo').value.trim();
-        const pin = document.getElementById('login-pin').value.trim();
+        const codigo   = document.getElementById('login-codigo').value.trim();
+        const pin      = document.getElementById('login-pin').value.trim();
         const errorDiv = document.getElementById('login-error');
         if (!codigo || !pin) {
             errorDiv.textContent = 'Introduce tu código y PIN.';
@@ -1398,9 +1935,9 @@
         }
         try {
             const resp = await fetch(`${API}/login/`, {
-                method: 'POST',
+                method:  'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ codigo, pin })
+                body:    JSON.stringify({ codigo, pin })
             });
             if (!resp.ok) {
                 errorDiv.textContent = 'Código o PIN incorrectos.';
@@ -1429,31 +1966,39 @@
         const rolBadge = document.getElementById('header-rol');
         if (usuarioSesion.rol === 'supervisor') {
             rolBadge.textContent = 'Supervisor';
-            rolBadge.className = 'text-xs px-2 py-0.5 rounded-full font-medium bg-violet-100 text-violet-700';
+            rolBadge.className   = 'text-xs px-2 py-0.5 rounded-full font-medium bg-violet-100 text-violet-700';
+
+            // Mostrar pestañas supervisor
             [
-                'tab-dashboard', 'tab-historico', 'tab-progreso', 'tab-volumen',
-                'tab-rendimiento', 'tab-plantillas', 'tab-edicion',
-                'tab-usuarios', 'tab-configuracion'
+                'tab-dashboard', 'tab-historico', 'tab-progreso',
+                'tab-volumen', 'tab-rendimiento', 'tab-plantillas',
+                'tab-edicion', 'tab-usuarios', 'tab-configuracion',
+                'tab-importacion', 'tab-productividad'
             ].forEach(id => document.getElementById(id).classList.remove('hidden'));
+
+            // Mostrar labels de grupos
+            document.getElementById('label-analisis').classList.remove('hidden');
+            document.getElementById('label-admin').classList.remove('hidden');
+
             document.getElementById('btn-excel').classList.remove('hidden');
             cargarUsuariosGestion();
             cargarDashboard();
             cargarAlertasRendimiento();
             cargarConfiguracion();
+            cargarTargetsSubtarea();
         } else {
             rolBadge.textContent = 'Operario';
-            rolBadge.className = 'text-xs px-2 py-0.5 rounded-full font-medium bg-blue-100 text-blue-700';
+            rolBadge.className   = 'text-xs px-2 py-0.5 rounded-full font-medium bg-blue-100 text-blue-700';
             document.getElementById('tab-plantillas').classList.remove('hidden');
         }
 
         document.getElementById('estado-nombre').textContent = usuarioSesion.nombre;
-        document.getElementById('estado-fecha').textContent = new Date().toLocaleDateString('es-ES', {
+        document.getElementById('estado-fecha').textContent  = new Date().toLocaleDateString('es-ES', {
             weekday: 'long', day: 'numeric', month: 'long'
         });
 
-        // Cargar minutos jornada desde configuración
         await cargarMinutosJornada();
-
+        cargarSubtareasFrecuentes();
         actualizarIndicadorTiempo();
         cargarUsuariosFiltros();
         cargarPlantillas();
@@ -1463,37 +2008,106 @@
     }
 
     function cerrarSesion() {
-        usuarioSesion = null;
-        tareasPendientes = [];
-        tiempoSeleccionado = 0;
-        objetivosCache = {};
-        subtareasCache = {};
-        registrosTodos = [];
+        usuarioSesion         = null;
+        tareasPendientes      = [];
+        tiempoSeleccionado    = 0;
+        objetivosCache        = {};
+        subtareasCache        = {};
+        registrosTodos        = [];
+        targetsSubtareaCache  = {};
+        ficheroSeleccionado   = null;
+        mostrandoTodasAlertas = false;
         actualizarLista();
+
         document.getElementById('pantalla-login').classList.remove('hidden');
         document.getElementById('app-principal').classList.add('hidden');
         document.getElementById('login-codigo').value = '';
-        document.getElementById('login-pin').value = '';
+        document.getElementById('login-pin').value    = '';
         document.getElementById('login-codigo').focus();
+
         [
-            'tab-dashboard', 'tab-historico', 'tab-progreso', 'tab-volumen',
-            'tab-rendimiento', 'tab-plantillas', 'tab-edicion',
-            'tab-usuarios', 'tab-configuracion'
+            'tab-dashboard', 'tab-historico', 'tab-progreso',
+            'tab-volumen', 'tab-rendimiento', 'tab-plantillas',
+            'tab-edicion', 'tab-usuarios', 'tab-configuracion',
+            'tab-importacion', 'tab-productividad'
         ].forEach(id => document.getElementById(id).classList.add('hidden'));
+
+        document.getElementById('label-analisis').classList.add('hidden');
+        document.getElementById('label-admin').classList.add('hidden');
         document.getElementById('btn-excel').classList.add('hidden');
         resetearBotonesTiempo();
+    }
+
+    // ==================== NAVEGACIÓN ====================
+
+    function mostrarPestana(nombre) {
+        const todas = [
+            'registro', 'dashboard', 'historico', 'progreso', 'volumen',
+            'rendimiento', 'plantillas', 'edicion', 'usuarios', 'configuracion',
+            'importacion', 'productividad'
+        ];
+        const permitidas = usuarioSesion.rol === 'supervisor'
+            ? todas
+            : ['registro', 'plantillas'];
+
+        if (!permitidas.includes(nombre)) {
+            toast('No tienes permisos para acceder a esta sección.', 'error');
+            return;
+        }
+
+        todas.forEach(p => {
+            const pestana = document.getElementById(`pestana-${p}`);
+            const tab     = document.getElementById(`tab-${p}`);
+            if (pestana) pestana.classList.add('hidden');
+            if (tab) {
+                tab.classList.remove('bg-blue-600', 'text-white');
+                tab.classList.add('bg-white', 'text-slate-600', 'border');
+                tab.setAttribute('aria-selected', 'false');
+            }
+        });
+
+        const pestanaActiva = document.getElementById(`pestana-${nombre}`);
+        if (pestanaActiva) {
+            pestanaActiva.classList.remove('hidden');
+            pestanaActiva.classList.add('pestana-content');
+        }
+        const tabActivo = document.getElementById(`tab-${nombre}`);
+        if (tabActivo) {
+            tabActivo.classList.remove('bg-white', 'text-slate-600', 'border');
+            tabActivo.classList.add('bg-blue-600', 'text-white');
+            tabActivo.setAttribute('aria-selected', 'true');
+        }
+
+        if (nombre === 'progreso' || nombre === 'edicion') cargarUsuariosFiltros();
+        if (nombre === 'usuarios')       cargarUsuariosGestion();
+        if (nombre === 'dashboard')      cargarDashboard();
+        if (nombre === 'plantillas')     cargarPlantillas();
+        if (nombre === 'historico')      cargarUsuariosHistorico();
+        if (nombre === 'importacion')    cargarHistorialImportaciones();
+        if (nombre === 'productividad')  cargarUsuariosFiltrosProductividad();
+        if (nombre === 'rendimiento') {
+            cargarUsuariosFiltrosRendimiento();
+            cargarAlertasRendimiento();
+        }
+        if (nombre === 'volumen') {
+            cargarObjetivos();
+            document.getElementById('vol-fecha').value  = hoy;
+            document.getElementById('vol-desde').value  = hoy;
+            document.getElementById('vol-hasta').value  = hoy;
+        }
+        if (nombre === 'configuracion') cargarConfiguracion();
     }
 
     // ==================== CONFIGURACIÓN ====================
 
     async function cargarMinutosJornada() {
         try {
-            const resp = await fetch(`${API}/configuracion/`);
+            const resp    = await fetch(`${API}/configuracion/`);
             const configs = await resp.json();
-            const config = configs.find(c => c.clave === 'minutos_jornada');
+            const config  = configs.find(c => c.clave === 'minutos_jornada');
             if (config) {
                 minutosJornada = parseInt(config.valor);
-                const input = document.getElementById('config-minutos-jornada');
+                const input    = document.getElementById('config-minutos-jornada');
                 if (input) input.value = minutosJornada;
             }
         } catch {}
@@ -1502,6 +2116,7 @@
     async function cargarConfiguracion() {
         await cargarMinutosJornada();
         await cargarTareasConfig();
+        await cargarTargetsSubtarea();
     }
 
     async function guardarMinutosJornada() {
@@ -1512,9 +2127,9 @@
         }
         try {
             const resp = await fetch(`${API}/configuracion/minutos_jornada`, {
-                method: 'PUT',
+                method:  'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ valor: valor.toString() })
+                body:    JSON.stringify({ valor: valor.toString() })
             });
             if (resp.ok) {
                 minutosJornada = parseInt(valor);
@@ -1527,31 +2142,33 @@
             toast('Error de conexión.', 'error');
         }
     }
+
     // ==================== SUBTAREAS ====================
 
     async function actualizarSubtareas() {
         const principal = document.getElementById('tarea_principal').value;
-        const sel = document.getElementById('subtarea');
-        sel.innerHTML = '';
+        const sel       = document.getElementById('subtarea');
+        sel.innerHTML   = '';
         if (!principal) return;
         const subs = await cargarSubtareasCache(principal);
         subs.forEach(sub => {
-            const o = document.createElement('option');
-            o.value = sub;
+            const o       = document.createElement('option');
+            o.value       = sub;
             o.textContent = sub;
             sel.appendChild(o);
         });
+        document.getElementById('buscador-subtarea').value = '';
     }
 
     async function actualizarSubtareasEdicion(subtareaSeleccionada = '') {
         const principal = document.getElementById('edit-tarea-principal').value;
-        const sel = document.getElementById('edit-subtarea');
-        sel.innerHTML = '';
+        const sel       = document.getElementById('edit-subtarea');
+        sel.innerHTML   = '';
         if (!principal) return;
         const subs = await cargarSubtareasCache(principal);
         subs.forEach(sub => {
-            const o = document.createElement('option');
-            o.value = sub;
+            const o       = document.createElement('option');
+            o.value       = sub;
             o.textContent = sub;
             if (sub === subtareaSeleccionada) o.selected = true;
             sel.appendChild(o);
@@ -1560,13 +2177,13 @@
 
     async function actualizarSubtareasEdicionFiltro() {
         const principal = document.getElementById('edicion-tarea').value;
-        const sel = document.getElementById('edicion-subtarea');
-        sel.innerHTML = '<option value="">-- Todas --</option>';
+        const sel       = document.getElementById('edicion-subtarea');
+        sel.innerHTML   = '<option value="">-- Todas --</option>';
         if (!principal) return;
         const subs = await cargarSubtareasCache(principal);
         subs.forEach(sub => {
-            const o = document.createElement('option');
-            o.value = sub;
+            const o       = document.createElement('option');
+            o.value       = sub;
             o.textContent = sub;
             sel.appendChild(o);
         });
@@ -1587,7 +2204,7 @@
             btn.className = 'tiempo-btn py-3 rounded-xl border-2 border-slate-200 text-sm font-bold text-slate-700 hover:border-blue-400 hover:bg-blue-50 transition focus:outline-none';
         });
         const valores = [15, 30, 45, 60, 90, 120, 180, 240];
-        const index = valores.indexOf(minutos);
+        const index   = valores.indexOf(minutos);
         if (index !== -1) {
             document.querySelectorAll('.tiempo-btn')[index].className =
                 'tiempo-btn py-3 rounded-xl border-2 border-blue-500 bg-blue-50 text-sm font-bold text-blue-700 transition focus:outline-none';
@@ -1596,7 +2213,7 @@
 
     function resetearBotonesTiempo() {
         tiempoSeleccionado = 0;
-        document.getElementById('tiempo_minutos').value = 0;
+        document.getElementById('tiempo_minutos').value      = 0;
         document.getElementById('tiempo-seleccionado').textContent = 'Ninguno';
         document.querySelectorAll('.tiempo-btn').forEach(btn => {
             btn.className = 'tiempo-btn py-3 rounded-xl border-2 border-slate-200 text-sm font-bold text-slate-700 hover:border-blue-400 hover:bg-blue-50 transition focus:outline-none';
@@ -1610,8 +2227,8 @@
         try {
             const resp = await fetch(`${API}/registros/${usuarioSesion.codigo}`);
             if (!resp.ok) { actualizarTarjetaEstado(0); return; }
-            const registros = await resp.json();
-            const totalHoy = registros
+            const registros   = await resp.json();
+            const totalHoy    = registros
                 .filter(r => r.fecha === hoy)
                 .reduce((s, r) => s + r.tiempo_minutos, 0);
             const totalPendiente = tareasPendientes
@@ -1624,17 +2241,19 @@
     }
 
     function actualizarTarjetaEstado(totalMinutos) {
-        const horas = Math.floor(totalMinutos / 60);
-        const mins = totalMinutos % 60;
-        const restante = Math.max(0, minutosJornada - totalMinutos);
-        const restanteH = Math.floor(restante / 60);
-        const restanteM = restante % 60;
+        const horas      = Math.floor(totalMinutos / 60);
+        const mins       = totalMinutos % 60;
+        const restante   = Math.max(0, minutosJornada - totalMinutos);
+        const restanteH  = Math.floor(restante / 60);
+        const restanteM  = restante % 60;
         const porcentaje = Math.min((totalMinutos / minutosJornada) * 100, 100);
-        document.getElementById('estado-tiempo').textContent = `${horas}h ${mins}min`;
-        document.getElementById('estado-restante').textContent = restante > 0
+
+        document.getElementById('estado-tiempo').textContent    = `${horas}h ${mins}min`;
+        document.getElementById('estado-restante').textContent  = restante > 0
             ? `Faltan ${restanteH}h ${restanteM}min`
             : '✅ Jornada completa';
-        document.getElementById('estado-barra').style.width = `${porcentaje}%`;
+        document.getElementById('estado-barra').style.width     = `${porcentaje}%`;
+
         const tarjeta = document.getElementById('tarjeta-estado');
         if (porcentaje >= 100)
             tarjeta.className = 'rounded-2xl p-5 mb-6 text-white bg-emerald-500 transition-all duration-500';
@@ -1648,14 +2267,14 @@
 
     function mostrarResumenHoy(registros) {
         const contenedor = document.getElementById('resumen-hoy-contenedor');
-        const lista = document.getElementById('resumen-hoy');
+        const lista      = document.getElementById('resumen-hoy');
         if (registros.length === 0) {
             contenedor.classList.add('hidden');
             return;
         }
         contenedor.classList.remove('hidden');
         lista.innerHTML = registros.map(r => {
-            const color = getColorTarea(r.tarea_principal);
+            const color      = getColorTarea(r.tarea_principal);
             const colorLight = getColorLight(color);
             return `<div class="flex justify-between items-center text-sm p-2 rounded-lg slide-in"
                 style="background-color:${colorLight};border-left:3px solid ${color}">
@@ -1666,60 +2285,8 @@
             </div>`;
         }).join('');
     }
-
-    // ==================== NAVEGACIÓN ====================
-
-    function mostrarPestana(nombre) {
-        const todas = [
-            'registro', 'dashboard', 'historico', 'progreso', 'volumen',
-            'rendimiento', 'plantillas', 'edicion', 'usuarios', 'configuracion'
-        ];
-        const permitidas = usuarioSesion.rol === 'supervisor'
-            ? todas
-            : ['registro', 'plantillas'];
-        if (!permitidas.includes(nombre)) {
-            toast('No tienes permisos para acceder a esta sección.', 'error');
-            return;
-        }
-        todas.forEach(p => {
-            const pestana = document.getElementById(`pestana-${p}`);
-            const tab = document.getElementById(`tab-${p}`);
-            if (pestana) pestana.classList.add('hidden');
-            if (tab) {
-                tab.classList.remove('bg-blue-600', 'text-white');
-                tab.classList.add('bg-white', 'text-slate-600', 'border');
-                tab.setAttribute('aria-selected', 'false');
-            }
-        });
-        const pestanaActiva = document.getElementById(`pestana-${nombre}`);
-        if (pestanaActiva) {
-            pestanaActiva.classList.remove('hidden');
-            pestanaActiva.classList.add('pestana-content');
-        }
-        const tabActivo = document.getElementById(`tab-${nombre}`);
-        if (tabActivo) {
-            tabActivo.classList.remove('bg-white', 'text-slate-600', 'border');
-            tabActivo.classList.add('bg-blue-600', 'text-white');
-            tabActivo.setAttribute('aria-selected', 'true');
-        }
-        if (nombre === 'progreso' || nombre === 'edicion') cargarUsuariosFiltros();
-        if (nombre === 'usuarios') cargarUsuariosGestion();
-        if (nombre === 'dashboard') cargarDashboard();
-        if (nombre === 'plantillas') cargarPlantillas();
-        if (nombre === 'historico') cargarUsuariosHistorico();
-        if (nombre === 'rendimiento') {
-            cargarUsuariosFiltrosRendimiento();
-            cargarAlertasRendimiento();
-        }
-        if (nombre === 'volumen') {
-            cargarObjetivos();
-            document.getElementById('vol-fecha').value = hoy;
-            document.getElementById('vol-desde').value = hoy;
-            document.getElementById('vol-hasta').value = hoy;
-        }
-        if (nombre === 'configuracion') cargarConfiguracion();
-    }
-
+</script>
+<script>
     // ==================== REGISTRO ====================
 
     async function añadirTarea() {
@@ -1728,7 +2295,7 @@
             return;
         }
         const tarea_principal = document.getElementById('tarea_principal').value;
-        const subtarea = document.getElementById('subtarea').value;
+        const subtarea        = document.getElementById('subtarea').value;
         if (!tarea_principal || !subtarea) {
             toast('Selecciona una tarea y subtarea.', 'warning');
             return;
@@ -1739,19 +2306,21 @@
             return;
         }
         tareasPendientes.push({
-            usuario: usuarioSesion.codigo,
-            fecha: document.getElementById('fecha').value,
+            usuario:        usuarioSesion.codigo,
+            fecha:          document.getElementById('fecha').value,
             tarea_principal,
             subtarea,
             tiempo_minutos: tiempoSeleccionado,
-            proyecto: document.getElementById('proyecto').value || null,
-            comentarios: document.getElementById('comentarios').value || null
+            proyecto:       document.getElementById('proyecto').value || null,
+            comentarios:    document.getElementById('comentarios').value || null
         });
+        registrarSubtareaFrecuente(tarea_principal, subtarea);
         actualizarLista();
         actualizarTarjetaEstado(tareasPendientes.reduce((s, t) => s + t.tiempo_minutos, 0));
         resetearBotonesTiempo();
-        document.getElementById('proyecto').value = '';
+        document.getElementById('proyecto').value    = '';
         document.getElementById('comentarios').value = '';
+        document.getElementById('buscador-subtarea').value = '';
         const items = document.querySelectorAll('#tareas > div');
         if (items.length > 0) {
             items[items.length - 1].classList.add('bounce-in');
@@ -1774,11 +2343,11 @@
         } else {
             tareasPendientes.forEach((t, index) => {
                 totalMinutos += t.tiempo_minutos;
-                const color = getColorTarea(t.tarea_principal);
+                const color      = getColorTarea(t.tarea_principal);
                 const colorLight = getColorLight(color);
-                const div = document.createElement('div');
+                const div        = document.createElement('div');
                 div.style.backgroundColor = colorLight;
-                div.style.borderLeft = `4px solid ${color}`;
+                div.style.borderLeft      = `4px solid ${color}`;
                 div.className = 'p-3 rounded-lg flex justify-between items-center text-sm slide-in';
                 div.innerHTML = `
                     <div>
@@ -1797,7 +2366,7 @@
             });
         }
         document.getElementById('contador').textContent = `(${tareasPendientes.length})`;
-        document.getElementById('total').textContent =
+        document.getElementById('total').textContent    =
             `Total: ${totalMinutos} min (${(totalMinutos / 60).toFixed(2)}h)`;
     }
 
@@ -1810,9 +2379,9 @@
         for (const tarea of tareasPendientes) {
             try {
                 const r = await fetch(`${API}/registros/`, {
-                    method: 'POST',
+                    method:  'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(tarea)
+                    body:    JSON.stringify(tarea)
                 });
                 if (r.ok) exito++; else error++;
             } catch { error++; }
@@ -1850,6 +2419,7 @@
         actualizarLista();
         actualizarIndicadorTiempo();
     }
+
     // ==================== EXCEL ====================
 
     function abrirModalExcel() {
@@ -1865,13 +2435,13 @@
 
     async function cargarUsuariosSelectExcel() {
         try {
-            const resp = await fetch(`${API}/usuarios/`);
+            const resp     = await fetch(`${API}/usuarios/`);
             const usuarios = await resp.json();
-            const sel = document.getElementById('excel-usuario');
-            sel.innerHTML = '<option value="">-- Todos --</option>';
+            const sel      = document.getElementById('excel-usuario');
+            sel.innerHTML  = '<option value="">-- Todos --</option>';
             usuarios.forEach(u => {
-                const o = document.createElement('option');
-                o.value = u.codigo;
+                const o       = document.createElement('option');
+                o.value       = u.codigo;
                 o.textContent = u.nombre;
                 sel.appendChild(o);
             });
@@ -1879,12 +2449,12 @@
     }
 
     function descargarExcel() {
-        const desde = document.getElementById('excel-desde').value;
-        const hasta = document.getElementById('excel-hasta').value;
+        const desde   = document.getElementById('excel-desde').value;
+        const hasta   = document.getElementById('excel-hasta').value;
         const usuario = document.getElementById('excel-usuario').value;
-        let url = `${API}/exportar-excel/?`;
-        if (desde) url += `desde=${desde}&`;
-        if (hasta) url += `hasta=${hasta}&`;
+        let url       = `${API}/exportar-excel/?`;
+        if (desde)   url += `desde=${desde}&`;
+        if (hasta)   url += `hasta=${hasta}&`;
         if (usuario) url += `usuario=${usuario}`;
         window.open(url, '_blank');
         cerrarModalExcel();
@@ -1916,19 +2486,19 @@
         const plantilla = {
             nombre,
             usuario: usuarioSesion.codigo,
-            items: tareasPendientes.map(t => ({
+            items:   tareasPendientes.map(t => ({
                 tarea_principal: t.tarea_principal,
-                subtarea: t.subtarea,
-                tiempo_minutos: t.tiempo_minutos,
-                proyecto: t.proyecto,
-                comentarios: t.comentarios
+                subtarea:        t.subtarea,
+                tiempo_minutos:  t.tiempo_minutos,
+                proyecto:        t.proyecto,
+                comentarios:     t.comentarios
             }))
         };
         try {
             const resp = await fetch(`${API}/plantillas/`, {
-                method: 'POST',
+                method:  'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(plantilla)
+                body:    JSON.stringify(plantilla)
             });
             if (resp.ok) {
                 cerrarModalPlantilla();
@@ -1944,7 +2514,7 @@
 
     async function cargarPlantillas() {
         try {
-            const resp = await fetch(`${API}/plantillas/?usuario=${usuarioSesion.codigo}`);
+            const resp      = await fetch(`${API}/plantillas/?usuario=${usuarioSesion.codigo}`);
             const plantillas = await resp.json();
             const contenedor = document.getElementById('lista-plantillas');
             if (plantillas.length === 0) {
@@ -1972,7 +2542,7 @@
                     </div>
                     <div class="space-y-1">
                         ${p.items.map(i => {
-                            const color = getColorTarea(i.tarea_principal);
+                            const color      = getColorTarea(i.tarea_principal);
                             const colorLight = getColorLight(color);
                             return `<div class="flex justify-between text-sm p-2 rounded-lg"
                                 style="background-color:${colorLight}">
@@ -1996,21 +2566,21 @@
 
     async function usarPlantilla(id) {
         try {
-            const resp = await fetch(`${API}/plantillas/?usuario=${usuarioSesion.codigo}`);
+            const resp       = await fetch(`${API}/plantillas/?usuario=${usuarioSesion.codigo}`);
             const plantillas = await resp.json();
-            const plantilla = plantillas.find(p => p.id === id);
+            const plantilla  = plantillas.find(p => p.id === id);
             if (!plantilla) return;
             if (tareasPendientes.length > 0) {
                 if (!confirm('Se reemplazará la lista actual con la plantilla. ¿Continuar?')) return;
             }
             tareasPendientes = plantilla.items.map(i => ({
-                usuario: usuarioSesion.codigo,
-                fecha: document.getElementById('fecha').value,
+                usuario:        usuarioSesion.codigo,
+                fecha:          document.getElementById('fecha').value,
                 tarea_principal: i.tarea_principal,
-                subtarea: i.subtarea,
-                tiempo_minutos: i.tiempo_minutos,
-                proyecto: i.proyecto,
-                comentarios: i.comentarios
+                subtarea:        i.subtarea,
+                tiempo_minutos:  i.tiempo_minutos,
+                proyecto:        i.proyecto,
+                comentarios:     i.comentarios
             }));
             actualizarLista();
             actualizarTarjetaEstado(tareasPendientes.reduce((s, t) => s + t.tiempo_minutos, 0));
@@ -2035,12 +2605,13 @@
             toast('Error de conexión.', 'error');
         }
     }
-
+</script>
+<script>
     // ==================== USUARIOS FILTROS ====================
 
     async function cargarUsuariosFiltros() {
         try {
-            const resp = await fetch(`${API}/usuarios/`);
+            const resp     = await fetch(`${API}/usuarios/`);
             const usuarios = await resp.json();
             ['filtro-usuario', 'filtro-usuario2', 'edicion-usuario'].forEach(id => {
                 const select = document.getElementById(id);
@@ -2050,8 +2621,8 @@
                     : `<option value="">-- ${id === 'filtro-usuario2' ? 'Opcional' : 'Todos'} --</option>`;
                 select.innerHTML = def;
                 usuarios.forEach(u => {
-                    const o = document.createElement('option');
-                    o.value = u.codigo;
+                    const o       = document.createElement('option');
+                    o.value       = u.codigo;
                     o.textContent = u.nombre;
                     select.appendChild(o);
                 });
@@ -2061,15 +2632,15 @@
 
     async function cargarUsuariosHistorico() {
         try {
-            const resp = await fetch(`${API}/usuarios/`);
+            const resp     = await fetch(`${API}/usuarios/`);
             const usuarios = await resp.json();
             ['historico-usuario-semana', 'historico-usuario-mes'].forEach(id => {
                 const select = document.getElementById(id);
                 if (!select) return;
                 select.innerHTML = '<option value="">-- Todos --</option>';
                 usuarios.forEach(u => {
-                    const o = document.createElement('option');
-                    o.value = u.codigo;
+                    const o       = document.createElement('option');
+                    o.value       = u.codigo;
                     o.textContent = u.nombre;
                     select.appendChild(o);
                 });
@@ -2079,16 +2650,55 @@
 
     async function cargarUsuariosFiltrosRendimiento() {
         try {
-            const resp = await fetch(`${API}/usuarios/`);
+            const resp     = await fetch(`${API}/usuarios/`);
             const usuarios = await resp.json();
-            const sel = document.getElementById('rend-usuario');
-            sel.innerHTML = '<option value="">-- Todos --</option>';
+            const sel      = document.getElementById('rend-usuario');
+            sel.innerHTML  = '<option value="">-- Todos --</option>';
             usuarios.forEach(u => {
-                const o = document.createElement('option');
-                o.value = u.codigo;
+                const o       = document.createElement('option');
+                o.value       = u.codigo;
                 o.textContent = u.nombre;
                 sel.appendChild(o);
             });
+        } catch {}
+    }
+
+    async function cargarUsuariosFiltrosProductividad() {
+        try {
+            const resp     = await fetch(`${API}/usuarios/`);
+            const usuarios = await resp.json();
+            const sel      = document.getElementById('prod-usuario');
+            sel.innerHTML  = '<option value="">-- Todos --</option>';
+            usuarios.forEach(u => {
+                const o       = document.createElement('option');
+                o.value       = u.codigo;
+                o.textContent = u.nombre;
+                sel.appendChild(o);
+            });
+
+            // Poblar select subtareas productividad
+            const selSub      = document.getElementById('prod-subtarea');
+            selSub.innerHTML  = '<option value="">-- Todas --</option>';
+            const todasSubs   = Object.values(subtareasCache).flat();
+            const unicas      = [...new Set(todasSubs)].sort();
+            if (unicas.length === 0) {
+                // Si el cache está vacío cargamos todas las subtareas
+                const respSubs = await fetch(`${API}/subtareas/`);
+                const subs     = await respSubs.json();
+                subs.forEach(s => {
+                    const o       = document.createElement('option');
+                    o.value       = s.nombre;
+                    o.textContent = s.nombre;
+                    selSub.appendChild(o);
+                });
+            } else {
+                unicas.forEach(s => {
+                    const o       = document.createElement('option');
+                    o.value       = s;
+                    o.textContent = s;
+                    selSub.appendChild(o);
+                });
+            }
         } catch {}
     }
 
@@ -2096,7 +2706,7 @@
 
     async function cargarUsuariosGestion() {
         try {
-            const resp = await fetch(`${API}/usuarios/`);
+            const resp     = await fetch(`${API}/usuarios/`);
             const usuarios = await resp.json();
             const contenedor = document.getElementById('lista-usuarios');
             if (usuarios.length === 0) {
@@ -2139,39 +2749,39 @@
     }
 
     async function crearUsuario() {
-        const nombre = document.getElementById('nuevo-nombre').value.trim();
-        const codigo = document.getElementById('nuevo-codigo').value.trim();
-        const pin = document.getElementById('nuevo-pin').value.trim();
-        const rol = document.getElementById('nuevo-rol').value;
-        const msg = document.getElementById('usuarios-mensaje');
+        const nombre  = document.getElementById('nuevo-nombre').value.trim();
+        const codigo  = document.getElementById('nuevo-codigo').value.trim();
+        const pin     = document.getElementById('nuevo-pin').value.trim();
+        const rol     = document.getElementById('nuevo-rol').value;
+        const msg     = document.getElementById('usuarios-mensaje');
         if (!nombre || !codigo || !pin) {
             msg.textContent = 'Rellena todos los campos.';
-            msg.className = 'mt-2 text-sm text-rose-600';
+            msg.className   = 'mt-2 text-sm text-rose-600';
             msg.classList.remove('hidden');
             return;
         }
         try {
             const resp = await fetch(`${API}/usuarios/`, {
-                method: 'POST',
+                method:  'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ nombre, codigo, pin, rol })
+                body:    JSON.stringify({ nombre, codigo, pin, rol })
             });
             if (resp.ok) {
                 toast('Usuario creado correctamente.', 'success');
                 msg.classList.add('hidden');
                 document.getElementById('nuevo-nombre').value = '';
                 document.getElementById('nuevo-codigo').value = '';
-                document.getElementById('nuevo-pin').value = '';
+                document.getElementById('nuevo-pin').value   = '';
                 cargarUsuariosGestion();
             } else {
-                const err = await resp.json();
+                const err       = await resp.json();
                 msg.textContent = err.detail || 'Error al crear usuario.';
-                msg.className = 'mt-2 text-sm text-rose-600';
+                msg.className   = 'mt-2 text-sm text-rose-600';
                 msg.classList.remove('hidden');
             }
         } catch {
             msg.textContent = 'Error de conexión.';
-            msg.className = 'mt-2 text-sm text-rose-600';
+            msg.className   = 'mt-2 text-sm text-rose-600';
             msg.classList.remove('hidden');
         }
     }
@@ -2190,45 +2800,64 @@
             toast('Error de conexión.', 'error');
         }
     }
+
     // ==================== DASHBOARD ====================
 
     async function cargarDashboard() {
         const fecha = document.getElementById('dashboard-fecha').value || hoy;
         try {
-            const [respProd, respTop, respMedia, respReg, respAlertas] = await Promise.all([
-                fetch(`${API}/estadisticas/productividad/?fecha_ref=${fecha}`),
-                fetch(`${API}/estadisticas/top-tareas/`),
-                fetch(`${API}/estadisticas/media-por-tarea/`),
-                fetch(`${API}/registros/rango/?desde=${fecha}&hasta=${fecha}`),
-                fetch(`${API}/rendimiento/alertas/`)
-            ]);
+            const [respProd, respTop, respMedia, respReg, respAlertas, respProdSubtarea] =
+                await Promise.all([
+                    fetch(`${API}/estadisticas/productividad/?fecha_ref=${fecha}`),
+                    fetch(`${API}/estadisticas/top-tareas/`),
+                    fetch(`${API}/estadisticas/media-por-tarea/`),
+                    fetch(`${API}/registros/rango/?desde=${fecha}&hasta=${fecha}`),
+                    fetch(`${API}/rendimiento/alertas/?limite=3`),
+                    fetch(`${API}/productividad/resumen/?desde=${fecha}&hasta=${fecha}`)
+                ]);
 
-            const prod = await respProd.json();
-            const topTareas = await respTop.json();
-            const dataMedia = await respMedia.json();
-            const registrosHoy = await respReg.json();
-            const alertasData = await respAlertas.json();
+            const prod           = await respProd.json();
+            const topTareas      = await respTop.json();
+            const dataMedia      = await respMedia.json();
+            const registrosHoy   = await respReg.json();
+            const alertasData    = await respAlertas.json();
+            const prodResumen    = await respProdSubtarea.json();
 
-            // Alertas dashboard
+            // Alertas agrupadas dashboard (máximo 3)
             const contAlertas = document.getElementById('dashboard-alertas');
             contAlertas.innerHTML = '';
             if (alertasData.alertas && alertasData.alertas.length > 0) {
-                alertasData.alertas.slice(0, 3).forEach(a => {
+                alertasData.alertas.forEach(a => {
                     const colorMap = {
-                        danger: 'bg-rose-50 border-rose-300 text-rose-800',
-                        warning: 'bg-amber-50 border-amber-300 text-amber-800'
+                        danger:  'bg-rose-50 border border-rose-300 text-rose-800',
+                        warning: 'bg-amber-50 border border-amber-300 text-amber-800'
                     };
                     const iconMap = { danger: '🔴', warning: '🟡' };
                     contAlertas.innerHTML += `
-                        <div class="flex items-center gap-3 p-3 rounded-xl border text-sm fade-in
-                            ${colorMap[a.nivel] || colorMap.warning}">
-                            <span>${iconMap[a.nivel] || '⚠️'}</span>
-                            <span>${a.mensaje}</span>
+                        <div class="alerta-grupo ${colorMap[a.nivel] || colorMap.warning}"
+                            onclick="this.classList.toggle('abierto')">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-2 text-sm font-medium">
+                                    <span>${iconMap[a.nivel] || '⚠️'}</span>
+                                    <span>${a.mensaje}</span>
+                                </div>
+                                <span class="text-xs opacity-60">▼</span>
+                            </div>
+                            <div class="alerta-detalle">
+                                ${(a.detalle || []).map(d => `<div class="py-0.5">• ${d}</div>`).join('')}
+                            </div>
                         </div>`;
                 });
+                if (alertasData.total_grupos > 3) {
+                    contAlertas.innerHTML += `
+                        <button onclick="mostrarPestana('rendimiento')"
+                            class="text-xs text-blue-600 hover:text-blue-800 font-medium w-full text-center py-1">
+                            Ver todas las alertas en Rendimiento →
+                        </button>`;
+                }
             }
 
-            // KPIs
+            // KPIs horas
             let totalMinsHoy = 0, usuariosActivosCount = 0;
             prod.forEach(p => {
                 totalMinsHoy += p.minutos_hoy;
@@ -2236,12 +2865,24 @@
             });
             document.getElementById('kpi-registros').textContent =
                 prod.filter(p => p.minutos_hoy > 0).length;
-            document.getElementById('kpi-usuarios').textContent = usuariosActivosCount;
-            document.getElementById('kpi-horas').textContent =
+            document.getElementById('kpi-usuarios').textContent  = usuariosActivosCount;
+            document.getElementById('kpi-horas').textContent     =
                 `${(totalMinsHoy / 60).toFixed(1)}h`;
-            document.getElementById('kpi-media').textContent = prod.length > 0
+            document.getElementById('kpi-media').textContent     = prod.length > 0
                 ? `${Math.round(prod.reduce((s, p) => s + p.porcentaje_jornada, 0) / prod.length)}%`
                 : '0%';
+
+            // KPIs productividad
+            const semaforos = prodResumen.reduce((acc, p) => {
+                acc[p.semaforo] = (acc[p.semaforo] || 0) + 1;
+                return acc;
+            }, {});
+            document.getElementById('kpi-prod-verde').textContent =
+                semaforos['verde'] || 0;
+            document.getElementById('kpi-prod-ambar').textContent =
+                semaforos['ambar'] || 0;
+            document.getElementById('kpi-prod-rojo').textContent  =
+                semaforos['rojo']  || 0;
 
             // Productividad por usuario
             const contProd = document.getElementById('dashboard-productividad');
@@ -2277,8 +2918,8 @@
             // Comparación hoy vs ayer
             const contComp = document.getElementById('dashboard-comparacion');
             contComp.innerHTML = prod.length > 0 ? prod.map(p => {
-                const diff = p.variacion_minutos;
-                const signo = diff > 0 ? '+' : '';
+                const diff     = p.variacion_minutos;
+                const signo    = diff > 0 ? '+' : '';
                 const colorDiff = diff > 0 ? 'text-emerald-600'
                     : diff < 0 ? 'text-rose-600' : 'text-slate-500';
                 return `<div class="flex justify-between items-center p-3 bg-slate-50 rounded-xl text-sm fade-in">
@@ -2311,18 +2952,18 @@
                 document.getElementById('dashboard-grafico-media').getContext('2d'), {
                 type: 'bar',
                 data: {
-                    labels: dataMedia.map(d => d.tarea),
+                    labels:   dataMedia.map(d => d.tarea),
                     datasets: [{
-                        label: 'Media (min)',
-                        data: dataMedia.map(d => d.media_minutos),
+                        label:           'Media (min)',
+                        data:            dataMedia.map(d => d.media_minutos),
                         backgroundColor: dataMedia.map(d => getColorTarea(d.tarea)),
-                        borderRadius: 6
+                        borderRadius:    6
                     }]
                 },
                 options: {
                     responsive: true,
-                    plugins: { legend: { display: false } },
-                    scales: { y: { beginAtZero: true } }
+                    plugins:    { legend: { display: false } },
+                    scales:     { y: { beginAtZero: true } }
                 }
             });
 
@@ -2337,9 +2978,9 @@
                 document.getElementById('dashboard-grafico-tareas').getContext('2d'), {
                 type: 'doughnut',
                 data: {
-                    labels: Object.keys(tareaCount),
+                    labels:   Object.keys(tareaCount),
                     datasets: [{
-                        data: Object.values(tareaCount),
+                        data:            Object.values(tareaCount),
                         backgroundColor: Object.keys(tareaCount).map(l => getColorTarea(l))
                     }]
                 },
@@ -2356,24 +2997,25 @@
                 document.getElementById('dashboard-grafico-usuarios').getContext('2d'), {
                 type: 'bar',
                 data: {
-                    labels: Object.keys(userMins),
+                    labels:   Object.keys(userMins),
                     datasets: [{
-                        label: 'Horas',
-                        data: Object.values(userMins).map(m => parseFloat((m / 60).toFixed(2))),
+                        label:           'Horas',
+                        data:            Object.values(userMins).map(m => parseFloat((m / 60).toFixed(2))),
                         backgroundColor: avatarColores,
-                        borderRadius: 6
+                        borderRadius:    6
                     }]
                 },
                 options: {
                     responsive: true,
                     plugins: { legend: { display: false } },
-                    scales: { y: { beginAtZero: true, max: Math.ceil(minutosJornada / 60) } }
+                    scales:  { y: { beginAtZero: true, max: Math.ceil(minutosJornada / 60) } }
                 }
             });
 
         } catch(e) { console.error('Error dashboard:', e); }
     }
-
+</script>
+<script>
     // ==================== HISTÓRICO ====================
 
     function cambiarPeriodo(tipo) {
@@ -2389,17 +3031,17 @@
     }
 
     async function cargarHistorico() {
-        const contenedor = document.getElementById('historico-resultado');
+        const contenedor        = document.getElementById('historico-resultado');
         const contenedorGrafico = document.getElementById('historico-grafico-contenedor');
         if (periodoHistorico === 'semana') {
-            const usuario = document.getElementById('historico-usuario-semana').value;
+            const usuario  = document.getElementById('historico-usuario-semana').value;
             const fechaRef = document.getElementById('historico-fecha-semana').value || hoy;
-            let url = `${API}/registros/resumen-semanal/?fecha_ref=${fechaRef}`;
+            let url        = `${API}/registros/resumen-semanal/?fecha_ref=${fechaRef}`;
             if (usuario) url += `&usuario=${usuario}`;
             try {
                 const resp = await fetch(url);
                 const data = await resp.json();
-                let html = `<div class="mb-4 p-3 bg-blue-50 rounded-lg text-sm text-slate-600">
+                let html   = `<div class="mb-4 p-3 bg-blue-50 rounded-lg text-sm text-slate-600">
                     Semana del <b>${data.inicio}</b> al <b>${data.fin}</b> |
                     Total: <b>${(data.total_minutos / 60).toFixed(1)} horas</b>
                 </div><div class="space-y-3">`;
@@ -2407,7 +3049,7 @@
                 Object.entries(data.dias).sort().forEach(([dia, info]) => {
                     labels.push(dia);
                     valores.push(parseFloat((info.total_minutos / 60).toFixed(2)));
-                    const pct = Math.min((info.total_minutos / minutosJornada) * 100, 100);
+                    const pct   = Math.min((info.total_minutos / minutosJornada) * 100, 100);
                     const color = pct >= 100 ? 'bg-emerald-500'
                         : pct >= 60 ? 'bg-blue-500'
                         : pct >= 30 ? 'bg-amber-400' : 'bg-slate-300';
@@ -2432,19 +3074,19 @@
                     data: {
                         labels,
                         datasets: [{
-                            label: 'Horas', data: valores,
-                            backgroundColor: '#3b82f6', borderRadius: 6
+                            label:           'Horas',
+                            data:            valores,
+                            backgroundColor: '#3b82f6',
+                            borderRadius:    6
                         }]
                     },
                     options: {
                         responsive: true,
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                max: Math.ceil(minutosJornada / 60),
-                                title: { display: true, text: 'Horas' }
-                            }
-                        }
+                        scales: { y: {
+                            beginAtZero: true,
+                            max:         Math.ceil(minutosJornada / 60),
+                            title:       { display: true, text: 'Horas' }
+                        }}
                     }
                 });
                 contenedorGrafico.classList.remove('hidden');
@@ -2454,14 +3096,14 @@
             }
         } else {
             const usuario = document.getElementById('historico-usuario-mes').value;
-            const anyo = document.getElementById('historico-anyo').value;
-            const mes = document.getElementById('historico-mes').value;
-            let url = `${API}/registros/resumen-mensual/?anyo=${anyo}&mes=${mes}`;
+            const anyo    = document.getElementById('historico-anyo').value;
+            const mes     = document.getElementById('historico-mes').value;
+            let url       = `${API}/registros/resumen-mensual/?anyo=${anyo}&mes=${mes}`;
             if (usuario) url += `&usuario=${usuario}`;
             try {
                 const resp = await fetch(url);
                 const data = await resp.json();
-                let html = `<div class="mb-4 p-3 bg-blue-50 rounded-lg text-sm text-slate-600">
+                let html   = `<div class="mb-4 p-3 bg-blue-50 rounded-lg text-sm text-slate-600">
                     Mes: <b>${mes}/${anyo}</b> | Registros: <b>${data.total_registros}</b> |
                     Total: <b>${(data.total_minutos / 60).toFixed(1)} horas</b>
                 </div>
@@ -2505,19 +3147,19 @@
     // ==================== PROGRESO ====================
 
     async function cargarProgreso() {
-        const usuario = document.getElementById('filtro-usuario').value;
+        const usuario  = document.getElementById('filtro-usuario').value;
         const usuario2 = document.getElementById('filtro-usuario2').value;
-        const fecha = document.getElementById('filtro-fecha').value;
+        const fecha    = document.getElementById('filtro-fecha').value;
         if (!usuario || !fecha) {
             toast('Selecciona usuario y fecha.', 'warning');
             return;
         }
         try {
-            const resp = await fetch(`${API}/registros/${usuario}`);
-            const todos = await resp.json();
+            const resp     = await fetch(`${API}/registros/${usuario}`);
+            const todos    = await resp.json();
             const registros = todos.filter(r => r.fecha === fecha);
             const contenedor = document.getElementById('progreso-resultado');
-            const graficos = document.getElementById('graficos-contenedor');
+            const graficos   = document.getElementById('graficos-contenedor');
 
             if (registros.length === 0) {
                 contenedor.innerHTML = `<p class="text-sm text-slate-400 text-center py-8 italic">
@@ -2527,7 +3169,7 @@
             }
 
             const totalMinutos = registros.reduce((s, r) => s + r.tiempo_minutos, 0);
-            const porcentaje = Math.min((totalMinutos / minutosJornada) * 100, 100);
+            const porcentaje   = Math.min((totalMinutos / minutosJornada) * 100, 100);
 
             contenedor.innerHTML = `
                 <div class="grid grid-cols-3 gap-4 mb-4">
@@ -2551,19 +3193,20 @@
 
             // Barra segmentada
             const barraSeg = document.getElementById('barra-segmentada');
-            const leyenda = document.getElementById('leyenda-barra');
+            const leyenda  = document.getElementById('leyenda-barra');
             barraSeg.innerHTML = '';
-            leyenda.innerHTML = '';
+            leyenda.innerHTML  = '';
             const agrupado = {};
             registros.forEach(r => {
-                agrupado[r.tarea_principal] = (agrupado[r.tarea_principal] || 0) + r.tiempo_minutos;
+                agrupado[r.tarea_principal] =
+                    (agrupado[r.tarea_principal] || 0) + r.tiempo_minutos;
             });
             Object.entries(agrupado).forEach(([tarea, minutos]) => {
-                const pct = (minutos / minutosJornada) * 100;
+                const pct   = (minutos / minutosJornada) * 100;
                 const color = getColorTarea(tarea);
                 barraSeg.innerHTML += `<div style="width:${pct}%;background-color:${color}"
                     title="${tarea}: ${minutos}min" class="h-full transition-all duration-700"></div>`;
-                leyenda.innerHTML += `
+                leyenda.innerHTML  += `
                     <div class="flex justify-between items-center text-sm">
                         <div class="flex items-center gap-2">
                             <div class="w-3 h-3 rounded-full"
@@ -2576,13 +3219,13 @@
                     </div>`;
             });
 
-            document.getElementById('barra-total').style.width = `${porcentaje}%`;
+            document.getElementById('barra-total').style.width   = `${porcentaje}%`;
             document.getElementById('porcentaje-label').textContent = `${porcentaje.toFixed(0)}%`;
 
             // Gráfico tarta
             const labelsP = Object.keys(agrupado);
-            const dataP = Object.values(agrupado);
-            const bgP = labelsP.map(l => getColorTarea(l));
+            const dataP   = Object.values(agrupado);
+            const bgP     = labelsP.map(l => getColorTarea(l));
             if (graficaTarta) graficaTarta.destroy();
             graficaTarta = new Chart(
                 document.getElementById('grafico-tarta').getContext('2d'), {
@@ -2593,33 +3236,36 @@
 
             // Gráfico barras subtarea
             const labelsB = registros.map(r => r.subtarea);
-            const dataB = registros.map(r => r.tiempo_minutos);
-            const bgB = registros.map(r => getColorTarea(r.tarea_principal));
+            const dataB   = registros.map(r => r.tiempo_minutos);
+            const bgB     = registros.map(r => getColorTarea(r.tarea_principal));
             if (graficaBarras) graficaBarras.destroy();
             graficaBarras = new Chart(
                 document.getElementById('grafico-barras').getContext('2d'), {
                 type: 'bar',
                 data: {
-                    labels: labelsB,
+                    labels:   labelsB,
                     datasets: [{
-                        label: 'Minutos', data: dataB,
-                        backgroundColor: bgB, borderRadius: 6
+                        label:           'Minutos',
+                        data:            dataB,
+                        backgroundColor: bgB,
+                        borderRadius:    6
                     }]
                 },
                 options: {
-                    responsive: true, indexAxis: 'y',
-                    plugins: { legend: { display: false } },
-                    scales: { x: { beginAtZero: true } }
+                    responsive: true,
+                    indexAxis: 'y',
+                    plugins:   { legend: { display: false } },
+                    scales:    { x: { beginAtZero: true } }
                 }
             });
 
             // Comparación usuario 2
             const contComp = document.getElementById('grafico-comparacion-contenedor');
             if (usuario2) {
-                const resp2 = await fetch(`${API}/registros/${usuario2}`);
-                const todos2 = await resp2.json();
+                const resp2     = await fetch(`${API}/registros/${usuario2}`);
+                const todos2    = await resp2.json();
                 const registros2 = todos2.filter(r => r.fecha === fecha);
-                const agrupado2 = {};
+                const agrupado2  = {};
                 registros2.forEach(r => {
                     agrupado2[r.tarea_principal] =
                         (agrupado2[r.tarea_principal] || 0) + r.tiempo_minutos;
@@ -2633,29 +3279,26 @@
                     document.getElementById('grafico-comparacion').getContext('2d'), {
                     type: 'bar',
                     data: {
-                        labels: todasTareas,
+                        labels:   todasTareas,
                         datasets: [
                             {
-                                label: usuario,
-                                data: todasTareas.map(t => agrupado[t] || 0),
-                                backgroundColor: '#3b82f6', borderRadius: 6
+                                label:           usuario,
+                                data:            todasTareas.map(t => agrupado[t] || 0),
+                                backgroundColor: '#3b82f6',
+                                borderRadius:    6
                             },
                             {
-                                label: usuario2,
-                                data: todasTareas.map(t => agrupado2[t] || 0),
-                                backgroundColor: '#8b5cf6', borderRadius: 6
+                                label:           usuario2,
+                                data:            todasTareas.map(t => agrupado2[t] || 0),
+                                backgroundColor: '#8b5cf6',
+                                borderRadius:    6
                             }
                         ]
                     },
                     options: {
                         responsive: true,
                         plugins: { legend: { position: 'bottom' } },
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                title: { display: true, text: 'Minutos' }
-                            }
-                        }
+                        scales:  { y: { beginAtZero: true, title: { display: true, text: 'Minutos' } } }
                     }
                 });
                 contComp.classList.remove('hidden');
@@ -2680,25 +3323,22 @@
                 document.getElementById('grafico-semanal').getContext('2d'), {
                 type: 'line',
                 data: {
-                    labels: diasSemana.map(d => new Date(d + 'T00:00:00')
+                    labels:   diasSemana.map(d => new Date(d + 'T00:00:00')
                         .toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric' })),
                     datasets: [{
-                        label: 'Horas',
-                        data: horasSemana,
-                        borderColor: '#3b82f6',
+                        label:           'Horas',
+                        data:            horasSemana,
+                        borderColor:     '#3b82f6',
                         backgroundColor: 'rgba(59,130,246,0.1)',
-                        borderWidth: 2, fill: true, tension: 0.4,
+                        borderWidth:     2,
+                        fill:            true,
+                        tension:         0.4,
                         pointBackgroundColor: '#3b82f6'
                     }]
                 },
                 options: {
                     responsive: true,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            max: Math.ceil(minutosJornada / 60)
-                        }
-                    }
+                    scales: { y: { beginAtZero: true, max: Math.ceil(minutosJornada / 60) } }
                 }
             });
 
@@ -2708,13 +3348,14 @@
                 `<p class="text-sm text-rose-500 text-center py-8">Error cargando progreso.</p>`;
         }
     }
-    // ==================== OBJETIVOS ====================
+
+    // ==================== OBJETIVOS POR TAREA ====================
 
     async function cargarObjetivos() {
         try {
-            const resp = await fetch(`${API}/objetivos/`);
+            const resp     = await fetch(`${API}/objetivos/`);
             const objetivos = await resp.json();
-            objetivosCache = {};
+            objetivosCache  = {};
             objetivos.forEach(o => { objetivosCache[o.tarea_principal] = o; });
             const contenedor = document.getElementById('objetivos-lista');
             contenedor.innerHTML = objetivos.map(o => {
@@ -2746,28 +3387,24 @@
     }
 
     async function guardarObjetivos() {
-        const tareas = tareasCache.map(t => t.nombre);
-        let errores = 0;
+        const tareas  = tareasCache.map(t => t.nombre);
+        let errores   = 0;
         for (const tarea of tareas) {
-            const udsEl = document.getElementById(`obj-uds-${tarea}`);
+            const udsEl   = document.getElementById(`obj-uds-${tarea}`);
             const horasEl = document.getElementById(`obj-horas-${tarea}`);
             if (!udsEl || !horasEl) continue;
-            const uds = parseFloat(udsEl.value);
+            const uds   = parseFloat(udsEl.value);
             const horas = parseFloat(horasEl.value);
             if (!uds || !horas) continue;
             try {
                 const resp = await fetch(`${API}/objetivos/${tarea}`, {
-                    method: 'PUT',
+                    method:  'PUT',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        tarea_principal: tarea,
-                        uds_hora: uds,
-                        horas_jornada: horas
-                    })
+                    body:    JSON.stringify({ tarea_principal: tarea, uds_hora: uds, horas_jornada: horas })
                 });
                 if (resp.ok) {
                     if (objetivosCache[tarea]) {
-                        objetivosCache[tarea].uds_hora = uds;
+                        objetivosCache[tarea].uds_hora     = uds;
                         objetivosCache[tarea].horas_jornada = horas;
                     }
                 } else errores++;
@@ -2781,52 +3418,52 @@
     }
 
     function calcularHorasTeoricas() {
-        const tarea = document.getElementById('vol-tarea').value;
+        const tarea    = document.getElementById('vol-tarea').value;
         const unidades = parseInt(document.getElementById('vol-unidades').value);
-        const obj = objetivosCache[tarea];
+        const obj      = objetivosCache[tarea];
         if (obj && unidades > 0) {
             document.getElementById('vol-horas').value = round2(unidades / obj.uds_hora);
         }
     }
 
-    // ==================== VOLUMEN & MÉTRICAS ====================
+    // ==================== VOLUMEN ====================
 
     async function crearVolumen() {
-        const fecha = document.getElementById('vol-fecha').value;
+        const fecha           = document.getElementById('vol-fecha').value;
         const tarea_principal = document.getElementById('vol-tarea').value;
-        const unidades = parseInt(document.getElementById('vol-unidades').value);
-        const horas_teoricas = parseFloat(document.getElementById('vol-horas').value);
-        const comentarios = document.getElementById('vol-comentarios').value || null;
-        const msg = document.getElementById('vol-mensaje');
+        const unidades        = parseInt(document.getElementById('vol-unidades').value);
+        const horas_teoricas  = parseFloat(document.getElementById('vol-horas').value);
+        const comentarios     = document.getElementById('vol-comentarios').value || null;
+        const msg             = document.getElementById('vol-mensaje');
         if (!fecha || !unidades || !horas_teoricas) {
             msg.textContent = 'Rellena todos los campos obligatorios.';
-            msg.className = 'mt-2 text-sm text-rose-600';
+            msg.className   = 'mt-2 text-sm text-rose-600';
             msg.classList.remove('hidden');
             return;
         }
         try {
             const resp = await fetch(`${API}/volumenes/`, {
-                method: 'POST',
+                method:  'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
+                body:    JSON.stringify({
                     fecha, tarea_principal, unidades, horas_teoricas,
                     creado_por: usuarioSesion.codigo, comentarios
                 })
             });
             if (resp.ok) {
                 toast('Datos de volumen guardados correctamente.', 'success');
-                document.getElementById('vol-unidades').value = '';
-                document.getElementById('vol-horas').value = '';
+                document.getElementById('vol-unidades').value   = '';
+                document.getElementById('vol-horas').value      = '';
                 document.getElementById('vol-comentarios').value = '';
                 msg.classList.add('hidden');
             } else {
                 msg.textContent = 'Error al guardar los datos.';
-                msg.className = 'mt-2 text-sm text-rose-600';
+                msg.className   = 'mt-2 text-sm text-rose-600';
                 msg.classList.remove('hidden');
             }
         } catch {
             msg.textContent = 'Error de conexión.';
-            msg.className = 'mt-2 text-sm text-rose-600';
+            msg.className   = 'mt-2 text-sm text-rose-600';
             msg.classList.remove('hidden');
         }
     }
@@ -2839,77 +3476,66 @@
             return;
         }
         try {
-            const resp = await fetch(`${API}/volumenes/metricas/?desde=${desde}&hasta=${hasta}`);
+            const resp    = await fetch(`${API}/volumenes/metricas/?desde=${desde}&hasta=${hasta}`);
             const metricas = await resp.json();
             const tablaContenedor = document.getElementById('vol-tabla');
             if (metricas.length === 0) {
                 tablaContenedor.innerHTML = `<p class="text-sm text-slate-400 text-center py-8 italic">
                     No hay datos de volumen para este periodo.</p>`;
-                document.getElementById('vol-kpis').style.display = 'none';
+                document.getElementById('vol-kpis').style.display   = 'none';
                 document.getElementById('vol-graficos').style.display = 'none';
                 return;
             }
 
             // KPIs
-            const totalUnidades = metricas.reduce((s, m) => s + m.unidades, 0);
-            const totalHorasTeo = metricas.reduce((s, m) => s + m.horas_teoricas, 0);
+            const totalUnidades  = metricas.reduce((s, m) => s + m.unidades, 0);
+            const totalHorasTeo  = metricas.reduce((s, m) => s + m.horas_teoricas, 0);
             const totalHorasReal = metricas.reduce((s, m) => s + m.horas_reales, 0);
-            const eficiencias = metricas
-                .filter(m => m.eficiencia_pct !== null)
-                .map(m => m.eficiencia_pct);
+            const eficiencias    = metricas.filter(m => m.eficiencia_pct !== null).map(m => m.eficiencia_pct);
             const mediaEficiencia = eficiencias.length > 0
                 ? Math.round(eficiencias.reduce((s, e) => s + e, 0) / eficiencias.length) : 0;
-            document.getElementById('vol-kpi-unidades').textContent =
-                totalUnidades.toLocaleString();
-            document.getElementById('vol-kpi-horas-teo').textContent =
-                `${totalHorasTeo.toFixed(1)}h`;
-            document.getElementById('vol-kpi-horas-real').textContent =
-                `${totalHorasReal.toFixed(1)}h`;
-            document.getElementById('vol-kpi-eficiencia').textContent =
-                `${mediaEficiencia}%`;
+            document.getElementById('vol-kpi-unidades').textContent  = totalUnidades.toLocaleString();
+            document.getElementById('vol-kpi-horas-teo').textContent = `${totalHorasTeo.toFixed(1)}h`;
+            document.getElementById('vol-kpi-horas-real').textContent = `${totalHorasReal.toFixed(1)}h`;
+            document.getElementById('vol-kpi-eficiencia').textContent = `${mediaEficiencia}%`;
             document.getElementById('vol-kpis').style.display = 'grid';
 
-            // Gráfico eficiencia por tarea
+            // Gráfico eficiencia
             const eficienciaPorTarea = {};
             metricas.forEach(m => {
                 if (!eficienciaPorTarea[m.tarea_principal])
                     eficienciaPorTarea[m.tarea_principal] = { sum: 0, count: 0 };
                 if (m.eficiencia_pct !== null) {
-                    eficienciaPorTarea[m.tarea_principal].sum += m.eficiencia_pct;
+                    eficienciaPorTarea[m.tarea_principal].sum   += m.eficiencia_pct;
                     eficienciaPorTarea[m.tarea_principal].count++;
                 }
             });
             const labelsEf = Object.keys(eficienciaPorTarea);
-            const dataEf = labelsEf.map(t => eficienciaPorTarea[t].count > 0
+            const dataEf   = labelsEf.map(t => eficienciaPorTarea[t].count > 0
                 ? Math.round(eficienciaPorTarea[t].sum / eficienciaPorTarea[t].count) : 0);
             if (volGraficoEficiencia) volGraficoEficiencia.destroy();
             volGraficoEficiencia = new Chart(
                 document.getElementById('vol-grafico-eficiencia').getContext('2d'), {
                 type: 'bar',
                 data: {
-                    labels: labelsEf,
+                    labels:   labelsEf,
                     datasets: [{
-                        label: 'Eficiencia %',
-                        data: dataEf,
+                        label:           'Eficiencia %',
+                        data:            dataEf,
                         backgroundColor: labelsEf.map(l => getColorTarea(l)),
-                        borderRadius: 6
+                        borderRadius:    6
                     }]
                 },
                 options: {
                     responsive: true,
                     plugins: { legend: { display: false } },
-                    scales: {
-                        y: {
-                            beginAtZero: true, max: 150,
-                            ticks: { callback: v => v + '%' }
-                        }
-                    }
+                    scales:  { y: { beginAtZero: true, max: 150, ticks: { callback: v => v + '%' } } }
                 }
             });
 
-            // Gráfico comparativa horas teóricas vs reales
-            const fechasUnicas = [...new Set(metricas.map(m => m.fecha))].sort();
-            const horasTeoPorFecha = fechasUnicas.map(f =>
+            // Gráfico comparativa
+            const fechasUnicas      = [...new Set(metricas.map(m => m.fecha))].sort();
+            const horasTeoPorFecha  = fechasUnicas.map(f =>
                 parseFloat(metricas.filter(m => m.fecha === f)
                     .reduce((s, m) => s + m.horas_teoricas, 0).toFixed(2)));
             const horasRealPorFecha = fechasUnicas.map(f =>
@@ -2920,22 +3546,22 @@
                 document.getElementById('vol-grafico-comparativa').getContext('2d'), {
                 type: 'line',
                 data: {
-                    labels: fechasUnicas,
+                    labels:   fechasUnicas,
                     datasets: [
                         {
-                            label: 'Horas teóricas',
-                            data: horasTeoPorFecha,
-                            borderColor: '#8b5cf6',
+                            label:           'Horas teóricas',
+                            data:            horasTeoPorFecha,
+                            borderColor:     '#8b5cf6',
                             backgroundColor: 'rgba(139,92,246,0.1)',
-                            borderWidth: 2, fill: true, tension: 0.4,
+                            borderWidth:     2, fill: true, tension: 0.4,
                             pointBackgroundColor: '#8b5cf6'
                         },
                         {
-                            label: 'Horas reales',
-                            data: horasRealPorFecha,
-                            borderColor: '#3b82f6',
+                            label:           'Horas reales',
+                            data:            horasRealPorFecha,
+                            borderColor:     '#3b82f6',
                             backgroundColor: 'rgba(59,130,246,0.1)',
-                            borderWidth: 2, fill: true, tension: 0.4,
+                            borderWidth:     2, fill: true, tension: 0.4,
                             pointBackgroundColor: '#3b82f6'
                         }
                     ]
@@ -2943,7 +3569,7 @@
                 options: {
                     responsive: true,
                     plugins: { legend: { position: 'bottom' } },
-                    scales: { y: { beginAtZero: true, title: { display: true, text: 'Horas' } } }
+                    scales:  { y: { beginAtZero: true, title: { display: true, text: 'Horas' } } }
                 }
             });
             document.getElementById('vol-graficos').style.display = 'grid';
@@ -2965,11 +3591,12 @@
                     </thead>
                     <tbody class="divide-y divide-slate-100">`;
             metricas.forEach(m => {
-                const color = getColorTarea(m.tarea_principal);
-                const efColor = m.eficiencia_pct === null ? 'text-slate-400'
+                const color    = getColorTarea(m.tarea_principal);
+                const efColor  = m.eficiencia_pct === null ? 'text-slate-400'
                     : m.eficiencia_pct >= 90 ? 'text-emerald-600 font-bold'
                     : m.eficiencia_pct >= 70 ? 'text-amber-600 font-bold'
                     : 'text-rose-600 font-bold';
+                const desColor = m.desviacion_horas <= 0 ? 'text-emerald-600'
                 const desColor = m.desviacion_horas <= 0 ? 'text-emerald-600' : 'text-rose-600';
                 html += `<tr class="hover:bg-slate-50 transition">
                     <td class="px-3 py-2 text-slate-600">${m.fecha}</td>
@@ -3003,92 +3630,109 @@
                 `<p class="text-sm text-rose-500 text-center py-8">Error cargando métricas.</p>`;
         }
     }
-
+</script>
+<script>
     // ==================== RENDIMIENTO ====================
 
     async function cargarAlertasRendimiento() {
         try {
-            const resp = await fetch(`${API}/rendimiento/alertas/`);
+            const resp = await fetch(`${API}/rendimiento/alertas/?limite=5`);
             const data = await resp.json();
-            const contenedor = document.getElementById('rend-alertas');
-            if (!contenedor) return;
-            if (data.alertas.length === 0) {
-                contenedor.innerHTML = `<div class="flex items-center gap-3 p-3 rounded-xl border
-                    border-emerald-300 bg-emerald-50 text-emerald-800 text-sm">
-                    ✅ No hay alertas activas en este momento.
-                </div>`;
-                return;
+            renderizarAlertas(data, 'rend-alertas');
+
+            // Botón ver todas si hay más
+            const btnVerTodas = document.getElementById('btn-ver-todas-alertas');
+            if (data.total_grupos > 5) {
+                btnVerTodas.classList.remove('hidden');
+                btnVerTodas.textContent = `Ver todas (${data.total_alertas})`;
+            } else {
+                btnVerTodas.classList.add('hidden');
             }
-            const colorMap = {
-                danger: 'bg-rose-50 border-rose-300 text-rose-800',
-                warning: 'bg-amber-50 border-amber-300 text-amber-800'
-            };
-            const iconMap = { danger: '🔴', warning: '🟡' };
-            contenedor.innerHTML = data.alertas.map(a => `
-                <div class="flex items-center gap-3 p-3 rounded-xl border text-sm fade-in
-                    ${colorMap[a.nivel] || colorMap.warning}">
-                    <span class="text-lg">${iconMap[a.nivel] || '⚠️'}</span>
-                    <div>
-                        <span class="font-medium">${a.nombre || ''}</span>
-                        <span class="ml-1">${a.mensaje}</span>
+        } catch {}
+    }
+
+    function renderizarAlertas(data, contenedorId) {
+        const contenedor = document.getElementById(contenedorId);
+        if (!contenedor) return;
+        if (!data.alertas || data.alertas.length === 0) {
+            contenedor.innerHTML = `<div class="flex items-center gap-3 p-3 rounded-xl border
+                border-emerald-300 bg-emerald-50 text-emerald-800 text-sm">
+                ✅ No hay alertas activas en este momento.
+            </div>`;
+            return;
+        }
+        const colorMap = {
+            danger:  'bg-rose-50 border border-rose-300 text-rose-800',
+            warning: 'bg-amber-50 border border-amber-300 text-amber-800'
+        };
+        const iconMap = { danger: '🔴', warning: '🟡' };
+        contenedor.innerHTML = data.alertas.map(a => `
+            <div class="alerta-grupo ${colorMap[a.nivel] || colorMap.warning}"
+                onclick="this.classList.toggle('abierto')">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2 text-sm font-medium">
+                        <span>${iconMap[a.nivel] || '⚠️'}</span>
+                        <span>${a.mensaje}</span>
                     </div>
-                </div>`).join('');
+                    <span class="text-xs opacity-60">▼</span>
+                </div>
+                <div class="alerta-detalle">
+                    ${(a.detalle || []).map(d => `<div class="py-0.5">• ${d}</div>`).join('')}
+                </div>
+            </div>`).join('');
+    }
+
+    async function toggleTodasAlertas() {
+        mostrandoTodasAlertas = !mostrandoTodasAlertas;
+        const btn   = document.getElementById('btn-ver-todas-alertas');
+        const limite = mostrandoTodasAlertas ? 100 : 5;
+        try {
+            const resp = await fetch(`${API}/rendimiento/alertas/?limite=${limite}`);
+            const data = await resp.json();
+            renderizarAlertas(data, 'rend-alertas');
+            btn.textContent = mostrandoTodasAlertas
+                ? 'Ver menos'
+                : `Ver todas (${data.total_alertas})`;
         } catch {}
     }
 
     async function cargarRendimiento() {
-        const desde = document.getElementById('rend-desde').value;
-        const hasta = document.getElementById('rend-hasta').value;
+        const desde   = document.getElementById('rend-desde').value;
+        const hasta   = document.getElementById('rend-hasta').value;
         const usuario = document.getElementById('rend-usuario').value;
         if (!desde || !hasta) {
             toast('Selecciona un rango de fechas.', 'warning');
             return;
         }
         try {
-            let urlRanking = `${API}/rendimiento/ranking/?desde=${desde}&hasta=${hasta}`;
+            let urlRanking    = `${API}/rendimiento/ranking/?desde=${desde}&hasta=${hasta}`;
             let urlEficiencia = `${API}/rendimiento/eficiencia-diaria/?desde=${desde}&hasta=${hasta}`;
-            let urlTendencia = `${API}/rendimiento/tendencia-semanal/`;
-            let urlObjetivo = `${API}/rendimiento/objetivo-vs-real/?desde=${desde}&hasta=${hasta}`;
+            let urlTendencia  = `${API}/rendimiento/tendencia-semanal/`;
+            let urlObjetivo   = `${API}/rendimiento/objetivo-vs-real/?desde=${desde}&hasta=${hasta}`;
+            let urlAlertas    = `${API}/rendimiento/alertas/?limite=5`;
             if (usuario) {
                 urlEficiencia += `&usuario=${usuario}`;
-                urlTendencia += `?usuario=${usuario}`;
+                urlTendencia  += `?usuario=${usuario}`;
             }
             const [respRanking, respEficiencia, respTendencia, respObjetivo, respAlertas] =
                 await Promise.all([
-                    fetch(urlRanking),
-                    fetch(urlEficiencia),
-                    fetch(urlTendencia),
-                    fetch(urlObjetivo),
-                    fetch(`${API}/rendimiento/alertas/`)
+                    fetch(urlRanking), fetch(urlEficiencia),
+                    fetch(urlTendencia), fetch(urlObjetivo), fetch(urlAlertas)
                 ]);
-            const ranking = await respRanking.json();
-            const eficiencia = await respEficiencia.json();
-            const tendencia = await respTendencia.json();
-            const objetivo = await respObjetivo.json();
-            const alertasData = await respAlertas.json();
+            const ranking      = await respRanking.json();
+            const eficiencia   = await respEficiencia.json();
+            const tendencia    = await respTendencia.json();
+            const objetivo     = await respObjetivo.json();
+            const alertasData  = await respAlertas.json();
 
-            // Alertas
-            const contAlertas = document.getElementById('rend-alertas');
-            if (alertasData.alertas.length === 0) {
-                contAlertas.innerHTML = `<div class="flex items-center gap-3 p-3 rounded-xl border
-                    border-emerald-300 bg-emerald-50 text-emerald-800 text-sm">
-                    ✅ No hay alertas activas.
-                </div>`;
+            // Alertas agrupadas
+            renderizarAlertas(alertasData, 'rend-alertas');
+            const btnVerTodas = document.getElementById('btn-ver-todas-alertas');
+            if (alertasData.total_grupos > 5) {
+                btnVerTodas.classList.remove('hidden');
+                btnVerTodas.textContent = `Ver todas (${alertasData.total_alertas})`;
             } else {
-                const colorMap = {
-                    danger: 'bg-rose-50 border-rose-300 text-rose-800',
-                    warning: 'bg-amber-50 border-amber-300 text-amber-800'
-                };
-                const iconMap = { danger: '🔴', warning: '🟡' };
-                contAlertas.innerHTML = alertasData.alertas.map(a => `
-                    <div class="flex items-center gap-3 p-3 rounded-xl border text-sm fade-in
-                        ${colorMap[a.nivel] || colorMap.warning}">
-                        <span class="text-lg">${iconMap[a.nivel] || '⚠️'}</span>
-                        <div>
-                            <span class="font-medium">${a.nombre || ''}</span>
-                            <span class="ml-1">${a.mensaje}</span>
-                        </div>
-                    </div>`).join('');
+                btnVerTodas.classList.add('hidden');
             }
 
             // Ranking
@@ -3158,8 +3802,8 @@
                     No hay datos de objetivos.</p>`;
             } else {
                 contObj.innerHTML = objetivo.map(o => {
-                    const color = getColorTarea(o.tarea);
-                    const pct = o.pct_objetivo || 0;
+                    const color    = getColorTarea(o.tarea);
+                    const pct      = o.pct_objetivo || 0;
                     const colorPct = pct >= 90 ? 'text-emerald-600'
                         : pct >= 70 ? 'text-amber-600' : 'text-rose-600';
                     const barColor = pct >= 90 ? 'bg-emerald-500'
@@ -3200,13 +3844,13 @@
                 document.getElementById('rend-grafico-eficiencia').getContext('2d'), {
                 type: 'line',
                 data: {
-                    labels: eficiencia.map(e => e.fecha),
+                    labels:   eficiencia.map(e => e.fecha),
                     datasets: [{
-                        label: '% Jornada',
-                        data: eficiencia.map(e => e.pct_jornada),
-                        borderColor: '#3b82f6',
+                        label:           '% Jornada',
+                        data:            eficiencia.map(e => e.pct_jornada),
+                        borderColor:     '#3b82f6',
                         backgroundColor: 'rgba(59,130,246,0.1)',
-                        borderWidth: 2, fill: true, tension: 0.4,
+                        borderWidth:     2, fill: true, tension: 0.4,
                         pointBackgroundColor: eficiencia.map(e =>
                             e.pct_jornada >= 90 ? '#10b981'
                             : e.pct_jornada >= 60 ? '#3b82f6' : '#f59e0b')
@@ -3215,13 +3859,11 @@
                 options: {
                     responsive: true,
                     plugins: { legend: { display: false } },
-                    scales: {
-                        y: {
-                            beginAtZero: true, max: 110,
-                            ticks: { callback: v => v + '%' },
-                            title: { display: true, text: '% Jornada' }
-                        }
-                    }
+                    scales:  { y: {
+                        beginAtZero: true, max: 110,
+                        ticks: { callback: v => v + '%' },
+                        title: { display: true, text: '% Jornada' }
+                    }}
                 }
             });
 
@@ -3231,28 +3873,28 @@
                 document.getElementById('rend-grafico-objetivo').getContext('2d'), {
                 type: 'bar',
                 data: {
-                    labels: objetivo.map(o => o.tarea),
+                    labels:   objetivo.map(o => o.tarea),
                     datasets: [
                         {
-                            label: 'Horas reales',
-                            data: objetivo.map(o => o.horas_reales),
+                            label:           'Horas reales',
+                            data:            objetivo.map(o => o.horas_reales),
                             backgroundColor: objetivo.map(o => getColorTarea(o.tarea)),
-                            borderRadius: 6
+                            borderRadius:    6
                         },
                         {
-                            label: 'Horas objetivo',
-                            data: objetivo.map(o => o.horas_objetivo || 0),
+                            label:           'Horas objetivo',
+                            data:            objetivo.map(o => o.horas_objetivo || 0),
                             backgroundColor: 'rgba(139,92,246,0.3)',
-                            borderColor: '#8b5cf6',
-                            borderWidth: 2,
-                            borderRadius: 6
+                            borderColor:     '#8b5cf6',
+                            borderWidth:     2,
+                            borderRadius:    6
                         }
                     ]
                 },
                 options: {
                     responsive: true,
                     plugins: { legend: { position: 'bottom' } },
-                    scales: { y: { beginAtZero: true, title: { display: true, text: 'Horas' } } }
+                    scales:  { y: { beginAtZero: true, title: { display: true, text: 'Horas' } } }
                 }
             });
 
@@ -3262,22 +3904,22 @@
                 document.getElementById('rend-grafico-tendencia').getContext('2d'), {
                 type: 'line',
                 data: {
-                    labels: tendencia.map(t => t.semana),
+                    labels:   tendencia.map(t => t.semana),
                     datasets: [
                         {
-                            label: 'Total horas',
-                            data: tendencia.map(t => t.total_horas),
-                            borderColor: '#3b82f6',
+                            label:           'Total horas',
+                            data:            tendencia.map(t => t.total_horas),
+                            borderColor:     '#3b82f6',
                             backgroundColor: 'rgba(59,130,246,0.1)',
-                            borderWidth: 2, fill: true, tension: 0.4,
+                            borderWidth:     2, fill: true, tension: 0.4,
                             pointBackgroundColor: '#3b82f6'
                         },
                         {
-                            label: 'Media horas/día',
-                            data: tendencia.map(t => t.media_horas_dia),
-                            borderColor: '#10b981',
+                            label:           'Media horas/día',
+                            data:            tendencia.map(t => t.media_horas_dia),
+                            borderColor:     '#10b981',
                             backgroundColor: 'rgba(16,185,129,0.1)',
-                            borderWidth: 2, fill: false, tension: 0.4,
+                            borderWidth:     2, fill: false, tension: 0.4,
                             pointBackgroundColor: '#10b981'
                         }
                     ]
@@ -3285,7 +3927,7 @@
                 options: {
                     responsive: true,
                     plugins: { legend: { position: 'bottom' } },
-                    scales: { y: { beginAtZero: true, title: { display: true, text: 'Horas' } } }
+                    scales:  { y: { beginAtZero: true, title: { display: true, text: 'Horas' } } }
                 }
             });
 
@@ -3294,29 +3936,533 @@
             toast('Error cargando rendimiento.', 'error');
         }
     }
+</script>
+<script>
+    // ==================== PRODUCTIVIDAD ====================
+
+    async function cargarProductividad() {
+        const desde   = document.getElementById('prod-desde').value;
+        const hasta   = document.getElementById('prod-hasta').value;
+        const usuario = document.getElementById('prod-usuario').value;
+        const subtarea = document.getElementById('prod-subtarea').value;
+        if (!desde || !hasta) {
+            toast('Selecciona un rango de fechas.', 'warning');
+            return;
+        }
+        try {
+            let urlDetalle  = `${API}/productividad/?desde=${desde}&hasta=${hasta}`;
+            let urlResumen  = `${API}/productividad/resumen/?desde=${desde}&hasta=${hasta}`;
+            if (usuario)  { urlDetalle += `&usuario=${usuario}`; }
+            if (subtarea) { urlDetalle += `&subtarea=${subtarea}`; }
+
+            const [respDetalle, respResumen] = await Promise.all([
+                fetch(urlDetalle),
+                fetch(urlResumen)
+            ]);
+            const detalle = await respDetalle.json();
+            const resumen = await respResumen.json();
+
+            // KPIs semáforos
+            const semaforos = detalle.reduce((acc, p) => {
+                acc[p.semaforo] = (acc[p.semaforo] || 0) + 1;
+                return acc;
+            }, {});
+            document.getElementById('prod-kpi-verde').textContent     = semaforos['verde']      || 0;
+            document.getElementById('prod-kpi-ambar').textContent     = semaforos['ambar']      || 0;
+            document.getElementById('prod-kpi-rojo').textContent      = semaforos['rojo']       || 0;
+            document.getElementById('prod-kpi-sin-target').textContent = semaforos['sin_target'] || 0;
+            document.getElementById('prod-kpis').style.display = 'grid';
+
+            // Resumen por subtarea
+            const contResumen = document.getElementById('prod-resumen');
+            if (resumen.length === 0) {
+                contResumen.innerHTML = `<p class="text-sm text-slate-400 text-center py-4 italic">
+                    No hay datos de producción para este periodo.</p>`;
+            } else {
+                contResumen.innerHTML = resumen.map(r => {
+                    const claseCard = getSemaforoClase(r.semaforo);
+                    const icono     = getSemaforoIcono(r.semaforo);
+                    const texto     = getSemaforoTexto(r.semaforo);
+                    const pct       = r.pct_target || 0;
+                    const barColor  = r.semaforo === 'verde' ? 'bg-emerald-500'
+                        : r.semaforo === 'ambar' ? 'bg-amber-400'
+                        : r.semaforo === 'rojo'  ? 'bg-rose-500' : 'bg-slate-300';
+                    return `
+                        <div class="prod-card ${claseCard} fade-in">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="font-semibold text-slate-800 text-sm">
+                                    ${r.subtarea}
+                                </span>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-xs font-medium text-slate-500">
+                                        ${icono} ${texto}
+                                    </span>
+                                    <span class="text-sm font-bold">
+                                        ${r.pct_target !== null ? r.pct_target + '%' : '—'}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-3 gap-2 text-xs text-slate-600 mb-2">
+                                <div>
+                                    <span class="text-slate-400">Uds totales:</span>
+                                    <span class="font-medium ml-1">
+                                        ${r.unidades_total.toLocaleString()}
+                                    </span>
+                                </div>
+                                <div>
+                                    <span class="text-slate-400">Ud/h real:</span>
+                                    <span class="font-medium ml-1">
+                                        ${r.uds_hora_real !== null ? r.uds_hora_real : '—'}
+                                    </span>
+                                </div>
+                                <div>
+                                    <span class="text-slate-400">Target:</span>
+                                    <span class="font-medium ml-1">
+                                        ${r.uds_hora_target !== null ? r.uds_hora_target : '—'}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="w-full bg-white bg-opacity-60 rounded-full h-2">
+                                <div class="${barColor} h-2 rounded-full transition-all duration-700"
+                                    style="width:${Math.min(pct, 100)}%"></div>
+                            </div>
+                        </div>`;
+                }).join('');
+            }
+            document.getElementById('prod-resumen-contenedor').style.display = 'block';
+
+            // Gráficos productividad
+            if (resumen.length > 0) {
+                const labels    = resumen.map(r => r.subtarea);
+                const dataReal  = resumen.map(r => r.uds_hora_real  || 0);
+                const dataTarget = resumen.map(r => r.uds_hora_target || 0);
+                const dataPct   = resumen.map(r => r.pct_target      || 0);
+                const bgColors  = resumen.map(r =>
+                    r.semaforo === 'verde' ? '#10b981'
+                    : r.semaforo === 'ambar' ? '#f59e0b'
+                    : r.semaforo === 'rojo'  ? '#ef4444' : '#94a3b8');
+
+                if (prodGraficoBarras) prodGraficoBarras.destroy();
+                prodGraficoBarras = new Chart(
+                    document.getElementById('prod-grafico-barras').getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels,
+                        datasets: [
+                            {
+                                label:           'Ud/h real',
+                                data:            dataReal,
+                                backgroundColor: bgColors,
+                                borderRadius:    6
+                            },
+                            {
+                                label:           'Target',
+                                data:            dataTarget,
+                                backgroundColor: 'rgba(100,116,139,0.3)',
+                                borderColor:     '#64748b',
+                                borderWidth:     2,
+                                borderRadius:    6
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: { legend: { position: 'bottom' } },
+                        scales:  { y: { beginAtZero: true, title: { display: true, text: 'Ud/hora' } } }
+                    }
+                });
+
+                if (prodGraficoPct) prodGraficoPct.destroy();
+                prodGraficoPct = new Chart(
+                    document.getElementById('prod-grafico-pct').getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels,
+                        datasets: [{
+                            label:           '% sobre target',
+                            data:            dataPct,
+                            backgroundColor: bgColors,
+                            borderRadius:    6
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: { legend: { display: false } },
+                        scales:  { y: {
+                            beginAtZero: true,
+                            ticks: { callback: v => v + '%' },
+                            title: { display: true, text: '% Target' }
+                        }}
+                    }
+                });
+                document.getElementById('prod-graficos').style.display = 'grid';
+            }
+
+            // Tabla detalle
+            if (detalle.length === 0) {
+                document.getElementById('prod-tabla').innerHTML =
+                    `<p class="text-sm text-slate-400 text-center py-8 italic">
+                    No hay datos para los filtros seleccionados.</p>`;
+            } else {
+                let html = `<div class="overflow-x-auto mt-4">
+                    <table class="w-full text-sm">
+                        <thead class="bg-slate-800 text-white">
+                            <tr>
+                                <th class="px-3 py-2 text-left">Operario</th>
+                                <th class="px-3 py-2 text-left">Fecha</th>
+                                <th class="px-3 py-2 text-left">Subtarea</th>
+                                <th class="px-3 py-2 text-right">Unidades</th>
+                                <th class="px-3 py-2 text-right">Horas</th>
+                                <th class="px-3 py-2 text-right">Ud/h Real</th>
+                                <th class="px-3 py-2 text-right">Target</th>
+                                <th class="px-3 py-2 text-right">% Target</th>
+                                <th class="px-3 py-2 text-center">Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">`;
+                detalle.forEach(p => {
+                    const iconoSem = getSemaforoIcono(p.semaforo);
+                    const colorPct = p.semaforo === 'verde' ? 'text-emerald-600 font-bold'
+                        : p.semaforo === 'ambar' ? 'text-amber-600 font-bold'
+                        : p.semaforo === 'rojo'  ? 'text-rose-600 font-bold'
+                        : 'text-slate-400';
+                    html += `<tr class="hover:bg-slate-50 transition">
+                        <td class="px-3 py-2 font-medium text-slate-700">${p.usuario}</td>
+                        <td class="px-3 py-2 text-slate-500">${p.fecha}</td>
+                        <td class="px-3 py-2 text-slate-700">${p.subtarea}</td>
+                        <td class="px-3 py-2 text-right font-medium">
+                            ${p.unidades.toLocaleString()}
+                        </td>
+                        <td class="px-3 py-2 text-right text-blue-600">${p.horas_reales}h</td>
+                        <td class="px-3 py-2 text-right font-medium">
+                            ${p.uds_hora_real !== null ? p.uds_hora_real : '—'}
+                        </td>
+                        <td class="px-3 py-2 text-right text-slate-500">
+                            ${p.uds_hora_target !== null ? p.uds_hora_target : '—'}
+                        </td>
+                        <td class="px-3 py-2 text-right ${colorPct}">
+                            ${p.pct_target !== null ? p.pct_target + '%' : '—'}
+                        </td>
+                        <td class="px-3 py-2 text-center">${iconoSem}</td>
+                    </tr>`;
+                });
+                html += `</tbody></table></div>`;
+                document.getElementById('prod-tabla').innerHTML = html;
+            }
+        } catch(e) {
+            console.error('Error productividad:', e);
+            toast('Error cargando productividad.', 'error');
+        }
+    }
+
+    // ==================== IMPORTACIÓN ====================
+
+    function seleccionarFichero(event) {
+        const file = event.target.files[0];
+        if (file) procesarFicheroSeleccionado(file);
+    }
+
+    function procesarFicheroSeleccionado(file) {
+        ficheroSeleccionado = file;
+        document.getElementById('fichero-nombre').textContent   = file.name;
+        document.getElementById('fichero-tamanyo').textContent  =
+            `${(file.size / 1024).toFixed(1)} KB`;
+        document.getElementById('fichero-seleccionado').classList.remove('hidden');
+        document.getElementById('btn-importar').classList.remove('hidden');
+        document.getElementById('resultado-importacion').classList.add('hidden');
+        document.getElementById('columnas-detectadas').classList.add('hidden');
+        toast(`Fichero "${file.name}" seleccionado.`, 'info');
+    }
+
+    function limpiarFichero() {
+        ficheroSeleccionado = null;
+        document.getElementById('input-fichero').value          = '';
+        document.getElementById('fichero-seleccionado').classList.add('hidden');
+        document.getElementById('btn-importar').classList.add('hidden');
+        document.getElementById('columnas-detectadas').classList.add('hidden');
+        document.getElementById('resultado-importacion').classList.add('hidden');
+    }
+
+    function cerrarModalImportacion() {
+        document.getElementById('modal-confirmar-importacion').style.display = 'none';
+    }
+
+    function importarFichero() {
+        if (!ficheroSeleccionado) {
+            toast('Selecciona un fichero primero.', 'warning');
+            return;
+        }
+        // Mostrar modal de confirmación
+        document.getElementById('modal-importacion-resumen').innerHTML =
+            `<p>Fichero: <b>${ficheroSeleccionado.name}</b></p>
+             <p>Los duplicados (mismo operario + fecha + subtarea) serán sobrescritos.</p>`;
+        document.getElementById('modal-confirmar-importacion').style.display = 'flex';
+    }
+
+    async function confirmarImportacion() {
+        cerrarModalImportacion();
+        if (!ficheroSeleccionado) return;
+        const formData = new FormData();
+        formData.append('file', ficheroSeleccionado);
+        formData.append('usuario_carga', usuarioSesion.codigo);
+        try {
+            toast('Importando datos...', 'info', 10000);
+            const resp = await fetch(`${API}/produccion/importar/`, {
+                method: 'POST',
+                body:   formData
+            });
+            if (!resp.ok) {
+                const err = await resp.json();
+                toast(err.detail || 'Error en la importación.', 'error');
+                return;
+            }
+            const resultado = await resp.json();
+
+            // Mostrar columnas detectadas
+            const mapeoContenedor = document.getElementById('mapeo-columnas');
+            mapeoContenedor.innerHTML = Object.entries(resultado.mapeo_columnas).map(([campo, col]) =>
+                `<div class="bg-white rounded-lg p-3 border text-center">
+                    <div class="text-xs text-slate-400 mb-1">${campo}</div>
+                    <div class="text-sm font-semibold text-slate-700">→ ${col}</div>
+                </div>`
+            ).join('');
+            document.getElementById('columnas-detectadas').classList.remove('hidden');
+
+            if (resultado.columnas_no_mapeadas.length > 0) {
+                document.getElementById('columnas-no-mapeadas-contenedor').classList.remove('hidden');
+                document.getElementById('columnas-no-mapeadas').innerHTML =
+                    resultado.columnas_no_mapeadas.map(c =>
+                        `<span class="text-xs bg-slate-200 text-slate-600 px-2 py-1 rounded-full">
+                            ${c}
+                        </span>`
+                    ).join('');
+            }
+
+            // Mostrar resultados
+            document.getElementById('imp-procesadas').textContent   = resultado.filas_procesadas;
+            document.getElementById('imp-insertadas').textContent   = resultado.filas_insertadas;
+            document.getElementById('imp-actualizadas').textContent = resultado.filas_actualizadas;
+            document.getElementById('imp-errores').textContent      = resultado.filas_error;
+            document.getElementById('resultado-importacion').classList.remove('hidden');
+
+            if (resultado.errores && resultado.errores.length > 0) {
+                document.getElementById('imp-errores-detalle').classList.remove('hidden');
+                document.getElementById('imp-errores-lista').innerHTML =
+                    resultado.errores.map(e =>
+                        `<div class="text-xs text-rose-700 py-0.5">
+                            Fila ${e.fila}: ${e.error}
+                        </div>`
+                    ).join('');
+            } else {
+                document.getElementById('imp-errores-detalle').classList.add('hidden');
+            }
+
+            const msg = `Importación completada: ${resultado.filas_insertadas} nuevas,
+                ${resultado.filas_actualizadas} actualizadas, ${resultado.filas_error} errores.`;
+            toast(msg, resultado.filas_error > 0 ? 'warning' : 'success', 6000);
+            cargarHistorialImportaciones();
+            limpiarFichero();
+        } catch(e) {
+            console.error('Error importación:', e);
+            toast('Error de conexión durante la importación.', 'error');
+        }
+    }
+
+    async function cargarHistorialImportaciones() {
+        try {
+            const resp      = await fetch(`${API}/produccion/historial/`);
+            const historial = await resp.json();
+            const contenedor = document.getElementById('historial-importaciones');
+            if (historial.length === 0) {
+                contenedor.innerHTML = `<p class="text-sm text-slate-400 text-center py-4 italic">
+                    No hay importaciones registradas.</p>`;
+                return;
+            }
+            contenedor.innerHTML = `<div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead class="bg-slate-100 text-slate-600">
+                        <tr>
+                            <th class="px-3 py-2 text-left">Fichero</th>
+                            <th class="px-3 py-2 text-left">Usuario</th>
+                            <th class="px-3 py-2 text-left">Fecha</th>
+                            <th class="px-3 py-2 text-right">Nuevas</th>
+                            <th class="px-3 py-2 text-right">Actualizadas</th>
+                            <th class="px-3 py-2 text-right">Errores</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        ${historial.map(h => `
+                        <tr class="hover:bg-slate-50">
+                            <td class="px-3 py-2 text-slate-700 font-medium">${h.nombre_fichero}</td>
+                            <td class="px-3 py-2 text-slate-500">${h.usuario_carga}</td>
+                            <td class="px-3 py-2 text-slate-500">
+                                ${new Date(h.fecha_carga).toLocaleString('es-ES')}
+                            </td>
+                            <td class="px-3 py-2 text-right text-emerald-600 font-medium">
+                                ${h.filas_insertadas}
+                            </td>
+                            <td class="px-3 py-2 text-right text-amber-600 font-medium">
+                                ${h.filas_actualizadas}
+                            </td>
+                            <td class="px-3 py-2 text-right ${h.filas_error > 0
+                                ? 'text-rose-600 font-medium' : 'text-slate-400'}">
+                                ${h.filas_error}
+                            </td>
+                        </tr>`).join('')}
+                    </tbody>
+                </table>
+            </div>`;
+        } catch {
+            document.getElementById('historial-importaciones').innerHTML =
+                `<p class="text-sm text-rose-500 text-center py-4">Error cargando historial.</p>`;
+        }
+    }
+
+    // ==================== TARGETS SUBTAREA ====================
+
+    async function cargarTargetsSubtarea() {
+        try {
+            const [respTargets, respSubtareas] = await Promise.all([
+                fetch(`${API}/objetivos-subtarea/`),
+                fetch(`${API}/subtareas/`)
+            ]);
+            const targets   = await respTargets.json();
+            const subtareas = await respSubtareas.json();
+            targetsSubtareaCache = {};
+            targets.forEach(t => { targetsSubtareaCache[t.subtarea] = t.uds_hora_target; });
+            renderizarTargetsSubtarea(subtareas, targets);
+        } catch {}
+    }
+
+    function renderizarTargetsSubtarea(subtareas, targets) {
+        const filtroTarea = document.getElementById('config-filtro-tarea-targets');
+        if (filtroTarea) {
+            filtroTarea.innerHTML = '<option value="">-- Todas las tareas --</option>';
+            tareasCache.forEach(t => {
+                const o       = document.createElement('option');
+                o.value       = t.nombre;
+                o.textContent = t.nombre;
+                filtroTarea.appendChild(o);
+            });
+        }
+        const targetsMap = {};
+        targets.forEach(t => { targetsMap[t.subtarea] = t.uds_hora_target; });
+        const contenedor = document.getElementById('config-targets-subtarea');
+        if (!contenedor) return;
+        if (subtareas.length === 0) {
+            contenedor.innerHTML = `<p class="text-sm text-slate-400 text-center py-4 italic">
+                No hay subtareas definidas.</p>`;
+            return;
+        }
+        const porTarea = {};
+        subtareas.forEach(s => {
+            if (!porTarea[s.tarea_nombre]) porTarea[s.tarea_nombre] = [];
+            porTarea[s.tarea_nombre].push(s);
+        });
+        contenedor.innerHTML = Object.entries(porTarea).map(([tarea, subs]) => {
+            const color = getColorTarea(tarea);
+            return `
+            <div class="mb-4">
+                <div class="flex items-center gap-2 mb-2">
+                    <div class="w-3 h-3 rounded-full" style="background-color:${color}"></div>
+                    <span class="text-xs font-bold text-slate-600 uppercase tracking-wide">
+                        ${tarea}
+                    </span>
+                </div>
+                <div class="space-y-1 pl-5">
+                    ${subs.map(s => `
+                    <div class="flex items-center justify-between p-2 bg-white rounded-lg border">
+                        <span class="text-sm text-slate-700">${s.nombre}</span>
+                        <div class="flex items-center gap-2">
+                            <label class="text-xs text-slate-400">Ud/h:</label>
+                            <input type="number"
+                                id="target-${s.nombre.replace(/\s+/g, '_')}"
+                                value="${targetsMap[s.nombre] || 0}"
+                                min="0" step="1"
+                                class="w-20 px-2 py-1 border rounded-lg text-sm text-center
+                                    focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                        </div>
+                    </div>`).join('')}
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    function filtrarTargetsPorTarea() {
+        const tarea    = document.getElementById('config-filtro-tarea-targets').value;
+        const bloques  = document.querySelectorAll('#config-targets-subtarea > div');
+        bloques.forEach(bloque => {
+            if (!tarea) {
+                bloque.style.display = '';
+            } else {
+                const titulo = bloque.querySelector('span');
+                bloque.style.display =
+                    titulo && titulo.textContent.trim().toLowerCase() === tarea.toLowerCase()
+                    ? '' : 'none';
+            }
+        });
+    }
+
+    async function guardarTargetsSubtarea() {
+        const inputs  = document.querySelectorAll('[id^="target-"]');
+        const payload = [];
+        inputs.forEach(input => {
+            const subtarea = input.id
+                .replace('target-', '')
+                .replace(/_/g, ' ');
+            const valor = parseFloat(input.value) || 0;
+            payload.push({ subtarea, uds_hora_target: valor });
+        });
+        if (payload.length === 0) {
+            toast('No hay targets para guardar.', 'warning');
+            return;
+        }
+        try {
+            const resp = await fetch(`${API}/objetivos-subtarea/bulk/`, {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body:    JSON.stringify(payload)
+            });
+            if (resp.ok) {
+                const resultado = await resp.json();
+                targetsSubtareaCache = {};
+                payload.forEach(p => { targetsSubtareaCache[p.subtarea] = p.uds_hora_target; });
+                if (resultado.errores && resultado.errores.length > 0) {
+                    toast(`${resultado.actualizados} targets guardados, ${resultado.errores.length} errores.`, 'warning');
+                } else {
+                    toast(`${resultado.actualizados} targets guardados correctamente.`, 'success');
+                }
+            } else {
+                toast('Error al guardar los targets.', 'error');
+            }
+        } catch {
+            toast('Error de conexión.', 'error');
+        }
+    }
+
     // ==================== EDICIÓN ====================
 
     async function cargarEdicion() {
-        const usuario = document.getElementById('edicion-usuario').value;
-        const tarea = document.getElementById('edicion-tarea').value;
+        const usuario  = document.getElementById('edicion-usuario').value;
+        const tarea    = document.getElementById('edicion-tarea').value;
         const subtarea = document.getElementById('edicion-subtarea').value;
         const proyecto = document.getElementById('edicion-proyecto').value.trim();
-        const desde = document.getElementById('edicion-fecha-desde').value;
-        const hasta = document.getElementById('edicion-fecha-hasta').value;
+        const desde    = document.getElementById('edicion-fecha-desde').value;
+        const hasta    = document.getElementById('edicion-fecha-hasta').value;
         try {
             let url = desde && hasta
                 ? `${API}/registros/rango/?desde=${desde}&hasta=${hasta}${usuario ? '&usuario=' + usuario : ''}`
                 : `${API}/registros/`;
-            const resp = await fetch(url);
-            let registros = await resp.json();
+            const resp     = await fetch(url);
+            let registros  = await resp.json();
             if (!desde && usuario) registros = registros.filter(r => r.usuario === usuario);
-            if (tarea) registros = registros.filter(r => r.tarea_principal === tarea);
+            if (tarea)    registros = registros.filter(r => r.tarea_principal === tarea);
             if (subtarea) registros = registros.filter(r => r.subtarea === subtarea);
             if (proyecto) registros = registros.filter(r =>
                 r.proyecto && r.proyecto.toLowerCase().includes(proyecto.toLowerCase()));
             registros.sort((a, b) => b.fecha.localeCompare(a.fecha));
             registrosTodos = registros;
-            paginaActual = 1;
+            paginaActual   = 1;
             renderizarPaginaEdicion();
         } catch(e) {
             document.getElementById('edicion-resultado').innerHTML =
@@ -3325,31 +4471,27 @@
     }
 
     function renderizarPaginaEdicion() {
-        const contenedor = document.getElementById('edicion-resultado');
+        const contenedor     = document.getElementById('edicion-resultado');
         const infoPaginacion = document.getElementById('edicion-paginacion-info');
-        const infoTexto = document.getElementById('edicion-info-texto');
-        const btnAnterior = document.getElementById('btn-pagina-anterior');
-        const btnSiguiente = document.getElementById('btn-pagina-siguiente');
-
+        const infoTexto      = document.getElementById('edicion-info-texto');
+        const btnAnterior    = document.getElementById('btn-pagina-anterior');
+        const btnSiguiente   = document.getElementById('btn-pagina-siguiente');
         if (registrosTodos.length === 0) {
             contenedor.innerHTML = `<p class="text-sm text-slate-400 text-center py-8 italic">
                 No se encontraron registros.</p>`;
             infoPaginacion.classList.add('hidden');
             return;
         }
-
-        const totalPaginas = Math.ceil(registrosTodos.length / REGISTROS_POR_PAGINA);
-        const inicio = (paginaActual - 1) * REGISTROS_POR_PAGINA;
-        const fin = inicio + REGISTROS_POR_PAGINA;
+        const totalPaginas    = Math.ceil(registrosTodos.length / REGISTROS_POR_PAGINA);
+        const inicio          = (paginaActual - 1) * REGISTROS_POR_PAGINA;
+        const fin             = inicio + REGISTROS_POR_PAGINA;
         const registrosPagina = registrosTodos.slice(inicio, fin);
-        const totalMin = registrosTodos.reduce((s, r) => s + r.tiempo_minutos, 0);
-
+        const totalMin        = registrosTodos.reduce((s, r) => s + r.tiempo_minutos, 0);
         infoPaginacion.classList.remove('hidden');
         infoTexto.textContent =
             `${registrosTodos.length} registro(s) | Página ${paginaActual} de ${totalPaginas} | Total: ${(totalMin / 60).toFixed(1)}h`;
         btnAnterior.disabled = paginaActual === 1;
         btnSiguiente.disabled = paginaActual === totalPaginas;
-
         let html = `<div class="overflow-x-auto">
             <table class="w-full text-sm">
                 <thead class="bg-slate-50 text-slate-600">
@@ -3381,6 +4523,8 @@
                     <td class="px-3 py-2">
                         <div class="flex gap-2">
                             <button onclick='abrirModal(${JSON.stringify(r)})'
+                                class="text-blue-600 
+                            <button onclick='abrirModal(${JSON.stringify(r)})'
                                 class="text-blue-600 hover:text-blue-800 text-xs font-medium px-2 py-1 bg-blue-50 rounded-lg"
                                 aria-label="Editar registro">✏️</button>
                             <button onclick='duplicarRegistro(${r.id})'
@@ -3398,28 +4542,22 @@
     }
 
     function paginaAnterior() {
-        if (paginaActual > 1) {
-            paginaActual--;
-            renderizarPaginaEdicion();
-        }
+        if (paginaActual > 1) { paginaActual--; renderizarPaginaEdicion(); }
     }
 
     function paginaSiguiente() {
         const totalPaginas = Math.ceil(registrosTodos.length / REGISTROS_POR_PAGINA);
-        if (paginaActual < totalPaginas) {
-            paginaActual++;
-            renderizarPaginaEdicion();
-        }
+        if (paginaActual < totalPaginas) { paginaActual++; renderizarPaginaEdicion(); }
     }
 
     async function abrirModal(registro) {
-        document.getElementById('edit-id').value = registro.id;
-        document.getElementById('edit-usuario').value = registro.usuario;
-        document.getElementById('edit-fecha').value = registro.fecha;
+        document.getElementById('edit-id').value       = registro.id;
+        document.getElementById('edit-usuario').value  = registro.usuario;
+        document.getElementById('edit-fecha').value    = registro.fecha;
         document.getElementById('edit-tarea-principal').value = registro.tarea_principal;
         await actualizarSubtareasEdicion(registro.subtarea);
-        document.getElementById('edit-tiempo').value = registro.tiempo_minutos;
-        document.getElementById('edit-proyecto').value = registro.proyecto || '';
+        document.getElementById('edit-tiempo').value      = registro.tiempo_minutos;
+        document.getElementById('edit-proyecto').value    = registro.proyecto    || '';
         document.getElementById('edit-comentarios').value = registro.comentarios || '';
         document.getElementById('modal-edicion').style.display = 'flex';
         setTimeout(() => document.getElementById('edit-usuario').focus(), 100);
@@ -3430,21 +4568,21 @@
     }
 
     async function guardarEdicion() {
-        const id = document.getElementById('edit-id').value;
+        const id    = document.getElementById('edit-id').value;
         const datos = {
-            usuario: document.getElementById('edit-usuario').value,
-            fecha: document.getElementById('edit-fecha').value,
+            usuario:         document.getElementById('edit-usuario').value,
+            fecha:           document.getElementById('edit-fecha').value,
             tarea_principal: document.getElementById('edit-tarea-principal').value,
-            subtarea: document.getElementById('edit-subtarea').value,
-            tiempo_minutos: parseInt(document.getElementById('edit-tiempo').value),
-            proyecto: document.getElementById('edit-proyecto').value || null,
-            comentarios: document.getElementById('edit-comentarios').value || null
+            subtarea:        document.getElementById('edit-subtarea').value,
+            tiempo_minutos:  parseInt(document.getElementById('edit-tiempo').value),
+            proyecto:        document.getElementById('edit-proyecto').value    || null,
+            comentarios:     document.getElementById('edit-comentarios').value || null
         };
         try {
             const resp = await fetch(`${API}/registros/${id}`, {
-                method: 'PUT',
+                method:  'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(datos)
+                body:    JSON.stringify(datos)
             });
             if (resp.ok) {
                 cerrarModal();
@@ -3487,9 +4625,9 @@
 
     async function cargarTareasConfig() {
         try {
-            const resp = await fetch(`${API}/tareas/?solo_activas=false`);
+            const resp  = await fetch(`${API}/tareas/?solo_activas=false`);
             const tareas = await resp.json();
-            tareasCache = tareas.filter(t => t.activa);
+            tareasCache  = tareas.filter(t => t.activa);
             const contenedor = document.getElementById('config-lista-tareas');
             if (tareas.length === 0) {
                 contenedor.innerHTML = `<p class="text-sm text-slate-400 text-center py-4 italic">
@@ -3502,9 +4640,7 @@
                         <div class="w-4 h-4 rounded-full border"
                             style="background-color:${t.color}"></div>
                         <span class="text-sm font-medium text-slate-700">${t.nombre}</span>
-                        ${!t.activa
-                            ? '<span class="text-xs text-slate-400">(inactiva)</span>'
-                            : ''}
+                        ${!t.activa ? '<span class="text-xs text-slate-400">(inactiva)</span>' : ''}
                     </div>
                     <div class="flex items-center gap-2">
                         <button onclick="toggleTarea(${t.id}, ${!t.activa})"
@@ -3515,23 +4651,20 @@
                             ${t.activa ? 'Desactivar' : 'Activar'}
                         </button>
                         <button onclick="eliminarTareaConfig(${t.id})"
-                            class="text-xs font-medium px-2 py-1 rounded-lg bg-rose-50
-                                text-rose-700 hover:bg-rose-100">
+                            class="text-xs font-medium px-2 py-1 rounded-lg bg-rose-50 text-rose-700 hover:bg-rose-100">
                             Eliminar
                         </button>
                     </div>
                 </div>`).join('');
 
-            // Poblar select de subtareas en config
             const selConfig = document.getElementById('config-filtro-tarea-subtarea');
             selConfig.innerHTML = '<option value="">-- Selecciona tarea --</option>';
             tareas.filter(t => t.activa).forEach(t => {
-                const o = document.createElement('option');
-                o.value = t.nombre;
+                const o       = document.createElement('option');
+                o.value       = t.nombre;
                 o.textContent = t.nombre;
                 selConfig.appendChild(o);
             });
-
             poblarSelectsTareas();
         } catch {
             toast('Error cargando tareas.', 'error');
@@ -3540,16 +4673,13 @@
 
     async function crearTarea() {
         const nombre = document.getElementById('config-nueva-tarea').value.trim();
-        const color = document.getElementById('config-color-tarea').value;
-        if (!nombre) {
-            toast('Introduce un nombre para la tarea.', 'warning');
-            return;
-        }
+        const color  = document.getElementById('config-color-tarea').value;
+        if (!nombre) { toast('Introduce un nombre para la tarea.', 'warning'); return; }
         try {
             const resp = await fetch(`${API}/tareas/`, {
-                method: 'POST',
+                method:  'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ nombre, color, activa: true })
+                body:    JSON.stringify({ nombre, color, activa: true })
             });
             if (resp.ok) {
                 document.getElementById('config-nueva-tarea').value = '';
@@ -3557,6 +4687,7 @@
                 subtareasCache = {};
                 await cargarTareasCache();
                 cargarTareasConfig();
+                cargarTargetsSubtarea();
             } else {
                 const err = await resp.json();
                 toast(err.detail || 'Error al crear la tarea.', 'error');
@@ -3566,16 +4697,11 @@
 
     async function toggleTarea(id, activar) {
         try {
-            const tarea = tareasCache.find(t => t.id === id) ||
-                { nombre: '', color: '#94a3b8' };
-            const resp = await fetch(`${API}/tareas/${id}`, {
-                method: 'PUT',
+            const tarea = tareasCache.find(t => t.id === id) || { nombre: '', color: '#94a3b8' };
+            const resp  = await fetch(`${API}/tareas/${id}`, {
+                method:  'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    nombre: tarea.nombre,
-                    color: tarea.color,
-                    activa: activar
-                })
+                body:    JSON.stringify({ nombre: tarea.nombre, color: tarea.color, activa: activar })
             });
             if (resp.ok) {
                 toast(`Tarea ${activar ? 'activada' : 'desactivada'}.`, 'success');
@@ -3597,6 +4723,7 @@
                 subtareasCache = {};
                 await cargarTareasCache();
                 cargarTareasConfig();
+                cargarTargetsSubtarea();
             } else {
                 toast('Error al eliminar la tarea.', 'error');
             }
@@ -3604,7 +4731,7 @@
     }
 
     async function cargarSubtareasConfig() {
-        const tarea = document.getElementById('config-filtro-tarea-subtarea').value;
+        const tarea      = document.getElementById('config-filtro-tarea-subtarea').value;
         const contenedor = document.getElementById('config-lista-subtareas');
         if (!tarea) {
             contenedor.innerHTML = `<p class="text-sm text-slate-400 text-center py-4 italic">
@@ -3612,7 +4739,7 @@
             return;
         }
         try {
-            const resp = await fetch(`${API}/subtareas/?tarea_nombre=${tarea}&solo_activas=false`);
+            const resp      = await fetch(`${API}/subtareas/?tarea_nombre=${tarea}&solo_activas=false`);
             const subtareas = await resp.json();
             if (subtareas.length === 0) {
                 contenedor.innerHTML = `<p class="text-sm text-slate-400 text-center py-4 italic">
@@ -3623,9 +4750,7 @@
                 <div class="flex items-center justify-between p-2.5 bg-white rounded-lg border fade-in">
                     <span class="text-sm text-slate-700">
                         ${s.nombre}
-                        ${!s.activa
-                            ? '<span class="text-xs text-slate-400 ml-1">(inactiva)</span>'
-                            : ''}
+                        ${!s.activa ? '<span class="text-xs text-slate-400 ml-1">(inactiva)</span>' : ''}
                     </span>
                     <div class="flex gap-2">
                         <button onclick="toggleSubtarea(${s.id}, ${!s.activa}, '${tarea}')"
@@ -3636,8 +4761,7 @@
                             ${s.activa ? 'Desactivar' : 'Activar'}
                         </button>
                         <button onclick="eliminarSubtareaConfig(${s.id}, '${tarea}')"
-                            class="text-xs font-medium px-2 py-1 rounded-lg bg-rose-50
-                                text-rose-700 hover:bg-rose-100">
+                            class="text-xs font-medium px-2 py-1 rounded-lg bg-rose-50 text-rose-700 hover:bg-rose-100">
                             Eliminar
                         </button>
                     </div>
@@ -3646,27 +4770,22 @@
     }
 
     async function crearSubtarea() {
-        const tarea = document.getElementById('config-filtro-tarea-subtarea').value;
+        const tarea  = document.getElementById('config-filtro-tarea-subtarea').value;
         const nombre = document.getElementById('config-nueva-subtarea').value.trim();
-        if (!tarea) {
-            toast('Selecciona una tarea primero.', 'warning');
-            return;
-        }
-        if (!nombre) {
-            toast('Introduce un nombre para la subtarea.', 'warning');
-            return;
-        }
+        if (!tarea)  { toast('Selecciona una tarea primero.', 'warning'); return; }
+        if (!nombre) { toast('Introduce un nombre para la subtarea.', 'warning'); return; }
         try {
             const resp = await fetch(`${API}/subtareas/`, {
-                method: 'POST',
+                method:  'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ tarea_nombre: tarea, nombre, activa: true })
+                body:    JSON.stringify({ tarea_nombre: tarea, nombre, activa: true })
             });
             if (resp.ok) {
                 document.getElementById('config-nueva-subtarea').value = '';
                 toast('Subtarea creada correctamente.', 'success');
                 subtareasCache = {};
                 cargarSubtareasConfig();
+                cargarTargetsSubtarea();
             } else {
                 const err = await resp.json();
                 toast(err.detail || 'Error al crear la subtarea.', 'error');
@@ -3677,9 +4796,9 @@
     async function toggleSubtarea(id, activar, tarea) {
         try {
             const resp = await fetch(`${API}/subtareas/${id}`, {
-                method: 'PUT',
+                method:  'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ tarea_nombre: tarea, nombre: '', activa: activar })
+                body:    JSON.stringify({ tarea_nombre: tarea, nombre: '', activa: activar })
             });
             if (resp.ok) {
                 toast(`Subtarea ${activar ? 'activada' : 'desactivada'}.`, 'success');
@@ -3699,6 +4818,7 @@
                 toast('Subtarea eliminada.', 'success');
                 subtareasCache = {};
                 cargarSubtareasConfig();
+                cargarTargetsSubtarea();
             } else {
                 toast('Error al eliminar la subtarea.', 'error');
             }
@@ -3712,6 +4832,7 @@
             cerrarModal();
             cerrarModalPlantilla();
             cerrarModalExcel();
+            cerrarModalImportacion();
         }
     });
 
