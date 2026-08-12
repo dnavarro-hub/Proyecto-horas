@@ -34,7 +34,7 @@ Base = declarative_base()
 def hashear_pin(pin: str) -> str:
     return hashlib.sha256(pin.encode()).hexdigest()
 
-# ==================== MODELOS EXISTENTES ====================
+# ==================== MODELOS ====================
 
 class RegistroDB(Base):
     __tablename__ = "registros"
@@ -118,14 +118,7 @@ class SubtareaDB(Base):
     activa          = Column(Boolean, default=True)
     created_at      = Column(DateTime, default=datetime.utcnow)
 
-# ==================== MODELOS NUEVOS ====================
-
 class ProduccionDB(Base):
-    """
-    Tabla para almacenar las unidades producidas por operario,
-    fecha y subtarea. Se alimenta desde importación Excel/CSV.
-    Clave de sobrescritura: usuario + fecha + subtarea
-    """
     __tablename__ = "produccion"
     id          = Column(Integer, primary_key=True, index=True)
     usuario     = Column(String, index=True)
@@ -139,10 +132,6 @@ class ProduccionDB(Base):
     )
 
 class ObjetivoSubtareaDB(Base):
-    """
-    Target de productividad por subtarea (Ud/hora).
-    Editable desde el programa.
-    """
     __tablename__ = "objetivos_subtarea"
     id              = Column(Integer, primary_key=True, index=True)
     subtarea        = Column(String, unique=True, index=True)
@@ -150,18 +139,15 @@ class ObjetivoSubtareaDB(Base):
     updated_at      = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 class HistorialImportacionDB(Base):
-    """
-    Registro de cada importación realizada para auditoría.
-    """
     __tablename__ = "historial_importaciones"
-    id              = Column(Integer, primary_key=True, index=True)
-    nombre_fichero  = Column(String)
-    usuario_carga   = Column(String)
-    fecha_carga     = Column(DateTime, default=datetime.utcnow)
-    filas_insertadas = Column(Integer, default=0)
+    id                 = Column(Integer, primary_key=True, index=True)
+    nombre_fichero     = Column(String)
+    usuario_carga      = Column(String)
+    fecha_carga        = Column(DateTime, default=datetime.utcnow)
+    filas_insertadas   = Column(Integer, default=0)
     filas_actualizadas = Column(Integer, default=0)
-    filas_error     = Column(Integer, default=0)
-    detalle_errores = Column(String, nullable=True)  # JSON string con errores
+    filas_error        = Column(Integer, default=0)
+    detalle_errores    = Column(String, nullable=True)
 
 Base.metadata.create_all(bind=engine)
 # ==================== INICIALIZACIÓN DE DATOS ====================
@@ -194,20 +180,18 @@ SUBTAREAS_DEFAULT = {
                   "Formacion", "Actividad", "Limpieza", "Otros", "Reuniones"],
 }
 
-# Sinónimos para detección automática de columnas en importación Excel/CSV
 SINONIMOS_COLUMNAS = {
-    "usuario":   ["usuario", "operario", "trabajador", "empleado", "nombre", "worker",
-                  "operator", "employee", "codigo", "code", "user"],
-    "fecha":     ["fecha", "date", "dia", "day", "jornada", "fecha_trabajo"],
-    "subtarea":  ["subtarea", "subtask", "actividad", "activity", "tarea_detalle",
-                  "operacion", "operation", "sub_tarea", "sub tarea"],
-    "unidades":  ["unidades", "units", "uds", "cantidad", "quantity", "ud",
-                  "volumen", "piezas", "pieces", "bultos", "items"],
+    "usuario":  ["usuario", "operario", "trabajador", "empleado", "nombre", "worker",
+                 "operator", "employee", "codigo", "code", "user"],
+    "fecha":    ["fecha", "date", "dia", "day", "jornada", "fecha_trabajo"],
+    "subtarea": ["subtarea", "subtask", "actividad", "activity", "tarea_detalle",
+                 "operacion", "operation", "sub_tarea", "sub tarea"],
+    "unidades": ["unidades", "units", "uds", "cantidad", "quantity", "ud",
+                 "volumen", "piezas", "pieces", "bultos", "items"],
 }
 
 with SessionLocal() as session:
 
-    # --- Supervisor por defecto ---
     if not session.query(UsuarioDB).filter(UsuarioDB.rol == "supervisor").first():
         session.add(UsuarioDB(
             codigo="ADMIN",
@@ -217,7 +201,6 @@ with SessionLocal() as session:
         ))
         session.commit()
 
-    # --- Objetivos por tarea por defecto ---
     for t in TAREAS_DEFAULT:
         if not session.query(ObjetivoDB).filter(ObjetivoDB.tarea_principal == t["nombre"]).first():
             session.add(ObjetivoDB(
@@ -226,12 +209,10 @@ with SessionLocal() as session:
                 horas_jornada=8.0
             ))
 
-    # --- Tareas por defecto ---
     for t in TAREAS_DEFAULT:
         if not session.query(TareaDB).filter(TareaDB.nombre == t["nombre"]).first():
             session.add(TareaDB(nombre=t["nombre"], color=t["color"], activa=True))
 
-    # --- Subtareas por defecto ---
     for tarea_nombre, subtareas in SUBTAREAS_DEFAULT.items():
         for sub in subtareas:
             if not session.query(SubtareaDB).filter(
@@ -240,7 +221,6 @@ with SessionLocal() as session:
             ).first():
                 session.add(SubtareaDB(tarea_nombre=tarea_nombre, nombre=sub, activa=True))
 
-    # --- Configuración por defecto ---
     if not session.query(ConfiguracionDB).filter(ConfiguracionDB.clave == "minutos_jornada").first():
         session.add(ConfiguracionDB(
             clave="minutos_jornada",
@@ -248,9 +228,6 @@ with SessionLocal() as session:
             descripcion="Minutos máximos por jornada laboral"
         ))
 
-    # --- Objetivos por subtarea por defecto ---
-    # Se crean vacíos (target 0) para todas las subtareas existentes
-    # El supervisor los editará desde la pantalla de configuración
     todas_subtareas = session.query(SubtareaDB).all()
     for sub in todas_subtareas:
         if not session.query(ObjetivoSubtareaDB).filter(
@@ -266,19 +243,6 @@ with SessionLocal() as session:
 # ==================== DETECCIÓN AUTOMÁTICA DE COLUMNAS ====================
 
 def detectar_columnas(columnas_fichero: list) -> dict:
-    """
-    Intenta mapear automáticamente las columnas del fichero importado
-    a los campos requeridos usando coincidencia aproximada con difflib.
-    
-    Retorna un dict con el mapeo encontrado y las columnas no mapeadas.
-    Ejemplo: {
-        "usuario": "Operario",
-        "fecha": "Fecha Trabajo",
-        "subtarea": "Actividad",
-        "unidades": "Uds",
-        "no_mapeadas": ["Turno", "Comentario"]
-    }
-    """
     columnas_lower = {col: col.lower().strip() for col in columnas_fichero}
     resultado = {}
     usadas = set()
@@ -290,15 +254,12 @@ def detectar_columnas(columnas_fichero: list) -> dict:
         for col_original, col_lower in columnas_lower.items():
             if col_original in usadas:
                 continue
-            # Buscar coincidencia exacta primero
             if col_lower in sinonimos:
                 mejor = col_original
                 mejor_score = 1.0
                 break
-            # Buscar coincidencia aproximada
             matches = get_close_matches(col_lower, sinonimos, n=1, cutoff=0.6)
             if matches:
-                # difflib no da score directamente, estimamos por longitud de coincidencia
                 score = len(matches[0]) / max(len(col_lower), len(matches[0]))
                 if score > mejor_score:
                     mejor = col_original
@@ -308,7 +269,6 @@ def detectar_columnas(columnas_fichero: list) -> dict:
             resultado[campo] = mejor
             usadas.add(mejor)
 
-    # Columnas del fichero que no se han podido mapear
     resultado["no_mapeadas"] = [
         col for col in columnas_fichero if col not in usadas
     ]
@@ -317,20 +277,14 @@ def detectar_columnas(columnas_fichero: list) -> dict:
 
 
 def normalizar_subtarea(nombre: str, subtareas_validas: list) -> Optional[str]:
-    """
-    Intenta encontrar la subtarea más cercana en el catálogo existente.
-    Retorna el nombre normalizado o None si no hay coincidencia suficiente.
-    """
     if not nombre:
         return None
     nombre_lower = nombre.lower().strip()
     subtareas_lower = {s.lower().strip(): s for s in subtareas_validas}
 
-    # Coincidencia exacta
     if nombre_lower in subtareas_lower:
         return subtareas_lower[nombre_lower]
 
-    # Coincidencia aproximada
     matches = get_close_matches(nombre_lower, subtareas_lower.keys(), n=1, cutoff=0.7)
     if matches:
         return subtareas_lower[matches[0]]
@@ -352,7 +306,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ==================== SCHEMAS EXISTENTES ====================
+# ==================== SCHEMAS ====================
 
 class RegistroTarea(BaseModel):
     usuario: str
@@ -456,8 +410,6 @@ class ConfiguracionRespuesta(BaseModel):
     class Config:
         from_attributes = True
 
-# ==================== SCHEMAS NUEVOS ====================
-
 class ProduccionCreate(BaseModel):
     usuario: str
     fecha: date
@@ -500,7 +452,7 @@ class ProductividadRespuesta(BaseModel):
     uds_hora_real: Optional[float]
     uds_hora_target: Optional[float]
     pct_target: Optional[float]
-    semaforo: str  # "verde", "ambar", "rojo", "sin_target"
+    semaforo: str
 
 class HistorialImportacionRespuesta(BaseModel):
     id: int
@@ -530,13 +482,6 @@ def get_minutos_jornada(db: Session) -> int:
     return int(config.valor) if config else 480
 
 def calcular_semaforo(pct: Optional[float]) -> str:
-    """
-    Devuelve el color del semáforo según el % sobre target:
-    - verde:      >= 100%
-    - ambar:      >= 80% y < 100%
-    - rojo:       < 80%
-    - sin_target: target no definido o = 0
-    """
     if pct is None:
         return "sin_target"
     if pct >= 100:
@@ -652,7 +597,6 @@ def crear_subtarea(subtarea: SubtareaCreate, db: Session = Depends(get_db)):
     db.add(nueva)
     db.commit()
     db.refresh(nueva)
-    # Crear objetivo por subtarea con target 0 si no existe
     if not db.query(ObjetivoSubtareaDB).filter(
         ObjetivoSubtareaDB.subtarea == subtarea.nombre
     ).first():
@@ -966,7 +910,8 @@ def actualizar_objetivo(tarea: str, objetivo: ObjetivoCreate, db: Session = Depe
     db.commit()
     db.refresh(db_obj)
     return db_obj
-# ==================== OBJETIVOS POR SUBTAREA (TARGETS) ===================
+
+# ==================== OBJETIVOS POR SUBTAREA (TARGETS) ====================
 
 @app.get("/objetivos-subtarea/", response_model=List[ObjetivoSubtareaRespuesta])
 def obtener_objetivos_subtarea(db: Session = Depends(get_db)):
@@ -989,6 +934,7 @@ def actualizar_objetivo_subtarea(subtarea: str, objetivo: ObjetivoSubtareaCreate
     db.commit()
     db.refresh(db_obj)
     return db_obj
+
 @app.post("/objetivos-subtarea/bulk/")
 def actualizar_objetivos_subtarea_bulk(
     request_data: Union[List[ObjetivoSubtareaCreate], dict],
@@ -1000,8 +946,7 @@ def actualizar_objetivos_subtarea_bulk(
     """
     actualizados = 0
     errores = []
-    
-    # Si llega como diccionario plano con sufijos (ej: subtarea__0, uds_hora_target__0), lo transformamos a lista
+
     if isinstance(request_data, dict):
         elementos_dict = {}
         for k, v in request_data.items():
@@ -1011,16 +956,17 @@ def actualizar_objetivos_subtarea_bulk(
                 if idx not in elementos_dict:
                     elementos_dict[idx] = {}
                 elementos_dict[idx][campo] = v
-        
-        # Filtrar solo los campos válidos para evitar errores de validación con 'updated_at' si viene incluido
+
         objetivos = []
         for idx in sorted(elementos_dict.keys()):
             datos_item = elementos_dict[idx]
-            # Nos aseguramos de extraer únicamente subtarea y uds_hora_target
             subtarea_val = datos_item.get("subtarea")
             uds_val = datos_item.get("uds_hora_target", 0.0)
             if subtarea_val:
-                objetivos.append(ObjetivoSubtareaCreate(subtarea=subtarea_val, uds_hora_target=float(uds_val)))
+                objetivos.append(ObjetivoSubtareaCreate(
+                    subtarea=subtarea_val,
+                    uds_hora_target=float(uds_val)
+                ))
     else:
         objetivos = request_data
 
@@ -1029,33 +975,7 @@ def actualizar_objetivos_subtarea_bulk(
             db_obj = db.query(ObjetivoSubtareaDB).filter(
                 ObjetivoSubtareaDB.subtarea == obj.subtarea
             ).first()
-            
-            if not db_obj:
-                db_obj = ObjetivoSubtareaDB(
-                    subtarea=obj.subtarea,
-                    uds_hora_target=obj.uds_hora_target
-                )
-                db.add(db_obj)
-            else:
-                db_obj.uds_hora_target = obj.uds_hora_target
-                db_obj.updated_at = datetime.utcnow()
-            actualizados += 1
-            
-        db.commit()
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=400, detail=f"Error en actualización masiva: {str(e)}")
 
-    return {
-        "actualizados": actualizados,
-        "errores": errores
-    }
-    try:
-        for obj in objetivos:
-            db_obj = db.query(ObjetivoSubtareaDB).filter(
-                ObjetivoSubtareaDB.subtarea == obj.subtarea
-            ).first()
-            
             if not db_obj:
                 db_obj = ObjetivoSubtareaDB(
                     subtarea=obj.subtarea,
@@ -1066,8 +986,9 @@ def actualizar_objetivos_subtarea_bulk(
                 db_obj.uds_hora_target = obj.uds_hora_target
                 db_obj.updated_at = datetime.utcnow()
             actualizados += 1
-            
+
         db.commit()
+
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=400, detail=f"Error en actualización masiva: {str(e)}")
@@ -1103,12 +1024,6 @@ async def importar_produccion(
     usuario_carga: str = "ADMIN",
     db: Session = Depends(get_db)
 ):
-    """
-    Importa un fichero Excel o CSV con datos de producción.
-    Detecta automáticamente las columnas usando sinónimos.
-    Clave de sobrescritura: usuario + fecha + subtarea.
-    """
-    # Validar extensión
     nombre = file.filename or ""
     extension = nombre.split(".")[-1].lower()
     if extension not in ["xlsx", "xls", "csv"]:
@@ -1120,9 +1035,7 @@ async def importar_produccion(
     contenido = await file.read()
 
     try:
-        # Leer fichero según extensión
         if extension == "csv":
-            # Intentar varios separadores comunes
             for sep in [",", ";", "\t", "|"]:
                 try:
                     df = pd.read_csv(io.BytesIO(contenido), sep=sep)
@@ -1138,13 +1051,9 @@ async def importar_produccion(
     if df.empty:
         raise HTTPException(status_code=400, detail="El fichero está vacío")
 
-    # Limpiar nombres de columnas
     df.columns = [str(c).strip() for c in df.columns]
-
-    # Detectar columnas automáticamente
     mapeo = detectar_columnas(list(df.columns))
 
-    # Verificar que tenemos las columnas mínimas requeridas
     campos_requeridos = ["usuario", "fecha", "subtarea", "unidades"]
     campos_faltantes = [c for c in campos_requeridos if c not in mapeo]
     if campos_faltantes:
@@ -1154,12 +1063,10 @@ async def importar_produccion(
                    f"Columnas encontradas: {list(df.columns)}"
         )
 
-    # Obtener subtareas válidas del sistema
     subtareas_validas = [
         s.nombre for s in db.query(SubtareaDB).filter(SubtareaDB.activa == True).all()
     ]
 
-    # Obtener usuarios válidos del sistema
     usuarios_validos = {
         u.nombre.lower().strip(): u.codigo
         for u in db.query(UsuarioDB).all()
@@ -1169,21 +1076,18 @@ async def importar_produccion(
         for u in db.query(UsuarioDB).all()
     })
 
-    # Procesar filas
     insertadas = 0
     actualizadas = 0
     errores = []
 
     for idx, row in df.iterrows():
-        fila_num = idx + 2  # +2 porque idx empieza en 0 y hay cabecera
+        fila_num = idx + 2
         try:
-            # Extraer valores usando el mapeo detectado
             val_usuario  = str(row[mapeo["usuario"]]).strip()
             val_fecha    = row[mapeo["fecha"]]
             val_subtarea = str(row[mapeo["subtarea"]]).strip()
             val_unidades = row[mapeo["unidades"]]
 
-            # Validar usuario
             usuario_codigo = usuarios_validos.get(val_usuario.lower().strip())
             if not usuario_codigo:
                 errores.append({
@@ -1192,7 +1096,6 @@ async def importar_produccion(
                 })
                 continue
 
-            # Validar y parsear fecha
             try:
                 if isinstance(val_fecha, str):
                     for fmt in ["%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y", "%Y/%m/%d"]:
@@ -1214,7 +1117,6 @@ async def importar_produccion(
                 })
                 continue
 
-            # Validar subtarea con normalización aproximada
             subtarea_normalizada = normalizar_subtarea(val_subtarea, subtareas_validas)
             if not subtarea_normalizada:
                 errores.append({
@@ -1223,7 +1125,6 @@ async def importar_produccion(
                 })
                 continue
 
-            # Validar unidades
             try:
                 unidades = float(val_unidades)
                 if unidades < 0:
@@ -1235,11 +1136,10 @@ async def importar_produccion(
                 })
                 continue
 
-            # Sobrescritura: buscar registro existente por usuario + fecha + subtarea
             existente = db.query(ProduccionDB).filter(
-                ProduccionDB.usuario   == usuario_codigo,
-                ProduccionDB.fecha     == val_fecha,
-                ProduccionDB.subtarea  == subtarea_normalizada
+                ProduccionDB.usuario  == usuario_codigo,
+                ProduccionDB.fecha    == val_fecha,
+                ProduccionDB.subtarea == subtarea_normalizada
             ).first()
 
             if existente:
@@ -1261,7 +1161,6 @@ async def importar_produccion(
 
     db.commit()
 
-    # Guardar historial de importación
     historial = HistorialImportacionDB(
         nombre_fichero     = nombre,
         usuario_carga      = usuario_carga,
@@ -1274,14 +1173,14 @@ async def importar_produccion(
     db.commit()
 
     return ResultadoImportacion(
-        nombre_fichero        = nombre,
-        filas_procesadas      = len(df),
-        filas_insertadas      = insertadas,
-        filas_actualizadas    = actualizadas,
-        filas_error           = len(errores),
-        errores               = errores,
-        mapeo_columnas        = {k: v for k, v in mapeo.items() if k != "no_mapeadas"},
-        columnas_no_mapeadas  = mapeo.get("no_mapeadas", [])
+        nombre_fichero       = nombre,
+        filas_procesadas     = len(df),
+        filas_insertadas     = insertadas,
+        filas_actualizadas   = actualizadas,
+        filas_error          = len(errores),
+        errores              = errores,
+        mapeo_columnas       = {k: v for k, v in mapeo.items() if k != "no_mapeadas"},
+        columnas_no_mapeadas = mapeo.get("no_mapeadas", [])
     )
 
 @app.get("/produccion/historial/", response_model=List[HistorialImportacionRespuesta])
@@ -1289,7 +1188,6 @@ def obtener_historial_importaciones(db: Session = Depends(get_db)):
     return db.query(HistorialImportacionDB).order_by(
         HistorialImportacionDB.fecha_carga.desc()
     ).all()
-
 # ==================== PRODUCTIVIDAD ====================
 
 @app.get("/productividad/")
@@ -1300,16 +1198,11 @@ def obtener_productividad(
     subtarea: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
-    """
-    Cruza horas registradas (RegistroDB) con unidades producidas (ProduccionDB)
-    y targets (ObjetivoSubtareaDB) para calcular productividad real vs target.
-    """
     if not desde:
         desde = date.today() - timedelta(days=30)
     if not hasta:
         hasta = date.today()
 
-    # Obtener producción del periodo
     query_prod = db.query(ProduccionDB).filter(
         ProduccionDB.fecha >= desde,
         ProduccionDB.fecha <= hasta
@@ -1321,7 +1214,6 @@ def obtener_productividad(
 
     producciones = query_prod.all()
 
-    # Obtener todos los targets de subtarea
     targets = {
         t.subtarea: t.uds_hora_target
         for t in db.query(ObjetivoSubtareaDB).all()
@@ -1329,7 +1221,6 @@ def obtener_productividad(
 
     resultado = []
     for p in producciones:
-        # Buscar horas reales para ese usuario + fecha + subtarea en RegistroDB
         horas_reales = sum(
             r.tiempo_minutos for r in db.query(RegistroDB).filter(
                 RegistroDB.usuario  == p.usuario,
@@ -1338,14 +1229,11 @@ def obtener_productividad(
             ).all()
         ) / 60
 
-        # Calcular productividad real
         uds_hora_real = round(p.unidades / horas_reales, 2) if horas_reales > 0 else None
 
-        # Obtener target de la subtarea
         target = targets.get(p.subtarea)
         uds_hora_target = target if target and target > 0 else None
 
-        # Calcular % sobre target
         pct_target = None
         if uds_hora_real is not None and uds_hora_target:
             pct_target = round((uds_hora_real / uds_hora_target) * 100, 1)
@@ -1370,10 +1258,6 @@ def resumen_productividad(
     hasta: Optional[date] = None,
     db: Session = Depends(get_db)
 ):
-    """
-    Resumen agregado de productividad por subtarea para el periodo.
-    Útil para el dashboard y ranking.
-    """
     if not desde:
         desde = date.today() - timedelta(days=30)
     if not hasta:
@@ -1434,6 +1318,7 @@ def resumen_productividad(
         })
 
     return sorted(resultado, key=lambda x: (x["pct_target"] or 0), reverse=True)
+
 # ==================== VOLÚMENES ====================
 
 @app.post("/volumenes/", response_model=VolumenRespuesta, status_code=201)
@@ -1522,7 +1407,6 @@ def obtener_metricas(
             "creado_por":       v.creado_por
         })
     return sorted(resultado, key=lambda x: x["fecha"], reverse=True)
-
 # ==================== ESTADÍSTICAS ====================
 
 @app.get("/estadisticas/productividad/")
@@ -1727,19 +1611,12 @@ def tendencia_semanal(
         for k, v in sorted(semanas_data.items())
     ]
 
-# ==================== ALERTAS MEJORADAS ====================
-
 @app.get("/rendimiento/alertas/")
 def alertas_rendimiento(
     limite: Optional[int] = 5,
     solo_danger: Optional[bool] = False,
     db: Session = Depends(get_db)
 ):
-    """
-    Alertas agrupadas por tipo con límite configurable.
-    - limite: máximo de grupos de alertas a devolver (default 5)
-    - solo_danger: si True, devuelve solo alertas críticas
-    """
     hoy            = date.today()
     hace_7         = hoy - timedelta(days=7)
     minutos_jornada = get_minutos_jornada(db)
@@ -1750,9 +1627,8 @@ def alertas_rendimiento(
         RegistroDB.fecha <= hoy
     ).all()
 
-    # Acumular alertas por tipo
     grupos = {
-        "sin_actividad":    {"nivel": "warning", "usuarios": [], "count": 0},
+        "sin_actividad":     {"nivel": "warning", "usuarios": [], "count": 0},
         "jornada_incompleta": {"nivel": "warning", "usuarios": [], "count": 0},
         "baja_consistencia":  {"nivel": "danger",  "usuarios": [], "count": 0},
         "eficiencia_baja":    {"nivel": "danger",  "subtareas": [], "count": 0},
@@ -1768,7 +1644,6 @@ def alertas_rendimiento(
             str(r.fecha) for r in registros_semana if r.usuario == u.codigo
         ))
         pct_hoy    = round((mins_hoy / minutos_jornada) * 100, 1)
-        pct_semana = round((mins_semana / (5 * minutos_jornada)) * 100, 1)
 
         if u.codigo not in usuarios_con_actividad_hoy:
             grupos["sin_actividad"]["usuarios"].append(u.nombre)
@@ -1786,7 +1661,6 @@ def alertas_rendimiento(
             )
             grupos["baja_consistencia"]["count"] += 1
 
-    # Alertas de eficiencia por volumen
     volumenes = db.query(VolumenDB).filter(
         VolumenDB.fecha >= hace_7,
         VolumenDB.fecha <= hoy
@@ -1809,7 +1683,6 @@ def alertas_rendimiento(
                 )
                 grupos["desviacion"]["count"] += 1
 
-    # Construir respuesta agrupada
     MENSAJES = {
         "sin_actividad":      "operario(s) sin actividad hoy",
         "jornada_incompleta": "operario(s) con jornada incompleta",
@@ -1833,10 +1706,7 @@ def alertas_rendimiento(
             "detalle": detalle
         })
 
-    # Ordenar: danger primero, luego warning
     alertas_agrupadas.sort(key=lambda x: 0 if x["nivel"] == "danger" else 1)
-
-    # Aplicar límite
     alertas_limitadas = alertas_agrupadas[:limite]
 
     return {
@@ -1874,12 +1744,12 @@ def objetivo_vs_real(
         horas_objetivo = round(obj.horas_jornada, 2) if obj else None
         pct = round((horas_reales / horas_objetivo) * 100, 1) if horas_objetivo else None
         resultado.append({
-            "tarea":            tarea,
-            "horas_reales":     horas_reales,
-            "horas_objetivo":   horas_objetivo,
+            "tarea":             tarea,
+            "horas_reales":      horas_reales,
+            "horas_objetivo":    horas_objetivo,
             "uds_hora_objetivo": obj.uds_hora if obj else None,
-            "pct_objetivo":     pct,
-            "registros":        datos["count"]
+            "pct_objetivo":      pct,
+            "registros":         datos["count"]
         })
     return sorted(resultado, key=lambda x: x["horas_reales"], reverse=True)
 
@@ -2025,6 +1895,7 @@ def exportar_excel(
             SEMAFORO_TEXTO.get(semaforo, "—")
         ])
     autoajustar(ws4)
+
     # Hoja 5: Historial Importaciones
     ws5 = wb.create_sheet("Historial Importaciones")
     ws5.append(["ID", "Fichero", "Usuario Carga", "Fecha Carga",
