@@ -228,7 +228,7 @@ with SessionLocal() as session:
             descripcion="Minutos máximos por jornada laboral"
         ))
 
-    todas_subtareas = session.query(SubtareaDB).all()
+        todas_subtareas = session.query(SubtareaDB).all()
     for sub in todas_subtareas:
         if not session.query(ObjetivoSubtareaDB).filter(
             ObjetivoSubtareaDB.subtarea == sub.nombre
@@ -237,8 +237,7 @@ with SessionLocal() as session:
                 subtarea=sub.nombre,
                 uds_hora_target=0.0
             ))
-
-    session.commit()
+            session.commit()  # commit individual por cada registro
 
 # ==================== DETECCIÓN AUTOMÁTICA DE COLUMNAS ====================
 
