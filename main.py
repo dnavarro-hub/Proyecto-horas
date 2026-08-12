@@ -966,8 +966,7 @@ def actualizar_objetivo(tarea: str, objetivo: ObjetivoCreate, db: Session = Depe
     db.commit()
     db.refresh(db_obj)
     return db_obj
-
-# ==================== OBJETIVOS POR SUBTAREA (TARGETS) ====================
+# ==================== OBJETIVOS POR SUBTAREA (TARGETS) ===================
 
 @app.get("/objetivos-subtarea/", response_model=List[ObjetivoSubtareaRespuesta])
 def obtener_objetivos_subtarea(db: Session = Depends(get_db)):
@@ -997,16 +996,17 @@ def actualizar_objetivos_subtarea_bulk(
     db: Session = Depends(get_db)
 ):
     """
-    Actualiza múltiples targets de subtarea en una sola llamada.
-    Útil para guardar todos los targets desde la pantalla de configuración.
+    Actualiza múltiples targets de subtarea en una sola llamada de forma eficiente.
     """
     actualizados = 0
     errores = []
-    for obj in objetivos:
-        try:
+    
+    try:
+        for obj in objetivos:
             db_obj = db.query(ObjetivoSubtareaDB).filter(
                 ObjetivoSubtareaDB.subtarea == obj.subtarea
             ).first()
+            
             if not db_obj:
                 db_obj = ObjetivoSubtareaDB(
                     subtarea=obj.subtarea,
@@ -1017,14 +1017,16 @@ def actualizar_objetivos_subtarea_bulk(
                 db_obj.uds_hora_target = obj.uds_hora_target
                 db_obj.updated_at = datetime.utcnow()
             actualizados += 1
-        except Exception as e:
-            errores.append({"subtarea": obj.subtarea, "error": str(e)})
-    db.commit()
+            
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=f"Error en actualización masiva: {str(e)}")
+
     return {
         "actualizados": actualizados,
         "errores": errores
     }
-
 # ==================== PRODUCCIÓN IMPORTADA ====================
 
 @app.get("/produccion/", response_model=List[ProduccionRespuesta])
