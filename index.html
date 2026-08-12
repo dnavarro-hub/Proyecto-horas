@@ -2644,27 +2644,36 @@ async function cargarObjetivos() {
 <script>
     // ==================== USUARIOS FILTROS ====================
 
-    async function cargarUsuariosFiltros() {
-        try {
-            const resp     = await fetch(`${API}/usuarios/`);
-            const usuarios = await resp.json();
-            ['filtro-usuario', 'filtro-usuario2', 'edicion-usuario'].forEach(id => {
-                const select = document.getElementById(id);
-                if (!select) return;
-                const def = id === 'filtro-usuario'
-                    ? '<option value="">-- Selecciona usuario --</option>'
-                    : `<option value="">-- ${id === 'filtro-usuario2' ? 'Opcional' : 'Todos'} --</option>`;
-                select.innerHTML = def;
-                usuarios.forEach(u => {
-                    const o       = document.createElement('option');
-                    o.value       = u.codigo;
-                    o.textContent = u.nombre;
-                    select.appendChild(o);
-                });
-            });
-        } catch {}
-    }
+async function cargarUsuariosFiltros() {
+    try {
+        const resp     = await fetch(`${API}/usuarios/`);
+        const usuarios = await resp.json();
 
+        console.log('Usuarios cargados para filtros:', usuarios.length); // ← debug
+
+        if (usuarios.length === 0) {
+            toast('No hay usuarios disponibles.', 'warning');
+        }
+
+        ['filtro-usuario', 'filtro-usuario2', 'edicion-usuario'].forEach(id => {
+            const select = document.getElementById(id);
+            if (!select) return;
+            const def = id === 'filtro-usuario'
+                ? '<option value="">-- Selecciona usuario --</option>'
+                : `<option value="">-- ${id === 'filtro-usuario2' ? 'Opcional' : 'Todos'} --</option>`;
+            select.innerHTML = def;
+            usuarios.forEach(u => {
+                const o       = document.createElement('option');
+                o.value       = u.codigo;
+                o.textContent = u.nombre;
+                select.appendChild(o);
+            });
+        });
+    } catch(e) {
+        console.error('Error cargarUsuariosFiltros:', e);
+        toast('Error cargando lista de usuarios.', 'error');
+    }
+}
     async function cargarUsuariosHistorico() {
         try {
             const resp     = await fetch(`${API}/usuarios/`);
