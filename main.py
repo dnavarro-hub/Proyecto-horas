@@ -995,17 +995,16 @@ def actualizar_objetivos_subtarea_bulk(
     db: Session = Depends(get_db)
 ):
     """
-    Actualiza múltiples targets de subtarea. 
-    Soporta tanto una lista JSON limpia como un diccionario plano indexado (ej. desde formularios o llamadas dinámicas).
+    Actualiza múltiples targets de subtarea en una sola llamada.
+    Soporta tanto una lista JSON limpia como un diccionario plano con índices (ej: campo__0).
     """
     actualizados = 0
     errores = []
     
-    # Si llega como diccionario plano con sufijos tipo __0, __1, lo convertimos a lista de diccionarios
+    # Si llega como diccionario plano con sufijos (ej: subtarea__0, uds_hora_target__0), lo transformamos a lista
     if isinstance(request_data, dict):
         elementos_dict = {}
         for k, v in request_data.items():
-            # Extraer el nombre base del campo y el índice (ej: subtarea__0 -> campo: subtarea, idx: 0)
             partes = k.rsplit("__", 1)
             if len(partes) == 2 and partes[1].isdigit():
                 campo, idx = partes[0], int(partes[1])
@@ -1013,8 +1012,15 @@ def actualizar_objetivos_subtarea_bulk(
                     elementos_dict[idx] = {}
                 elementos_dict[idx][campo] = v
         
-        # Ordenar por índice y convertir a lista de Objetivos
-        objetivos = [ObjetivoSubtareaCreate(**elementos_dict[idx]) for idx in sorted(elementos_dict.keys())]
+        # Filtrar solo los campos válidos para evitar errores de validación con 'updated_at' si viene incluido
+        objetivos = []
+        for idx in sorted(elementos_dict.keys()):
+            datos_item = elementos_dict[idx]
+            # Nos aseguramos de extraer únicamente subtarea y uds_hora_target
+            subtarea_val = datos_item.get("subtarea")
+            uds_val = datos_item.get("uds_hora_target", 0.0)
+            if subtarea_val:
+                objetivos.append(ObjetivoSubtareaCreate(subtarea=subtarea_val, uds_hora_target=float(uds_val)))
     else:
         objetivos = request_data
 
@@ -1043,6 +1049,7 @@ def actualizar_objetivos_subtarea_bulk(
     return {
         "actualizados": actualizados,
         "errores": errores
+    }
     } 
     try:
         for obj in objetivos:
