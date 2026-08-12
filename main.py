@@ -934,19 +934,15 @@ def actualizar_objetivo_subtarea(subtarea: str, objetivo: ObjetivoSubtareaCreate
     db.commit()
     db.refresh(db_obj)
     return db_obj
-
 @app.post("/objetivos-subtarea/bulk/")
 def actualizar_objetivos_subtarea_bulk(
     request_data: Union[List[ObjetivoSubtareaCreate], dict],
     db: Session = Depends(get_db)
 ):
-    """
-    Actualiza múltiples targets de subtarea en una sola llamada.
-    Soporta tanto una lista JSON limpia como un diccionario plano con índices (ej: campo__0).
-    """
     actualizados = 0
     errores = []
 
+    # Normalizar input a lista de dicts simples
     if isinstance(request_data, dict):
         elementos_dict = {}
         for k, v in request_data.items():
@@ -956,35 +952,33 @@ def actualizar_objetivos_subtarea_bulk(
                 if idx not in elementos_dict:
                     elementos_dict[idx] = {}
                 elementos_dict[idx][campo] = v
-
-        objetivos = []
-        for idx in sorted(elementos_dict.keys()):
-            datos_item = elementos_dict[idx]
-            subtarea_val = datos_item.get("subtarea")
-            uds_val = datos_item.get("uds_hora_target", 0.0)
-            if subtarea_val:
-                objetivos.append(ObjetivoSubtareaCreate(
-                    subtarea=subtarea_val,
-                    uds_hora_target=float(uds_val)
-                ))
+        objetivos_raw = [
+            {
+                "subtarea": elementos_dict[i].get("subtarea"),
+                "uds_hora_target": float(elementos_dict[i].get("uds_hora_target", 0.0))
+            }
+            for i in sorted(elementos_dict.keys())
+            if elementos_dict[i].get("subtarea")
+        ]
     else:
-        objetivos = request_data
+        objetivos_raw = [
+            {"subtarea": o.subtarea, "uds_hora_target": o.uds_hora_target}
+            for o in request_data
+        ]
 
     try:
-        for obj in objetivos:
-            db_obj = db.query(ObjetivoSubtareaDB).filter(
-                ObjetivoSubtareaDB.subtarea == obj.subtarea
-            ).first()
-
-            if not db_obj:
-                db_obj = ObjetivoSubtareaDB(
-                    subtarea=obj.subtarea,
-                    uds_hora_target=obj.uds_hora_target
-                )
-                db.add(db_obj)
-            else:
-                db_obj.uds_hora_target = obj.uds_hora_target
-                db_obj.updated_at = datetime.utcnow()
+        for obj in objetivos_raw:
+            # Usar SQL directo para evitar el bug de SQLAlchemy con bulk params
+            db.execute(
+                __import__("sqlalchemy").text(
+                    "UPDATE objetivos_subtarea SET uds_hora_target = :uds, updated_at = :ts WHERE subtarea = :sub"
+                ),
+                {
+                    "uds": obj["uds_hora_target"],
+                    "ts": datetime.utcnow(),
+                    "sub": obj["subtarea"]
+                }
+            )
             actualizados += 1
 
         db.commit()
