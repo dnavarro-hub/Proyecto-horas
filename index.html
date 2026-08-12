@@ -3554,7 +3554,6 @@ async function cargarProgreso() {
                     : m.eficiencia_pct >= 90 ? 'text-emerald-600 font-bold'
                     : m.eficiencia_pct >= 70 ? 'text-amber-600 font-bold'
                     : 'text-rose-600 font-bold';
-                const desColor = m.desviacion_horas <= 0 ? 'text-emerald-600'
                 const desColor = m.desviacion_horas <= 0 ? 'text-emerald-600' : 'text-rose-600';
                 html += `<tr class="hover:bg-slate-50 transition">
                     <td class="px-3 py-2 text-slate-600">${m.fecha}</td>
