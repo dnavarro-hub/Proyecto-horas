@@ -1968,14 +1968,12 @@ def exportar_excel(
         ws4.append([
             p.usuario, str(p.fecha), p.subtarea, p.unidades,
             round(horas_reales, 2),
-            uds_hora_real   
             uds_hora_real or 0,
             uds_hora_target or 0,
             pct_target or 0,
             SEMAFORO_TEXTO.get(semaforo, "—")
         ])
     autoajustar(ws4)
-
     # Hoja 5: Historial Importaciones
     ws5 = wb.create_sheet("Historial Importaciones")
     ws5.append(["ID", "Fichero", "Usuario Carga", "Fecha Carga",
