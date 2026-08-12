@@ -3062,31 +3062,57 @@ async function cargarUsuariosFiltros() {
 <script>
     // ==================== HISTÓRICO ====================
 
-    function cambiarPeriodo(tipo) {
-        periodoHistorico = tipo;
-        document.getElementById('btn-periodo-semana').className = tipo === 'semana'
+// ==================== HISTÓRICO ====================
+
+function cambiarPeriodo(tipo) {
+    periodoHistorico = tipo;
+
+    const btnSemana = document.getElementById('btn-periodo-semana');
+    const btnMes = document.getElementById('btn-periodo-mes');
+    const filtrosSemana = document.getElementById('filtros-semana');
+    const filtrosMes = document.getElementById('filtros-mes');
+
+    if (btnSemana && btnMes) {
+        btnSemana.className = tipo === 'semana'
             ? 'px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white'
             : 'px-4 py-2 rounded-lg text-sm font-medium bg-white text-slate-600 border';
-        document.getElementById('btn-periodo-mes').className = tipo === 'mes'
+        btnMes.className = tipo === 'mes'
             ? 'px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white'
             : 'px-4 py-2 rounded-lg text-sm font-medium bg-white text-slate-600 border';
-        document.getElementById('filtros-semana').classList.toggle('hidden', tipo !== 'semana');
-        document.getElementById('filtros-mes').classList.toggle('hidden', tipo !== 'mes');
     }
+
+    if (filtrosSemana) filtrosSemana.classList.toggle('hidden', tipo !== 'semana');
+    if (filtrosMes) filtrosMes.classList.toggle('hidden', tipo !== 'mes');
+
+    const contenedor = document.getElementById('historico-resultado');
+    const contenedorGrafico = document.getElementById('historico-grafico-contenedor');
+    
+    if (contenedor) {
+        contenedor.innerHTML = `<p class="text-sm text-slate-400 text-center py-8 italic">
+            Selecciona un periodo y consulta.</p>`;
+    }
+    if (contenedorGrafico) {
+        contenedorGrafico.classList.add('hidden');
+    }
+}
 
 async function cargarHistorico() {
     const contenedor        = document.getElementById('historico-resultado');
     const contenedorGrafico = document.getElementById('historico-grafico-contenedor');
 
-    // 1. Feedback visual inmediato al hacer clic
+    if (!contenedor) return;
+
     contenedor.innerHTML = `<p class="text-sm text-slate-400 text-center py-8">
         <span class="inline-block animate-pulse">Cargando histórico...</span></p>`;
-    contenedorGrafico.classList.add('hidden');
+    if (contenedorGrafico) contenedorGrafico.classList.add('hidden');
 
     if (periodoHistorico === 'semana') {
-        const usuario  = document.getElementById('historico-usuario-semana').value;
-        const fechaRef = document.getElementById('historico-fecha-semana').value || hoy;
-        let url        = `${API}/registros/resumen-semanal/?fecha_ref=${fechaRef}`;
+        const usuarioEl = document.getElementById('historico-usuario-semana');
+        const fechaEl = document.getElementById('historico-fecha-semana');
+        const usuario  = usuarioEl ? usuarioEl.value : '';
+        const fechaRef = (fechaEl && fechaEl.value) ? fechaEl.value : hoy;
+
+        let url = `${API}/registros/resumen-semanal/?fecha_ref=${fechaRef}`;
         if (usuario) url += `&usuario=${usuario}`;
 
         try {
@@ -3096,7 +3122,7 @@ async function cargarHistorico() {
 
             let html = `<div class="mb-4 p-3 bg-blue-50 rounded-lg text-sm text-slate-600">
                 Semana del <b>${data.inicio}</b> al <b>${data.fin}</b> |
-                Total: <b>${(data.total_minutos / 60).toFixed(1)} horas</b>
+                Total: <b>${((data.total_minutos || 0) / 60).toFixed(1)} horas</b>
             </div><div class="space-y-3">`;
 
             const labels = [], valores = [];
@@ -3107,8 +3133,8 @@ async function cargarHistorico() {
             } else {
                 Object.entries(data.dias).sort().forEach(([dia, info]) => {
                     labels.push(dia);
-                    valores.push(parseFloat((info.total_minutos / 60).toFixed(2)));
-                    const pct   = Math.min((info.total_minutos / minutosJornada) * 100, 100);
+                    valores.push(parseFloat(((info.total_minutos || 0) / 60).toFixed(2)));
+                    const pct   = Math.min(((info.total_minutos || 0) / minutosJornada) * 100, 100);
                     const color = pct >= 100 ? 'bg-emerald-500'
                         : pct >= 60 ? 'bg-blue-500'
                         : pct >= 30 ? 'bg-amber-400' : 'bg-slate-300';
@@ -3116,7 +3142,7 @@ async function cargarHistorico() {
                         <div class="flex justify-between text-sm mb-2">
                             <span class="font-medium text-slate-700">${dia}</span>
                             <span class="font-bold text-blue-600">
-                                ${(info.total_minutos / 60).toFixed(1)}h
+                                ${((info.total_minutos || 0) / 60).toFixed(1)}h
                             </span>
                         </div>
                         <div class="w-full bg-slate-200 rounded-full h-2">
@@ -3129,7 +3155,7 @@ async function cargarHistorico() {
             html += `</div>`;
             contenedor.innerHTML = html;
 
-            if (labels.length > 0) {
+            if (labels.length > 0 && contenedorGrafico) {
                 if (historicoGrafico) historicoGrafico.destroy();
                 historicoGrafico = new Chart(
                     document.getElementById('historico-grafico').getContext('2d'), {
@@ -3157,14 +3183,19 @@ async function cargarHistorico() {
         } catch(e) {
             console.error('Error cargarHistorico semana:', e);
             contenedor.innerHTML = `<p class="text-sm text-rose-500 text-center py-8">
-                Error cargando histórico semanal. Comprueba la consola del navegador.</p>`;
+                Error cargando histórico semanal. Comprueba la consola.</p>`;
         }
 
     } else {
-        const usuario = document.getElementById('historico-usuario-mes').value;
-        const anyo    = document.getElementById('historico-anyo').value;
-        const mes     = document.getElementById('historico-mes').value;
-        let url       = `${API}/registros/resumen-mensual/?anyo=${anyo}&mes=${mes}`;
+        const usuarioEl = document.getElementById('historico-usuario-mes');
+        const anyoEl = document.getElementById('historico-anyo');
+        const mesEl = document.getElementById('historico-mes');
+
+        const usuario = usuarioEl ? usuarioEl.value : '';
+        const anyo    = anyoEl ? anyoEl.value : new Date().getFullYear();
+        const mes     = mesEl ? mesEl.value : new Date().getMonth() + 1;
+
+        let url = `${API}/registros/resumen-mensual/?anyo=${anyo}&mes=${mes}`;
         if (usuario) url += `&usuario=${usuario}`;
 
         try {
@@ -3173,11 +3204,11 @@ async function cargarHistorico() {
             const data = await resp.json();
 
             let html = `<div class="mb-4 p-3 bg-blue-50 rounded-lg text-sm text-slate-600">
-                Mes: <b>${mes}/${anyo}</b> | Registros: <b>${data.total_registros}</b> |
-                Total: <b>${(data.total_minutos / 60).toFixed(1)} horas</b>
+                Mes: <b>${mes}/${anyo}</b> | Registros: <b>${data.total_registros || 0}</b> |
+                Total: <b>${((data.total_minutos || 0) / 60).toFixed(1)} horas</b>
             </div>`;
 
-            if (data.total_registros === 0) {
+            if (!data.total_registros || data.total_registros === 0) {
                 html += `<p class="text-sm text-slate-400 text-center py-4 italic">
                     No hay registros para este mes.</p>`;
             } else {
@@ -3207,11 +3238,11 @@ async function cargarHistorico() {
             }
 
             contenedor.innerHTML = html;
-            contenedorGrafico.classList.add('hidden');
+            if (contenedorGrafico) contenedorGrafico.classList.add('hidden');
         } catch(e) {
             console.error('Error cargarHistorico mes:', e);
             contenedor.innerHTML = `<p class="text-sm text-rose-500 text-center py-8">
-                Error cargando histórico mensual. Comprueba la consola del navegador.</p>`;
+                Error cargando histórico mensual. Comprueba la consola.</p>`;
         }
     }
 }
