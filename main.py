@@ -1,10 +1,12 @@
+# ==================== IMPORTS ====================
+
 from datetime import date, timedelta
 from typing import List, Optional
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, UploadFile, File
 from fastapi.responses import StreamingResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from sqlalchemy import create_engine, Column, Integer, String, Date, DateTime, Float, Boolean
+from sqlalchemy import create_engine, Column, Integer, String, Date, DateTime, Float, Boolean, UniqueConstraint
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 import openpyxl
@@ -13,8 +15,12 @@ import io
 import os
 from datetime import datetime
 import hashlib
+import pandas as pd
+from difflib import get_close_matches
+import json
 
 # ==================== BASE DE DATOS ====================
+
 DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql://localhost/registros")
 if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
@@ -28,7 +34,7 @@ Base = declarative_base()
 def hashear_pin(pin: str) -> str:
     return hashlib.sha256(pin.encode()).hexdigest()
 
-# ==================== MODELOS ====================
+# ==================== MODELOS EXISTENTES ====================
 
 class RegistroDB(Base):
     __tablename__ = "registros"
@@ -112,6 +118,51 @@ class SubtareaDB(Base):
     activa          = Column(Boolean, default=True)
     created_at      = Column(DateTime, default=datetime.utcnow)
 
+# ==================== MODELOS NUEVOS ====================
+
+class ProduccionDB(Base):
+    """
+    Tabla para almacenar las unidades producidas por operario,
+    fecha y subtarea. Se alimenta desde importación Excel/CSV.
+    Clave de sobrescritura: usuario + fecha + subtarea
+    """
+    __tablename__ = "produccion"
+    id          = Column(Integer, primary_key=True, index=True)
+    usuario     = Column(String, index=True)
+    fecha       = Column(Date, index=True)
+    subtarea    = Column(String, index=True)
+    unidades    = Column(Float)
+    created_at  = Column(DateTime, default=datetime.utcnow)
+    updated_at  = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    __table_args__ = (
+        UniqueConstraint("usuario", "fecha", "subtarea", name="uq_produccion_usuario_fecha_subtarea"),
+    )
+
+class ObjetivoSubtareaDB(Base):
+    """
+    Target de productividad por subtarea (Ud/hora).
+    Editable desde el programa.
+    """
+    __tablename__ = "objetivos_subtarea"
+    id              = Column(Integer, primary_key=True, index=True)
+    subtarea        = Column(String, unique=True, index=True)
+    uds_hora_target = Column(Float)
+    updated_at      = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class HistorialImportacionDB(Base):
+    """
+    Registro de cada importación realizada para auditoría.
+    """
+    __tablename__ = "historial_importaciones"
+    id              = Column(Integer, primary_key=True, index=True)
+    nombre_fichero  = Column(String)
+    usuario_carga   = Column(String)
+    fecha_carga     = Column(DateTime, default=datetime.utcnow)
+    filas_insertadas = Column(Integer, default=0)
+    filas_actualizadas = Column(Integer, default=0)
+    filas_error     = Column(Integer, default=0)
+    detalle_errores = Column(String, nullable=True)  # JSON string con errores
+
 Base.metadata.create_all(bind=engine)
 # ==================== INICIALIZACIÓN DE DATOS ====================
 
@@ -124,15 +175,39 @@ TAREAS_DEFAULT = [
 ]
 
 SUBTAREAS_DEFAULT = {
-    "Picking":   ["Picking Balda", "Picking Pallet", "Picking Percha", "Revisión de Picking","Picking Kardex","Picking Recogepedidos","Picking Obsoleto","Inventario","Reposiciones","Traspasos","Recepción  Kardex","Formacion","Compactar","Incidencias","Varios IT","Varios Trigo","Lanzar pedidos","Reuniones","Otros"],
-    "Packing":   ["Mecado Piscina", "Mercado Contenedor", "Tienda Etiquetado", "Wholesale", "Tienda RFID", "Tienda Empleado y Otros", "Materiales", "Runner","Formacion","incidencias","Reuniones","Otros","Admin"],
-    "Inbound":   ["Muelle", "Rec Pallet", "Rec balda", "Rec Percha", "Rec Zapatos", "Rec Trigo", "Devoluciones", "Compactar","Recepción Kardex", "Materiales","Formacion","incidencias","Reuniones","Otros","Admin"],
-    "Shipping":  ["COURIER (UPS, DHL EXPRESS, FEDEX) preparacion carga (ETIQUETAR Y REUBICAR)", "Courier Carga (escane+carga)", "FW preparación carga", "FW carga", "FW carga", "SERWELL carga", "Devoluciones""Formacion","incidencias","Reuniones","Inventario","Otros"],
-    "Ecommerce": ["Empaquetado", "Runner", "Store RQ Tiendo","Store RQ Tiendas","Calidad Devo","Calidad OneStock","Calidad Gestion","Calidad Otro","Formacion","Actividad","Limpieza","Otros","Reuniones",],
+    "Picking":   ["Picking Balda", "Picking Pallet", "Picking Percha", "Revisión de Picking",
+                  "Picking Kardex", "Picking Recogepedidos", "Picking Obsoleto", "Inventario",
+                  "Reposiciones", "Traspasos", "Recepción Kardex", "Formacion",
+                  "Compactar", "Incidencias", "Varios IT", "Varios Trigo",
+                  "Lanzar pedidos", "Reuniones", "Otros"],
+    "Packing":   ["Mercado Piscina", "Mercado Contenedor", "Tienda Etiquetado", "Wholesale",
+                  "Tienda RFID", "Tienda Empleado y Otros", "Materiales", "Runner",
+                  "Formacion", "Incidencias", "Reuniones", "Otros", "Admin"],
+    "Inbound":   ["Muelle", "Rec Pallet", "Rec Balda", "Rec Percha", "Rec Zapatos",
+                  "Rec Trigo", "Devoluciones", "Compactar", "Recepción Kardex",
+                  "Materiales", "Formacion", "Incidencias", "Reuniones", "Otros", "Admin"],
+    "Shipping":  ["COURIER preparacion carga", "Courier Carga", "FW preparación carga",
+                  "FW carga", "SERWELL carga", "Devoluciones", "Formacion",
+                  "Incidencias", "Reuniones", "Inventario", "Otros"],
+    "Ecommerce": ["Empaquetado", "Runner", "Store RQ Tienda", "Store RQ Tiendas",
+                  "Calidad Devo", "Calidad OneStock", "Calidad Gestion", "Calidad Otro",
+                  "Formacion", "Actividad", "Limpieza", "Otros", "Reuniones"],
+}
+
+# Sinónimos para detección automática de columnas en importación Excel/CSV
+SINONIMOS_COLUMNAS = {
+    "usuario":   ["usuario", "operario", "trabajador", "empleado", "nombre", "worker",
+                  "operator", "employee", "codigo", "code", "user"],
+    "fecha":     ["fecha", "date", "dia", "day", "jornada", "fecha_trabajo"],
+    "subtarea":  ["subtarea", "subtask", "actividad", "activity", "tarea_detalle",
+                  "operacion", "operation", "sub_tarea", "sub tarea"],
+    "unidades":  ["unidades", "units", "uds", "cantidad", "quantity", "ud",
+                  "volumen", "piezas", "pieces", "bultos", "items"],
 }
 
 with SessionLocal() as session:
-    # Supervisor por defecto
+
+    # --- Supervisor por defecto ---
     if not session.query(UsuarioDB).filter(UsuarioDB.rol == "supervisor").first():
         session.add(UsuarioDB(
             codigo="ADMIN",
@@ -142,17 +217,21 @@ with SessionLocal() as session:
         ))
         session.commit()
 
-    # Objetivos por defecto
+    # --- Objetivos por tarea por defecto ---
     for t in TAREAS_DEFAULT:
         if not session.query(ObjetivoDB).filter(ObjetivoDB.tarea_principal == t["nombre"]).first():
-            session.add(ObjetivoDB(tarea_principal=t["nombre"], uds_hora=100.0, horas_jornada=8.0))
+            session.add(ObjetivoDB(
+                tarea_principal=t["nombre"],
+                uds_hora=100.0,
+                horas_jornada=8.0
+            ))
 
-    # Tareas por defecto
+    # --- Tareas por defecto ---
     for t in TAREAS_DEFAULT:
         if not session.query(TareaDB).filter(TareaDB.nombre == t["nombre"]).first():
             session.add(TareaDB(nombre=t["nombre"], color=t["color"], activa=True))
 
-    # Subtareas por defecto
+    # --- Subtareas por defecto ---
     for tarea_nombre, subtareas in SUBTAREAS_DEFAULT.items():
         for sub in subtareas:
             if not session.query(SubtareaDB).filter(
@@ -161,7 +240,7 @@ with SessionLocal() as session:
             ).first():
                 session.add(SubtareaDB(tarea_nombre=tarea_nombre, nombre=sub, activa=True))
 
-    # Configuración por defecto
+    # --- Configuración por defecto ---
     if not session.query(ConfiguracionDB).filter(ConfiguracionDB.clave == "minutos_jornada").first():
         session.add(ConfiguracionDB(
             clave="minutos_jornada",
@@ -169,11 +248,97 @@ with SessionLocal() as session:
             descripcion="Minutos máximos por jornada laboral"
         ))
 
+    # --- Objetivos por subtarea por defecto ---
+    # Se crean vacíos (target 0) para todas las subtareas existentes
+    # El supervisor los editará desde la pantalla de configuración
+    todas_subtareas = session.query(SubtareaDB).all()
+    for sub in todas_subtareas:
+        if not session.query(ObjetivoSubtareaDB).filter(
+            ObjetivoSubtareaDB.subtarea == sub.nombre
+        ).first():
+            session.add(ObjetivoSubtareaDB(
+                subtarea=sub.nombre,
+                uds_hora_target=0.0
+            ))
+
     session.commit()
 
-# ==================== APP ====================
+# ==================== DETECCIÓN AUTOMÁTICA DE COLUMNAS ====================
 
-app = FastAPI(title="API Registro de Tareas", version="10.0.0")
+def detectar_columnas(columnas_fichero: list) -> dict:
+    """
+    Intenta mapear automáticamente las columnas del fichero importado
+    a los campos requeridos usando coincidencia aproximada con difflib.
+    
+    Retorna un dict con el mapeo encontrado y las columnas no mapeadas.
+    Ejemplo: {
+        "usuario": "Operario",
+        "fecha": "Fecha Trabajo",
+        "subtarea": "Actividad",
+        "unidades": "Uds",
+        "no_mapeadas": ["Turno", "Comentario"]
+    }
+    """
+    columnas_lower = {col: col.lower().strip() for col in columnas_fichero}
+    resultado = {}
+    usadas = set()
+
+    for campo, sinonimos in SINONIMOS_COLUMNAS.items():
+        mejor = None
+        mejor_score = 0
+
+        for col_original, col_lower in columnas_lower.items():
+            if col_original in usadas:
+                continue
+            # Buscar coincidencia exacta primero
+            if col_lower in sinonimos:
+                mejor = col_original
+                mejor_score = 1.0
+                break
+            # Buscar coincidencia aproximada
+            matches = get_close_matches(col_lower, sinonimos, n=1, cutoff=0.6)
+            if matches:
+                # difflib no da score directamente, estimamos por longitud de coincidencia
+                score = len(matches[0]) / max(len(col_lower), len(matches[0]))
+                if score > mejor_score:
+                    mejor = col_original
+                    mejor_score = score
+
+        if mejor:
+            resultado[campo] = mejor
+            usadas.add(mejor)
+
+    # Columnas del fichero que no se han podido mapear
+    resultado["no_mapeadas"] = [
+        col for col in columnas_fichero if col not in usadas
+    ]
+
+    return resultado
+
+
+def normalizar_subtarea(nombre: str, subtareas_validas: list) -> Optional[str]:
+    """
+    Intenta encontrar la subtarea más cercana en el catálogo existente.
+    Retorna el nombre normalizado o None si no hay coincidencia suficiente.
+    """
+    if not nombre:
+        return None
+    nombre_lower = nombre.lower().strip()
+    subtareas_lower = {s.lower().strip(): s for s in subtareas_validas}
+
+    # Coincidencia exacta
+    if nombre_lower in subtareas_lower:
+        return subtareas_lower[nombre_lower]
+
+    # Coincidencia aproximada
+    matches = get_close_matches(nombre_lower, subtareas_lower.keys(), n=1, cutoff=0.7)
+    if matches:
+        return subtareas_lower[matches[0]]
+
+    return None
+# ==================== APP Y MIDDLEWARES ====================
+
+app = FastAPI(title="API Registro de Tareas", version="11.0.0")
 
 ALLOWED_ORIGINS = [
     "https://proyecto-horas.onrender.com",
@@ -187,7 +352,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ==================== SCHEMAS ====================
+# ==================== SCHEMAS EXISTENTES ====================
 
 class RegistroTarea(BaseModel):
     usuario: str
@@ -291,6 +456,66 @@ class ConfiguracionRespuesta(BaseModel):
     class Config:
         from_attributes = True
 
+# ==================== SCHEMAS NUEVOS ====================
+
+class ProduccionCreate(BaseModel):
+    usuario: str
+    fecha: date
+    subtarea: str
+    unidades: float
+
+class ProduccionRespuesta(ProduccionCreate):
+    id: int
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+    class Config:
+        from_attributes = True
+
+class ObjetivoSubtareaCreate(BaseModel):
+    subtarea: str
+    uds_hora_target: float
+
+class ObjetivoSubtareaRespuesta(ObjetivoSubtareaCreate):
+    id: int
+    updated_at: Optional[datetime] = None
+    class Config:
+        from_attributes = True
+
+class ResultadoImportacion(BaseModel):
+    nombre_fichero: str
+    filas_procesadas: int
+    filas_insertadas: int
+    filas_actualizadas: int
+    filas_error: int
+    errores: List[dict] = []
+    mapeo_columnas: dict = {}
+    columnas_no_mapeadas: List[str] = []
+
+class ProductividadRespuesta(BaseModel):
+    usuario: str
+    fecha: str
+    subtarea: str
+    unidades: float
+    horas_reales: float
+    uds_hora_real: Optional[float]
+    uds_hora_target: Optional[float]
+    pct_target: Optional[float]
+    semaforo: str  # "verde", "ambar", "rojo", "sin_target"
+
+class HistorialImportacionRespuesta(BaseModel):
+    id: int
+    nombre_fichero: str
+    usuario_carga: str
+    fecha_carga: datetime
+    filas_insertadas: int
+    filas_actualizadas: int
+    filas_error: int
+    detalle_errores: Optional[str] = None
+    class Config:
+        from_attributes = True
+
+# ==================== DEPENDENCIAS ====================
+
 def get_db():
     db = SessionLocal()
     try:
@@ -299,8 +524,27 @@ def get_db():
         db.close()
 
 def get_minutos_jornada(db: Session) -> int:
-    config = db.query(ConfiguracionDB).filter(ConfiguracionDB.clave == "minutos_jornada").first()
+    config = db.query(ConfiguracionDB).filter(
+        ConfiguracionDB.clave == "minutos_jornada"
+    ).first()
     return int(config.valor) if config else 480
+
+def calcular_semaforo(pct: Optional[float]) -> str:
+    """
+    Devuelve el color del semáforo según el % sobre target:
+    - verde:      >= 100%
+    - ambar:      >= 80% y < 100%
+    - rojo:       < 80%
+    - sin_target: target no definido o = 0
+    """
+    if pct is None:
+        return "sin_target"
+    if pct >= 100:
+        return "verde"
+    if pct >= 80:
+        return "ambar"
+    return "rojo"
+
 # ==================== RUTAS GENERALES ====================
 
 @app.get("/")
@@ -309,7 +553,6 @@ def leer_index():
     if os.path.exists(ruta):
         return FileResponse(ruta)
     return {"error": "No se encuentra index.html"}
-
 # ==================== LOGIN ====================
 
 @app.post("/login/")
@@ -409,6 +652,12 @@ def crear_subtarea(subtarea: SubtareaCreate, db: Session = Depends(get_db)):
     db.add(nueva)
     db.commit()
     db.refresh(nueva)
+    # Crear objetivo por subtarea con target 0 si no existe
+    if not db.query(ObjetivoSubtareaDB).filter(
+        ObjetivoSubtareaDB.subtarea == subtarea.nombre
+    ).first():
+        db.add(ObjetivoSubtareaDB(subtarea=subtarea.nombre, uds_hora_target=0.0))
+        db.commit()
     return nueva
 
 @app.put("/subtareas/{id}", response_model=SubtareaRespuesta)
@@ -446,6 +695,7 @@ def actualizar_configuracion(clave: str, datos: ConfiguracionUpdate, db: Session
     db.commit()
     db.refresh(config)
     return config
+
 # ==================== REGISTROS ====================
 
 @app.post("/registros/", response_model=RegistroTareaRespuesta, status_code=201)
@@ -693,7 +943,7 @@ def eliminar_plantilla(id: int, db: Session = Depends(get_db)):
     db.delete(plantilla)
     db.commit()
 
-# ==================== OBJETIVOS ====================
+# ==================== OBJETIVOS POR TAREA ====================
 
 @app.get("/objetivos/", response_model=List[ObjetivoRespuesta])
 def obtener_objetivos(db: Session = Depends(get_db)):
@@ -717,6 +967,422 @@ def actualizar_objetivo(tarea: str, objetivo: ObjetivoCreate, db: Session = Depe
     db.refresh(db_obj)
     return db_obj
 
+# ==================== OBJETIVOS POR SUBTAREA (TARGETS) ====================
+
+@app.get("/objetivos-subtarea/", response_model=List[ObjetivoSubtareaRespuesta])
+def obtener_objetivos_subtarea(db: Session = Depends(get_db)):
+    return db.query(ObjetivoSubtareaDB).order_by(ObjetivoSubtareaDB.subtarea).all()
+
+@app.put("/objetivos-subtarea/{subtarea}", response_model=ObjetivoSubtareaRespuesta)
+def actualizar_objetivo_subtarea(subtarea: str, objetivo: ObjetivoSubtareaCreate, db: Session = Depends(get_db)):
+    db_obj = db.query(ObjetivoSubtareaDB).filter(
+        ObjetivoSubtareaDB.subtarea == subtarea
+    ).first()
+    if not db_obj:
+        db_obj = ObjetivoSubtareaDB(
+            subtarea=subtarea,
+            uds_hora_target=objetivo.uds_hora_target
+        )
+        db.add(db_obj)
+    else:
+        db_obj.uds_hora_target = objetivo.uds_hora_target
+        db_obj.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(db_obj)
+    return db_obj
+
+@app.post("/objetivos-subtarea/bulk/")
+def actualizar_objetivos_subtarea_bulk(
+    objetivos: List[ObjetivoSubtareaCreate],
+    db: Session = Depends(get_db)
+):
+    """
+    Actualiza múltiples targets de subtarea en una sola llamada.
+    Útil para guardar todos los targets desde la pantalla de configuración.
+    """
+    actualizados = 0
+    errores = []
+    for obj in objetivos:
+        try:
+            db_obj = db.query(ObjetivoSubtareaDB).filter(
+                ObjetivoSubtareaDB.subtarea == obj.subtarea
+            ).first()
+            if not db_obj:
+                db_obj = ObjetivoSubtareaDB(
+                    subtarea=obj.subtarea,
+                    uds_hora_target=obj.uds_hora_target
+                )
+                db.add(db_obj)
+            else:
+                db_obj.uds_hora_target = obj.uds_hora_target
+                db_obj.updated_at = datetime.utcnow()
+            actualizados += 1
+        except Exception as e:
+            errores.append({"subtarea": obj.subtarea, "error": str(e)})
+    db.commit()
+    return {
+        "actualizados": actualizados,
+        "errores": errores
+    }
+
+# ==================== PRODUCCIÓN IMPORTADA ====================
+
+@app.get("/produccion/", response_model=List[ProduccionRespuesta])
+def obtener_produccion(
+    desde: Optional[date] = None,
+    hasta: Optional[date] = None,
+    usuario: Optional[str] = None,
+    subtarea: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    query = db.query(ProduccionDB)
+    if desde:
+        query = query.filter(ProduccionDB.fecha >= desde)
+    if hasta:
+        query = query.filter(ProduccionDB.fecha <= hasta)
+    if usuario:
+        query = query.filter(ProduccionDB.usuario == usuario)
+    if subtarea:
+        query = query.filter(ProduccionDB.subtarea == subtarea)
+    return query.order_by(ProduccionDB.fecha.desc()).all()
+
+@app.post("/produccion/importar/")
+async def importar_produccion(
+    file: UploadFile = File(...),
+    usuario_carga: str = "ADMIN",
+    db: Session = Depends(get_db)
+):
+    """
+    Importa un fichero Excel o CSV con datos de producción.
+    Detecta automáticamente las columnas usando sinónimos.
+    Clave de sobrescritura: usuario + fecha + subtarea.
+    """
+    # Validar extensión
+    nombre = file.filename or ""
+    extension = nombre.split(".")[-1].lower()
+    if extension not in ["xlsx", "xls", "csv"]:
+        raise HTTPException(
+            status_code=400,
+            detail="Formato no soportado. Use Excel (.xlsx, .xls) o CSV (.csv)"
+        )
+
+    contenido = await file.read()
+
+    try:
+        # Leer fichero según extensión
+        if extension == "csv":
+            # Intentar varios separadores comunes
+            for sep in [",", ";", "\t", "|"]:
+                try:
+                    df = pd.read_csv(io.BytesIO(contenido), sep=sep)
+                    if len(df.columns) > 1:
+                        break
+                except Exception:
+                    continue
+        else:
+            df = pd.read_excel(io.BytesIO(contenido))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error leyendo el fichero: {str(e)}")
+
+    if df.empty:
+        raise HTTPException(status_code=400, detail="El fichero está vacío")
+
+    # Limpiar nombres de columnas
+    df.columns = [str(c).strip() for c in df.columns]
+
+    # Detectar columnas automáticamente
+    mapeo = detectar_columnas(list(df.columns))
+
+    # Verificar que tenemos las columnas mínimas requeridas
+    campos_requeridos = ["usuario", "fecha", "subtarea", "unidades"]
+    campos_faltantes = [c for c in campos_requeridos if c not in mapeo]
+    if campos_faltantes:
+        raise HTTPException(
+            status_code=400,
+            detail=f"No se pudieron detectar las columnas: {campos_faltantes}. "
+                   f"Columnas encontradas: {list(df.columns)}"
+        )
+
+    # Obtener subtareas válidas del sistema
+    subtareas_validas = [
+        s.nombre for s in db.query(SubtareaDB).filter(SubtareaDB.activa == True).all()
+    ]
+
+    # Obtener usuarios válidos del sistema
+    usuarios_validos = {
+        u.nombre.lower().strip(): u.codigo
+        for u in db.query(UsuarioDB).all()
+    }
+    usuarios_validos.update({
+        u.codigo.lower().strip(): u.codigo
+        for u in db.query(UsuarioDB).all()
+    })
+
+    # Procesar filas
+    insertadas = 0
+    actualizadas = 0
+    errores = []
+
+    for idx, row in df.iterrows():
+        fila_num = idx + 2  # +2 porque idx empieza en 0 y hay cabecera
+        try:
+            # Extraer valores usando el mapeo detectado
+            val_usuario  = str(row[mapeo["usuario"]]).strip()
+            val_fecha    = row[mapeo["fecha"]]
+            val_subtarea = str(row[mapeo["subtarea"]]).strip()
+            val_unidades = row[mapeo["unidades"]]
+
+            # Validar usuario
+            usuario_codigo = usuarios_validos.get(val_usuario.lower().strip())
+            if not usuario_codigo:
+                errores.append({
+                    "fila": fila_num,
+                    "error": f"Operario '{val_usuario}' no encontrado en el sistema"
+                })
+                continue
+
+            # Validar y parsear fecha
+            try:
+                if isinstance(val_fecha, str):
+                    for fmt in ["%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y", "%Y/%m/%d"]:
+                        try:
+                            val_fecha = datetime.strptime(val_fecha.strip(), fmt).date()
+                            break
+                        except ValueError:
+                            continue
+                elif hasattr(val_fecha, "date"):
+                    val_fecha = val_fecha.date()
+                elif isinstance(val_fecha, date):
+                    pass
+                else:
+                    raise ValueError("Formato de fecha no reconocido")
+            except Exception:
+                errores.append({
+                    "fila": fila_num,
+                    "error": f"Fecha '{val_fecha}' no válida. Use formato YYYY-MM-DD o DD/MM/YYYY"
+                })
+                continue
+
+            # Validar subtarea con normalización aproximada
+            subtarea_normalizada = normalizar_subtarea(val_subtarea, subtareas_validas)
+            if not subtarea_normalizada:
+                errores.append({
+                    "fila": fila_num,
+                    "error": f"Subtarea '{val_subtarea}' no encontrada en el sistema"
+                })
+                continue
+
+            # Validar unidades
+            try:
+                unidades = float(val_unidades)
+                if unidades < 0:
+                    raise ValueError("Unidades negativas")
+            except Exception:
+                errores.append({
+                    "fila": fila_num,
+                    "error": f"Unidades '{val_unidades}' no válidas"
+                })
+                continue
+
+            # Sobrescritura: buscar registro existente por usuario + fecha + subtarea
+            existente = db.query(ProduccionDB).filter(
+                ProduccionDB.usuario   == usuario_codigo,
+                ProduccionDB.fecha     == val_fecha,
+                ProduccionDB.subtarea  == subtarea_normalizada
+            ).first()
+
+            if existente:
+                existente.unidades   = unidades
+                existente.updated_at = datetime.utcnow()
+                actualizadas += 1
+            else:
+                nuevo = ProduccionDB(
+                    usuario  = usuario_codigo,
+                    fecha    = val_fecha,
+                    subtarea = subtarea_normalizada,
+                    unidades = unidades
+                )
+                db.add(nuevo)
+                insertadas += 1
+
+        except Exception as e:
+            errores.append({"fila": fila_num, "error": str(e)})
+
+    db.commit()
+
+    # Guardar historial de importación
+    historial = HistorialImportacionDB(
+        nombre_fichero     = nombre,
+        usuario_carga      = usuario_carga,
+        filas_insertadas   = insertadas,
+        filas_actualizadas = actualizadas,
+        filas_error        = len(errores),
+        detalle_errores    = json.dumps(errores, ensure_ascii=False) if errores else None
+    )
+    db.add(historial)
+    db.commit()
+
+    return ResultadoImportacion(
+        nombre_fichero        = nombre,
+        filas_procesadas      = len(df),
+        filas_insertadas      = insertadas,
+        filas_actualizadas    = actualizadas,
+        filas_error           = len(errores),
+        errores               = errores,
+        mapeo_columnas        = {k: v for k, v in mapeo.items() if k != "no_mapeadas"},
+        columnas_no_mapeadas  = mapeo.get("no_mapeadas", [])
+    )
+
+@app.get("/produccion/historial/", response_model=List[HistorialImportacionRespuesta])
+def obtener_historial_importaciones(db: Session = Depends(get_db)):
+    return db.query(HistorialImportacionDB).order_by(
+        HistorialImportacionDB.fecha_carga.desc()
+    ).all()
+
+# ==================== PRODUCTIVIDAD ====================
+
+@app.get("/productividad/")
+def obtener_productividad(
+    desde: Optional[date] = None,
+    hasta: Optional[date] = None,
+    usuario: Optional[str] = None,
+    subtarea: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """
+    Cruza horas registradas (RegistroDB) con unidades producidas (ProduccionDB)
+    y targets (ObjetivoSubtareaDB) para calcular productividad real vs target.
+    """
+    if not desde:
+        desde = date.today() - timedelta(days=30)
+    if not hasta:
+        hasta = date.today()
+
+    # Obtener producción del periodo
+    query_prod = db.query(ProduccionDB).filter(
+        ProduccionDB.fecha >= desde,
+        ProduccionDB.fecha <= hasta
+    )
+    if usuario:
+        query_prod = query_prod.filter(ProduccionDB.usuario == usuario)
+    if subtarea:
+        query_prod = query_prod.filter(ProduccionDB.subtarea == subtarea)
+
+    producciones = query_prod.all()
+
+    # Obtener todos los targets de subtarea
+    targets = {
+        t.subtarea: t.uds_hora_target
+        for t in db.query(ObjetivoSubtareaDB).all()
+    }
+
+    resultado = []
+    for p in producciones:
+        # Buscar horas reales para ese usuario + fecha + subtarea en RegistroDB
+        horas_reales = sum(
+            r.tiempo_minutos for r in db.query(RegistroDB).filter(
+                RegistroDB.usuario  == p.usuario,
+                RegistroDB.fecha    == p.fecha,
+                RegistroDB.subtarea == p.subtarea
+            ).all()
+        ) / 60
+
+        # Calcular productividad real
+        uds_hora_real = round(p.unidades / horas_reales, 2) if horas_reales > 0 else None
+
+        # Obtener target de la subtarea
+        target = targets.get(p.subtarea)
+        uds_hora_target = target if target and target > 0 else None
+
+        # Calcular % sobre target
+        pct_target = None
+        if uds_hora_real is not None and uds_hora_target:
+            pct_target = round((uds_hora_real / uds_hora_target) * 100, 1)
+
+        resultado.append(ProductividadRespuesta(
+            usuario         = p.usuario,
+            fecha           = str(p.fecha),
+            subtarea        = p.subtarea,
+            unidades        = p.unidades,
+            horas_reales    = round(horas_reales, 2),
+            uds_hora_real   = uds_hora_real,
+            uds_hora_target = uds_hora_target,
+            pct_target      = pct_target,
+            semaforo        = calcular_semaforo(pct_target)
+        ))
+
+    return sorted(resultado, key=lambda x: (x.fecha, x.usuario, x.subtarea), reverse=True)
+
+@app.get("/productividad/resumen/")
+def resumen_productividad(
+    desde: Optional[date] = None,
+    hasta: Optional[date] = None,
+    db: Session = Depends(get_db)
+):
+    """
+    Resumen agregado de productividad por subtarea para el periodo.
+    Útil para el dashboard y ranking.
+    """
+    if not desde:
+        desde = date.today() - timedelta(days=30)
+    if not hasta:
+        hasta = date.today()
+
+    producciones = db.query(ProduccionDB).filter(
+        ProduccionDB.fecha >= desde,
+        ProduccionDB.fecha <= hasta
+    ).all()
+
+    targets = {
+        t.subtarea: t.uds_hora_target
+        for t in db.query(ObjetivoSubtareaDB).all()
+    }
+
+    por_subtarea = {}
+    for p in producciones:
+        horas_reales = sum(
+            r.tiempo_minutos for r in db.query(RegistroDB).filter(
+                RegistroDB.usuario  == p.usuario,
+                RegistroDB.fecha    == p.fecha,
+                RegistroDB.subtarea == p.subtarea
+            ).all()
+        ) / 60
+
+        if p.subtarea not in por_subtarea:
+            por_subtarea[p.subtarea] = {
+                "unidades_total": 0,
+                "horas_total": 0,
+                "registros": 0
+            }
+        por_subtarea[p.subtarea]["unidades_total"] += p.unidades
+        por_subtarea[p.subtarea]["horas_total"]    += horas_reales
+        por_subtarea[p.subtarea]["registros"]      += 1
+
+    resultado = []
+    for sub, datos in por_subtarea.items():
+        uds_hora_real = round(
+            datos["unidades_total"] / datos["horas_total"], 2
+        ) if datos["horas_total"] > 0 else None
+
+        target = targets.get(sub)
+        uds_hora_target = target if target and target > 0 else None
+
+        pct_target = None
+        if uds_hora_real and uds_hora_target:
+            pct_target = round((uds_hora_real / uds_hora_target) * 100, 1)
+
+        resultado.append({
+            "subtarea":        sub,
+            "unidades_total":  datos["unidades_total"],
+            "horas_total":     round(datos["horas_total"], 2),
+            "uds_hora_real":   uds_hora_real,
+            "uds_hora_target": uds_hora_target,
+            "pct_target":      pct_target,
+            "semaforo":        calcular_semaforo(pct_target),
+            "registros":       datos["registros"]
+        })
+
+    return sorted(resultado, key=lambda x: (x["pct_target"] or 0), reverse=True)
 # ==================== VOLÚMENES ====================
 
 @app.post("/volumenes/", response_model=VolumenRespuesta, status_code=201)
@@ -791,20 +1457,21 @@ def obtener_metricas(
         uds_hora_real = round(v.unidades / horas_reales, 1) if horas_reales > 0 else None
         uds_hora_teorica = round(v.unidades / v.horas_teoricas, 1) if v.horas_teoricas > 0 else None
         resultado.append({
-            "id": v.id,
-            "fecha": str(v.fecha),
-            "tarea_principal": v.tarea_principal,
-            "unidades": v.unidades,
-            "horas_teoricas": v.horas_teoricas,
-            "horas_reales": round(horas_reales, 2),
-            "eficiencia_pct": eficiencia,
-            "uds_hora_real": uds_hora_real,
+            "id":               v.id,
+            "fecha":            str(v.fecha),
+            "tarea_principal":  v.tarea_principal,
+            "unidades":         v.unidades,
+            "horas_teoricas":   v.horas_teoricas,
+            "horas_reales":     round(horas_reales, 2),
+            "eficiencia_pct":   eficiencia,
+            "uds_hora_real":    uds_hora_real,
             "uds_hora_teorica": uds_hora_teorica,
             "desviacion_horas": round(horas_reales - v.horas_teoricas, 2),
-            "comentarios": v.comentarios,
-            "creado_por": v.creado_por
+            "comentarios":      v.comentarios,
+            "creado_por":       v.creado_por
         })
     return sorted(resultado, key=lambda x: x["fecha"], reverse=True)
+
 # ==================== ESTADÍSTICAS ====================
 
 @app.get("/estadisticas/productividad/")
@@ -824,14 +1491,14 @@ def productividad(fecha_ref: Optional[date] = None, db: Session = Depends(get_db
             RegistroDB.usuario == u.codigo,
             RegistroDB.fecha == ayer
         ).with_entities(RegistroDB.tiempo_minutos).all()
-        total_hoy = sum(r.tiempo_minutos for r in hoy_mins)
+        total_hoy  = sum(r.tiempo_minutos for r in hoy_mins)
         total_ayer = sum(r.tiempo_minutos for r in ayer_mins)
         resultado.append({
-            "usuario": u.codigo,
-            "nombre": u.nombre,
-            "minutos_hoy": total_hoy,
-            "minutos_ayer": total_ayer,
-            "variacion_minutos": total_hoy - total_ayer,
+            "usuario":            u.codigo,
+            "nombre":             u.nombre,
+            "minutos_hoy":        total_hoy,
+            "minutos_ayer":       total_ayer,
+            "variacion_minutos":  total_hoy - total_ayer,
             "porcentaje_jornada": round((total_hoy / minutos_jornada) * 100, 1)
         })
     return resultado
@@ -855,14 +1522,14 @@ def top_tareas(
         clave = f"{r.tarea_principal} - {r.subtarea}"
         if clave not in por_tarea:
             por_tarea[clave] = {"count": 0, "minutos": 0}
-        por_tarea[clave]["count"] += 1
+        por_tarea[clave]["count"]   += 1
         por_tarea[clave]["minutos"] += r.tiempo_minutos
     return [
         {
-            "tarea": k,
-            "count": v["count"],
+            "tarea":           k,
+            "count":           v["count"],
             "minutos_totales": v["minutos"],
-            "media_minutos": round(v["minutos"] / v["count"], 1)
+            "media_minutos":   round(v["minutos"] / v["count"], 1)
         }
         for k, v in sorted(por_tarea.items(), key=lambda x: x[1]["minutos"], reverse=True)[:10]
     ]
@@ -876,12 +1543,12 @@ def media_por_tarea(usuario: Optional[str] = None, db: Session = Depends(get_db)
     for r in query.all():
         if r.tarea_principal not in por_tarea:
             por_tarea[r.tarea_principal] = {"count": 0, "minutos": 0}
-        por_tarea[r.tarea_principal]["count"] += 1
+        por_tarea[r.tarea_principal]["count"]   += 1
         por_tarea[r.tarea_principal]["minutos"] += r.tiempo_minutos
     return [
         {
-            "tarea": k,
-            "count": v["count"],
+            "tarea":         k,
+            "count":         v["count"],
             "media_minutos": round(v["minutos"] / v["count"], 1),
             "total_minutos": v["minutos"]
         }
@@ -901,35 +1568,35 @@ def ranking_operarios(
     if not hasta:
         hasta = date.today()
     minutos_jornada = get_minutos_jornada(db)
-    usuarios = db.query(UsuarioDB).filter(UsuarioDB.rol == "operario").all()
+    usuarios  = db.query(UsuarioDB).filter(UsuarioDB.rol == "operario").all()
     registros = db.query(RegistroDB).filter(
         RegistroDB.fecha >= desde,
         RegistroDB.fecha <= hasta
     ).all()
-    dias_rango = (hasta - desde).days + 1
+    dias_rango      = (hasta - desde).days + 1
     dias_laborables = sum(
         1 for i in range(dias_rango)
         if (desde + timedelta(days=i)).weekday() < 5
     )
     resultado = []
     for u in usuarios:
-        regs_u = [r for r in registros if r.usuario == u.codigo]
+        regs_u     = [r for r in registros if r.usuario == u.codigo]
         total_mins = sum(r.tiempo_minutos for r in regs_u)
         dias_activo = len(set(str(r.fecha) for r in regs_u))
-        max_mins = dias_laborables * minutos_jornada
+        max_mins    = dias_laborables * minutos_jornada
         pct_jornada = round((total_mins / max_mins) * 100, 1) if max_mins > 0 else 0
         consistencia = round((dias_activo / dias_laborables) * 100, 1) if dias_laborables > 0 else 0
         media_diaria = round(total_mins / dias_activo, 0) if dias_activo > 0 else 0
         resultado.append({
-            "usuario": u.codigo,
-            "nombre": u.nombre,
-            "total_minutos": total_mins,
-            "total_horas": round(total_mins / 60, 1),
-            "dias_activo": dias_activo,
-            "dias_laborables": dias_laborables,
-            "pct_jornada_periodo": pct_jornada,
-            "consistencia_pct": consistencia,
-            "media_minutos_dia": media_diaria
+            "usuario":               u.codigo,
+            "nombre":                u.nombre,
+            "total_minutos":         total_mins,
+            "total_horas":           round(total_mins / 60, 1),
+            "dias_activo":           dias_activo,
+            "dias_laborables":       dias_laborables,
+            "pct_jornada_periodo":   pct_jornada,
+            "consistencia_pct":      consistencia,
+            "media_minutos_dia":     media_diaria
         })
     return sorted(resultado, key=lambda x: x["total_minutos"], reverse=True)
 
@@ -965,11 +1632,11 @@ def eficiencia_diaria(
     for dia, datos in sorted(por_dia.items()):
         pct_jornada = round((datos["total_minutos"] / minutos_jornada) * 100, 1)
         resultado.append({
-            "fecha": dia,
-            "total_minutos": datos["total_minutos"],
-            "total_horas": round(datos["total_minutos"] / 60, 2),
-            "pct_jornada": pct_jornada,
-            "por_tarea": datos["por_tarea"]
+            "fecha":          dia,
+            "total_minutos":  datos["total_minutos"],
+            "total_horas":    round(datos["total_minutos"] / 60, 2),
+            "pct_jornada":    pct_jornada,
+            "por_tarea":      datos["por_tarea"]
         })
     return resultado
 
@@ -987,71 +1654,88 @@ def tendencia_semanal(
     )
     if usuario:
         query = query.filter(RegistroDB.usuario == usuario)
-    registros = query.all()
+    registros    = query.all()
     semanas_data = {}
     for r in registros:
-        iso = r.fecha.isocalendar()
+        iso   = r.fecha.isocalendar()
         clave = f"{iso[0]}-S{iso[1]:02d}"
         if clave not in semanas_data:
             semanas_data[clave] = {"minutos": 0, "dias": set(), "usuarios": set()}
-        semanas_data[clave]["minutos"] += r.tiempo_minutos
+        semanas_data[clave]["minutos"]  += r.tiempo_minutos
         semanas_data[clave]["dias"].add(str(r.fecha))
         semanas_data[clave]["usuarios"].add(r.usuario)
     return [
         {
-            "semana": k,
-            "total_minutos": v["minutos"],
-            "total_horas": round(v["minutos"] / 60, 1),
-            "dias_activos": len(v["dias"]),
+            "semana":           k,
+            "total_minutos":    v["minutos"],
+            "total_horas":      round(v["minutos"] / 60, 1),
+            "dias_activos":     len(v["dias"]),
             "usuarios_activos": len(v["usuarios"]),
-            "media_horas_dia": round(v["minutos"] / 60 / len(v["dias"]), 1) if v["dias"] else 0
+            "media_horas_dia":  round(v["minutos"] / 60 / len(v["dias"]), 1) if v["dias"] else 0
         }
         for k, v in sorted(semanas_data.items())
     ]
 
+# ==================== ALERTAS MEJORADAS ====================
+
 @app.get("/rendimiento/alertas/")
-def alertas_rendimiento(db: Session = Depends(get_db)):
-    hoy = date.today()
-    hace_7 = hoy - timedelta(days=7)
+def alertas_rendimiento(
+    limite: Optional[int] = 5,
+    solo_danger: Optional[bool] = False,
+    db: Session = Depends(get_db)
+):
+    """
+    Alertas agrupadas por tipo con límite configurable.
+    - limite: máximo de grupos de alertas a devolver (default 5)
+    - solo_danger: si True, devuelve solo alertas críticas
+    """
+    hoy            = date.today()
+    hace_7         = hoy - timedelta(days=7)
     minutos_jornada = get_minutos_jornada(db)
-    usuarios = db.query(UsuarioDB).filter(UsuarioDB.rol == "operario").all()
-    registros_hoy = db.query(RegistroDB).filter(RegistroDB.fecha == hoy).all()
+    usuarios        = db.query(UsuarioDB).filter(UsuarioDB.rol == "operario").all()
+    registros_hoy   = db.query(RegistroDB).filter(RegistroDB.fecha == hoy).all()
     registros_semana = db.query(RegistroDB).filter(
         RegistroDB.fecha >= hace_7,
         RegistroDB.fecha <= hoy
     ).all()
-    alertas = []
+
+    # Acumular alertas por tipo
+    grupos = {
+        "sin_actividad":    {"nivel": "warning", "usuarios": [], "count": 0},
+        "jornada_incompleta": {"nivel": "warning", "usuarios": [], "count": 0},
+        "baja_consistencia":  {"nivel": "danger",  "usuarios": [], "count": 0},
+        "eficiencia_baja":    {"nivel": "danger",  "subtareas": [], "count": 0},
+        "desviacion":         {"nivel": "warning", "subtareas": [], "count": 0},
+    }
+
     usuarios_con_actividad_hoy = set(r.usuario for r in registros_hoy)
+
     for u in usuarios:
-        mins_hoy = sum(r.tiempo_minutos for r in registros_hoy if r.usuario == u.codigo)
+        mins_hoy    = sum(r.tiempo_minutos for r in registros_hoy if r.usuario == u.codigo)
         mins_semana = sum(r.tiempo_minutos for r in registros_semana if r.usuario == u.codigo)
-        dias_activo_semana = len(set(str(r.fecha) for r in registros_semana if r.usuario == u.codigo))
-        pct_hoy = round((mins_hoy / minutos_jornada) * 100, 1)
+        dias_activo_semana = len(set(
+            str(r.fecha) for r in registros_semana if r.usuario == u.codigo
+        ))
+        pct_hoy    = round((mins_hoy / minutos_jornada) * 100, 1)
         pct_semana = round((mins_semana / (5 * minutos_jornada)) * 100, 1)
+
         if u.codigo not in usuarios_con_actividad_hoy:
-            alertas.append({
-                "tipo": "sin_actividad",
-                "nivel": "warning",
-                "usuario": u.codigo,
-                "nombre": u.nombre,
-                "mensaje": f"{u.nombre} no tiene actividad registrada hoy"
-            })
+            grupos["sin_actividad"]["usuarios"].append(u.nombre)
+            grupos["sin_actividad"]["count"] += 1
+
         if mins_hoy > 0 and pct_hoy < 70:
-            alertas.append({
-                "tipo": "jornada_incompleta",
-                "nivel": "warning",
-                "usuario": u.codigo,
-                "nombre": u.nombre,
-                "mensaje": f"{u.nombre} lleva solo {pct_hoy}% de la jornada ({mins_hoy} min)"
-            })
+            grupos["jornada_incompleta"]["usuarios"].append(
+                f"{u.nombre} ({pct_hoy}%)"
+            )
+            grupos["jornada_incompleta"]["count"] += 1
+
         if 0 < dias_activo_semana < 3:
-            alertas.append({
-                "tipo": "baja_consistencia",
-                "nivel": "danger",
-                "usuario": u.codigo,
-                "nombre": u.nombre,
-                "mensaje": f"{u.nombre} solo ha registrado {dias_activo_semana} días esta semana"
-            })
+            grupos["baja_consistencia"]["usuarios"].append(
+                f"{u.nombre} ({dias_activo_semana} días)"
+            )
+            grupos["baja_consistencia"]["count"] += 1
+
+    # Alertas de eficiencia por volumen
     volumenes = db.query(VolumenDB).filter(
         VolumenDB.fecha >= hace_7,
         VolumenDB.fecha <= hoy
@@ -1064,22 +1748,52 @@ def alertas_rendimiento(db: Session = Depends(get_db)):
         if horas_reales > 0:
             eficiencia = round((v.horas_teoricas / horas_reales) * 100, 1)
             if eficiencia < 70:
-                alertas.append({
-                    "tipo": "eficiencia_baja",
-                    "nivel": "danger",
-                    "usuario": None,
-                    "nombre": v.tarea_principal,
-                    "mensaje": f"Eficiencia baja en {v.tarea_principal} el {v.fecha}: {eficiencia}%"
-                })
+                grupos["eficiencia_baja"]["subtareas"].append(
+                    f"{v.tarea_principal} ({v.fecha}: {eficiencia}%)"
+                )
+                grupos["eficiencia_baja"]["count"] += 1
             elif abs(horas_reales - v.horas_teoricas) / v.horas_teoricas > 0.20:
-                alertas.append({
-                    "tipo": "desviacion",
-                    "nivel": "warning",
-                    "usuario": None,
-                    "nombre": v.tarea_principal,
-                    "mensaje": f"Desviación >20% en {v.tarea_principal} el {v.fecha}: {round(horas_reales - v.horas_teoricas, 1)}h"
-                })
-    return {"total": len(alertas), "alertas": alertas}
+                grupos["desviacion"]["subtareas"].append(
+                    f"{v.tarea_principal} ({v.fecha})"
+                )
+                grupos["desviacion"]["count"] += 1
+
+    # Construir respuesta agrupada
+    MENSAJES = {
+        "sin_actividad":      "operario(s) sin actividad hoy",
+        "jornada_incompleta": "operario(s) con jornada incompleta",
+        "baja_consistencia":  "operario(s) con baja consistencia esta semana",
+        "eficiencia_baja":    "subtarea(s) con eficiencia baja",
+        "desviacion":         "subtarea(s) con desviación >20%",
+    }
+
+    alertas_agrupadas = []
+    for tipo, datos in grupos.items():
+        if datos["count"] == 0:
+            continue
+        if solo_danger and datos["nivel"] != "danger":
+            continue
+        detalle = datos.get("usuarios") or datos.get("subtareas") or []
+        alertas_agrupadas.append({
+            "tipo":    tipo,
+            "nivel":   datos["nivel"],
+            "count":   datos["count"],
+            "mensaje": f"{datos['count']} {MENSAJES[tipo]}",
+            "detalle": detalle
+        })
+
+    # Ordenar: danger primero, luego warning
+    alertas_agrupadas.sort(key=lambda x: 0 if x["nivel"] == "danger" else 1)
+
+    # Aplicar límite
+    alertas_limitadas = alertas_agrupadas[:limite]
+
+    return {
+        "total_grupos":  len(alertas_agrupadas),
+        "total_alertas": sum(g["count"] for g in alertas_agrupadas),
+        "mostrando":     len(alertas_limitadas),
+        "alertas":       alertas_limitadas
+    }
 
 @app.get("/rendimiento/objetivo-vs-real/")
 def objetivo_vs_real(
@@ -1101,22 +1815,23 @@ def objetivo_vs_real(
         if r.tarea_principal not in por_tarea:
             por_tarea[r.tarea_principal] = {"minutos": 0, "count": 0}
         por_tarea[r.tarea_principal]["minutos"] += r.tiempo_minutos
-        por_tarea[r.tarea_principal]["count"] += 1
+        por_tarea[r.tarea_principal]["count"]   += 1
     resultado = []
     for tarea, datos in por_tarea.items():
-        obj = objetivos.get(tarea)
+        obj          = objetivos.get(tarea)
         horas_reales = round(datos["minutos"] / 60, 2)
         horas_objetivo = round(obj.horas_jornada, 2) if obj else None
         pct = round((horas_reales / horas_objetivo) * 100, 1) if horas_objetivo else None
         resultado.append({
-            "tarea": tarea,
-            "horas_reales": horas_reales,
-            "horas_objetivo": horas_objetivo,
+            "tarea":            tarea,
+            "horas_reales":     horas_reales,
+            "horas_objetivo":   horas_objetivo,
             "uds_hora_objetivo": obj.uds_hora if obj else None,
-            "pct_objetivo": pct,
-            "registros": datos["count"]
+            "pct_objetivo":     pct,
+            "registros":        datos["count"]
         })
     return sorted(resultado, key=lambda x: x["horas_reales"], reverse=True)
+
 # ==================== EXCEL ====================
 
 @app.get("/exportar-excel/")
@@ -1135,15 +1850,15 @@ def exportar_excel(
         query = query.filter(RegistroDB.usuario == usuario)
     registros = query.order_by(RegistroDB.fecha.desc()).all()
 
-    wb = openpyxl.Workbook()
-    HEADER_FILL = PatternFill("solid", fgColor="1e293b")
-    HEADER_FONT = Font(bold=True, color="FFFFFF")
+    wb          = openpyxl.Workbook()
+    HEADER_FILL  = PatternFill("solid", fgColor="1e293b")
+    HEADER_FONT  = Font(bold=True, color="FFFFFF")
     HEADER_ALIGN = Alignment(horizontal="center")
 
     def estilo_cabecera(ws):
         for cell in ws[1]:
-            cell.font = HEADER_FONT
-            cell.fill = HEADER_FILL
+            cell.font      = HEADER_FONT
+            cell.fill      = HEADER_FILL
             cell.alignment = HEADER_ALIGN
 
     def autoajustar(ws):
@@ -1151,7 +1866,7 @@ def exportar_excel(
             max_length = max(len(str(cell.value or "")) for cell in col)
             ws.column_dimensions[col[0].column_letter].width = min(max_length + 4, 40)
 
-    # ---- HOJA 0: Resumen Ejecutivo ----
+    # Hoja 0: Resumen Ejecutivo
     ws0 = wb.active
     ws0.title = "Resumen Ejecutivo"
     ws0.append(["RESUMEN EJECUTIVO", ""])
@@ -1163,27 +1878,24 @@ def exportar_excel(
     ws0.append(["MÉTRICAS GLOBALES", ""])
     ws0["A6"].font = Font(bold=True, color="FFFFFF")
     ws0["A6"].fill = PatternFill("solid", fgColor="3b82f6")
-    total_mins = sum(r.tiempo_minutos for r in registros)
+    total_mins     = sum(r.tiempo_minutos for r in registros)
     usuarios_unicos = len(set(r.usuario for r in registros))
-    dias_unicos = len(set(str(r.fecha) for r in registros))
-    ws0.append(["Total registros", len(registros)])
-    ws0.append(["Total horas", round(total_mins / 60, 2)])
-    ws0.append(["Usuarios activos", usuarios_unicos])
+    dias_unicos    = len(set(str(r.fecha) for r in registros))
+    ws0.append(["Total registros",    len(registros)])
+    ws0.append(["Total horas",        round(total_mins / 60, 2)])
+    ws0.append(["Usuarios activos",   usuarios_unicos])
     ws0.append(["Días con actividad", dias_unicos])
-    ws0.append(["Media horas/día", round(total_mins / 60 / dias_unicos, 2) if dias_unicos else 0])
+    ws0.append(["Media horas/día",    round(total_mins / 60 / dias_unicos, 2) if dias_unicos else 0])
     autoajustar(ws0)
 
-    # ---- HOJA 1: Registros Detallados ----
+    # Hoja 1: Registros Detallados
     ws1 = wb.create_sheet("Registros Detallados")
-    ws1.append([
-        "ID", "Usuario", "Fecha", "Semana", "Mes",
-        "Tarea Principal", "Subtarea", "Tiempo (min)",
-        "Horas", "Proyecto", "Comentarios"
-    ])
+    ws1.append(["ID", "Usuario", "Fecha", "Semana", "Mes",
+                "Tarea Principal", "Subtarea", "Tiempo (min)", "Horas", "Proyecto", "Comentarios"])
     estilo_cabecera(ws1)
     for r in registros:
         semana = r.fecha.isocalendar()[1]
-        mes = r.fecha.strftime("%B %Y")
+        mes    = r.fecha.strftime("%B %Y")
         ws1.append([
             r.id, r.usuario, str(r.fecha), f"Semana {semana}", mes,
             r.tarea_principal, r.subtarea, r.tiempo_minutos,
@@ -1191,40 +1903,34 @@ def exportar_excel(
             r.proyecto or "", r.comentarios or ""
         ])
     ws1.auto_filter.ref = ws1.dimensions
-    ws1.freeze_panes = "A2"
+    ws1.freeze_panes    = "A2"
     autoajustar(ws1)
 
-    # ---- HOJA 2: Resumen por Usuario ----
+    # Hoja 2: Resumen por Usuario
     ws2 = wb.create_sheet("Resumen por Usuario")
-    ws2.append([
-        "Usuario", "Total Registros", "Total Minutos",
-        "Total Horas", "Días Activos", "Media Min/Día", "% Jornada Media"
-    ])
+    ws2.append(["Usuario", "Total Registros", "Total Minutos",
+                "Total Horas", "Días Activos", "Media Min/Día", "% Jornada Media"])
     estilo_cabecera(ws2)
-    por_usuario = {}
+    por_usuario     = {}
+    minutos_jornada = get_minutos_jornada(db)
     for r in registros:
         if r.usuario not in por_usuario:
             por_usuario[r.usuario] = {"registros": 0, "minutos": 0, "dias": set()}
         por_usuario[r.usuario]["registros"] += 1
-        por_usuario[r.usuario]["minutos"] += r.tiempo_minutos
+        por_usuario[r.usuario]["minutos"]   += r.tiempo_minutos
         por_usuario[r.usuario]["dias"].add(str(r.fecha))
-    minutos_jornada = get_minutos_jornada(db)
     for u, d in por_usuario.items():
-        dias = len(d["dias"]) or 1
+        dias      = len(d["dias"]) or 1
         media_dia = round(d["minutos"] / dias, 1)
-        pct = round((media_dia / minutos_jornada) * 100, 1)
-        ws2.append([
-            u, d["registros"], d["minutos"],
-            round(d["minutos"] / 60, 2), len(d["dias"]), media_dia, pct
-        ])
+        pct       = round((media_dia / minutos_jornada) * 100, 1)
+        ws2.append([u, d["registros"], d["minutos"],
+                    round(d["minutos"] / 60, 2), len(d["dias"]), media_dia, pct])
     autoajustar(ws2)
 
-    # ---- HOJA 3: Resumen por Tarea ----
+    # Hoja 3: Resumen por Tarea
     ws3 = wb.create_sheet("Resumen por Tarea")
-    ws3.append([
-        "Tarea Principal", "Subtarea", "Total Registros",
-        "Total Minutos", "Total Horas", "Media Min/Registro"
-    ])
+    ws3.append(["Tarea Principal", "Subtarea", "Total Registros",
+                "Total Minutos", "Total Horas", "Media Min/Registro"])
     estilo_cabecera(ws3)
     por_tarea = {}
     for r in registros:
@@ -1232,76 +1938,69 @@ def exportar_excel(
         if clave not in por_tarea:
             por_tarea[clave] = {"registros": 0, "minutos": 0}
         por_tarea[clave]["registros"] += 1
-        por_tarea[clave]["minutos"] += r.tiempo_minutos
+        por_tarea[clave]["minutos"]   += r.tiempo_minutos
     for (tp, st), d in sorted(por_tarea.items()):
         media = round(d["minutos"] / d["registros"], 1) if d["registros"] > 0 else 0
         ws3.append([tp, st, d["registros"], d["minutos"], round(d["minutos"] / 60, 2), media])
     autoajustar(ws3)
 
-    # ---- HOJA 4: Resumen por Día ----
-    ws4 = wb.create_sheet("Resumen por Día")
-    ws4.append([
-        "Fecha", "Día Semana", "Total Registros",
-        "Total Minutos", "Total Horas", "Usuarios Activos", "% Jornada Media"
-    ])
+    # Hoja 4: Productividad por Subtarea
+    ws4 = wb.create_sheet("Productividad Subtarea")
+    ws4.append(["Usuario", "Fecha", "Subtarea", "Unidades",
+                "Horas Reales", "Ud/h Real", "Ud/h Target", "% Target", "Semáforo"])
     estilo_cabecera(ws4)
-    dias_semana = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
-    por_dia = {}
-    for r in registros:
-        dia = str(r.fecha)
-        if dia not in por_dia:
-            por_dia[dia] = {"registros": 0, "minutos": 0, "usuarios": set()}
-        por_dia[dia]["registros"] += 1
-        por_dia[dia]["minutos"] += r.tiempo_minutos
-        por_dia[dia]["usuarios"].add(r.usuario)
-    for dia, d in sorted(por_dia.items(), reverse=True):
-        fecha_obj = date.fromisoformat(dia)
-        nombre_dia = dias_semana[fecha_obj.weekday()]
-        n_usuarios = len(d["usuarios"])
-        pct = round((d["minutos"] / (n_usuarios * minutos_jornada)) * 100, 1) if n_usuarios else 0
+    producciones = db.query(ProduccionDB).order_by(ProduccionDB.fecha.desc()).all()
+    targets_sub  = {t.subtarea: t.uds_hora_target for t in db.query(ObjetivoSubtareaDB).all()}
+    SEMAFORO_TEXTO = {"verde": "✅ OK", "ambar": "⚠️ Mejorable", "rojo": "🔴 Bajo", "sin_target": "—"}
+    for p in producciones:
+        horas_reales = sum(
+            r.tiempo_minutos for r in db.query(RegistroDB).filter(
+                RegistroDB.usuario  == p.usuario,
+                RegistroDB.fecha    == p.fecha,
+                RegistroDB.subtarea == p.subtarea
+            ).all()
+        ) / 60
+        uds_hora_real   = round(p.unidades / horas_reales, 2) if horas_reales > 0 else None
+        target          = targets_sub.get(p.subtarea)
+        uds_hora_target = target if target and target > 0 else None
+        pct_target      = round((uds_hora_real / uds_hora_target) * 100, 1) if uds_hora_real and uds_hora_target else None
+        semaforo        = calcular_semaforo(pct_target)
         ws4.append([
-            dia, nombre_dia, d["registros"], d["minutos"],
-            round(d["minutos"] / 60, 2), n_usuarios, pct
+            p.usuario, str(p.fecha), p.subtarea, p.unidades,
+            round(horas_reales, 2),
+            uds_hora_real   
+            uds_hora_real or 0,
+            uds_hora_target or 0,
+            pct_target or 0,
+            SEMAFORO_TEXTO.get(semaforo, "—")
         ])
     autoajustar(ws4)
 
-    # ---- HOJA 5: Métricas de Volumen ----
-    ws5 = wb.create_sheet("Métricas Volumen")
-    ws5.append([
-        "Fecha", "Tarea", "Unidades", "Horas Teóricas", "Horas Reales",
-        "Eficiencia %", "Uds/Hora Real", "Uds/Hora Teórica",
-        "Desviación (h)", "Comentarios"
-    ])
+    # Hoja 5: Historial Importaciones
+    ws5 = wb.create_sheet("Historial Importaciones")
+    ws5.append(["ID", "Fichero", "Usuario Carga", "Fecha Carga",
+                "Insertadas", "Actualizadas", "Errores"])
     estilo_cabecera(ws5)
-    volumenes = db.query(VolumenDB).order_by(VolumenDB.fecha.desc()).all()
-    todos_registros = db.query(RegistroDB).all()
-    for v in volumenes:
-        horas_reales = sum(
-            r.tiempo_minutos for r in todos_registros
-            if str(r.fecha) == str(v.fecha) and r.tarea_principal == v.tarea_principal
-        ) / 60
-        eficiencia = round((v.horas_teoricas / horas_reales) * 100, 1) if horas_reales > 0 else 0
-        uds_real = round(v.unidades / horas_reales, 1) if horas_reales > 0 else 0
-        uds_teo = round(v.unidades / v.horas_teoricas, 1) if v.horas_teoricas > 0 else 0
-        desviacion = round(horas_reales - v.horas_teoricas, 2)
+    historial = db.query(HistorialImportacionDB).order_by(
+        HistorialImportacionDB.fecha_carga.desc()
+    ).all()
+    for h in historial:
         ws5.append([
-            str(v.fecha), v.tarea_principal, v.unidades, v.horas_teoricas,
-            round(horas_reales, 2), eficiencia, uds_real, uds_teo,
-            desviacion, v.comentarios or ""
+            h.id, h.nombre_fichero, h.usuario_carga,
+            str(h.fecha_carga), h.filas_insertadas,
+            h.filas_actualizadas, h.filas_error
         ])
     autoajustar(ws5)
 
-    # ---- HOJA 6: Ranking Rendimiento ----
+    # Hoja 6: Ranking Rendimiento
     ws6 = wb.create_sheet("Ranking Rendimiento")
-    ws6.append([
-        "Posición", "Usuario", "Total Horas", "Días Activos",
-        "% Jornada Periodo", "Consistencia %", "Media Min/Día"
-    ])
+    ws6.append(["Posición", "Usuario", "Total Horas", "Días Activos",
+                "% Jornada Periodo", "Consistencia %", "Media Min/Día"])
     estilo_cabecera(ws6)
     ranking = sorted(por_usuario.items(), key=lambda x: x[1]["minutos"], reverse=True)
     for pos, (u, d) in enumerate(ranking, 1):
-        dias = len(d["dias"]) or 1
-        media = round(d["minutos"] / dias, 1)
+        dias     = len(d["dias"]) or 1
+        media    = round(d["minutos"] / dias, 1)
         pct_periodo = round((d["minutos"] / (dias * minutos_jornada)) * 100, 1)
         ws6.append([
             pos, u, round(d["minutos"] / 60, 1), len(d["dias"]),
