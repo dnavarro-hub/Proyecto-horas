@@ -3422,36 +3422,50 @@ async function cargarObjetivos() {
     }
 
     async function guardarObjetivos() {
-        const tareas  = tareasCache.map(t => t.nombre);
-        let errores   = 0;
-        for (const tarea of tareas) {
-            const udsEl   = document.getElementById(`obj-uds-${tarea}`);
-            const horasEl = document.getElementById(`obj-horas-${tarea}`);
-            if (!udsEl || !horasEl) continue;
-            const uds   = parseFloat(udsEl.value);
-            const horas = parseFloat(horasEl.value);
-            if (!uds || !horas) continue;
-            try {
-                const resp = await fetch(`${API}/objetivos/${tarea}`, {
-                    method:  'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body:    JSON.stringify({ tarea_principal: tarea, uds_hora: uds, horas_jornada: horas })
-                });
-                if (resp.ok) {
-                    if (objetivosCache[tarea]) {
-                        objetivosCache[tarea].uds_hora     = uds;
-                        objetivosCache[tarea].horas_jornada = horas;
-                    }
-                } else errores++;
-            } catch { errores++; }
-        }
-        if (errores === 0) {
-            toast('Objetivos guardados correctamente.', 'success');
-        } else {
-            toast(`${errores} objetivos no se pudieron guardar.`, 'error');
+    const tareas = Object.keys(objetivosCache);
+
+    if (tareas.length === 0) {
+        toast('No hay objetivos para guardar.', 'warning');
+        return;
+    }
+
+    let errores = 0;
+    for (const tarea of tareas) {
+        const udsEl   = document.getElementById(`obj-uds-${tarea}`);
+        const horasEl = document.getElementById(`obj-horas-${tarea}`);
+        if (!udsEl || !horasEl) continue;
+
+        const uds   = parseFloat(udsEl.value);
+        const horas = parseFloat(horasEl.value);
+        if (!uds || !horas) continue;
+
+        try {
+            const resp = await fetch(`${API}/objetivos/${encodeURIComponent(tarea)}`, {
+                method:  'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body:    JSON.stringify({ tarea_principal: tarea, uds_hora: uds, horas_jornada: horas })
+            });
+            if (resp.ok) {
+                if (objetivosCache[tarea]) {
+                    objetivosCache[tarea].uds_hora      = uds;
+                    objetivosCache[tarea].horas_jornada = horas;
+                }
+            } else {
+                console.error(`Error guardando objetivo para ${tarea}:`, await resp.json());
+                errores++;
+            }
+        } catch(e) {
+            console.error(`Error guardando objetivo para ${tarea}:`, e);
+            errores++;
         }
     }
 
+    if (errores === 0) {
+        toast('Objetivos guardados correctamente.', 'success');
+    } else {
+        toast(`${errores} objetivo(s) no se pudieron guardar.`, 'error');
+    }
+}
     function calcularHorasTeoricas() {
         const tarea    = document.getElementById('vol-tarea').value;
         const unidades = parseInt(document.getElementById('vol-unidades').value);
