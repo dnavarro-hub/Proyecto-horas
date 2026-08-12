@@ -3066,21 +3066,36 @@ async function cargarObjetivos() {
     }
 
     async function cargarHistorico() {
-        const contenedor        = document.getElementById('historico-resultado');
-        const contenedorGrafico = document.getElementById('historico-grafico-contenedor');
-        if (periodoHistorico === 'semana') {
-            const usuario  = document.getElementById('historico-usuario-semana').value;
-            const fechaRef = document.getElementById('historico-fecha-semana').value || hoy;
-            let url        = `${API}/registros/resumen-semanal/?fecha_ref=${fechaRef}`;
-            if (usuario) url += `&usuario=${usuario}`;
-            try {
-                const resp = await fetch(url);
-                const data = await resp.json();
-                let html   = `<div class="mb-4 p-3 bg-blue-50 rounded-lg text-sm text-slate-600">
-                    Semana del <b>${data.inicio}</b> al <b>${data.fin}</b> |
-                    Total: <b>${(data.total_minutos / 60).toFixed(1)} horas</b>
-                </div><div class="space-y-3">`;
-                const labels = [], valores = [];
+    const contenedor        = document.getElementById('historico-resultado');
+    const contenedorGrafico = document.getElementById('historico-grafico-contenedor');
+
+    // Feedback visual inmediato para confirmar que la función se ejecuta
+    contenedor.innerHTML = `<p class="text-sm text-slate-400 text-center py-8">
+        <span class="inline-block animate-pulse">Cargando...</span></p>`;
+    contenedorGrafico.classList.add('hidden');
+
+    if (periodoHistorico === 'semana') {
+        const usuario  = document.getElementById('historico-usuario-semana').value;
+        const fechaRef = document.getElementById('historico-fecha-semana').value || hoy;
+        let url        = `${API}/registros/resumen-semanal/?fecha_ref=${fechaRef}`;
+        if (usuario) url += `&usuario=${usuario}`;
+
+        try {
+            const resp = await fetch(url);
+            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+            const data = await resp.json();
+
+            let html = `<div class="mb-4 p-3 bg-blue-50 rounded-lg text-sm text-slate-600">
+                Semana del <b>${data.inicio}</b> al <b>${data.fin}</b> |
+                Total: <b>${(data.total_minutos / 60).toFixed(1)} horas</b>
+            </div><div class="space-y-3">`;
+
+            const labels = [], valores = [];
+
+            if (Object.keys(data.dias).length === 0) {
+                html += `<p class="text-sm text-slate-400 text-center py-4 italic">
+                    No hay registros para esta semana.</p>`;
+            } else {
                 Object.entries(data.dias).sort().forEach(([dia, info]) => {
                     labels.push(dia);
                     valores.push(parseFloat((info.total_minutos / 60).toFixed(2)));
@@ -3100,8 +3115,12 @@ async function cargarObjetivos() {
                         </div>
                     </div>`;
                 });
-                html += `</div>`;
-                contenedor.innerHTML = html;
+            }
+
+            html += `</div>`;
+            contenedor.innerHTML = html;
+
+            if (labels.length > 0) {
                 if (historicoGrafico) historicoGrafico.destroy();
                 historicoGrafico = new Chart(
                     document.getElementById('historico-grafico').getContext('2d'), {
@@ -3125,37 +3144,45 @@ async function cargarObjetivos() {
                     }
                 });
                 contenedorGrafico.classList.remove('hidden');
-            } catch {
-                contenedor.innerHTML = `<p class="text-sm text-rose-500 text-center py-8">
-                    Error cargando histórico semanal.</p>`;
             }
-        } else {
-            const usuario = document.getElementById('historico-usuario-mes').value;
-            const anyo    = document.getElementById('historico-anyo').value;
-            const mes     = document.getElementById('historico-mes').value;
-            let url       = `${API}/registros/resumen-mensual/?anyo=${anyo}&mes=${mes}`;
-            if (usuario) url += `&usuario=${usuario}`;
-            try {
-                const resp = await fetch(url);
-                const data = await resp.json();
-                let html   = `<div class="mb-4 p-3 bg-blue-50 rounded-lg text-sm text-slate-600">
-                    Mes: <b>${mes}/${anyo}</b> | Registros: <b>${data.total_registros}</b> |
-                    Total: <b>${(data.total_minutos / 60).toFixed(1)} horas</b>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        } catch(e) {
+            console.error('Error cargarHistorico semana:', e);
+            contenedor.innerHTML = `<p class="text-sm text-rose-500 text-center py-8">
+                Error cargando histórico semanal. Revisa la consola.</p>`;
+        }
+
+    } else {
+        const usuario = document.getElementById('historico-usuario-mes').value;
+        const anyo    = document.getElementById('historico-anyo').value;
+        const mes     = document.getElementById('historico-mes').value;
+        let url       = `${API}/registros/resumen-mensual/?anyo=${anyo}&mes=${mes}`;
+        if (usuario) url += `&usuario=${usuario}`;
+
+        try {
+            const resp = await fetch(url);
+            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+            const data = await resp.json();
+
+            let html = `<div class="mb-4 p-3 bg-blue-50 rounded-lg text-sm text-slate-600">
+                Mes: <b>${mes}/${anyo}</b> | Registros: <b>${data.total_registros}</b> |
+                Total: <b>${(data.total_minutos / 60).toFixed(1)} horas</b>
+            </div>`;
+
+            if (data.total_registros === 0) {
+                html += `<p class="text-sm text-slate-400 text-center py-4 italic">
+                    No hay registros para este mes.</p>`;
+            } else {
+                html += `<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div class="bg-slate-50 p-4 rounded-xl">
                         <h4 class="font-bold text-slate-700 mb-3">Por Tarea</h4>
                         ${Object.entries(data.por_tarea).map(([t, m]) => {
                             const color = getColorTarea(t);
                             return `<div class="flex justify-between items-center text-sm py-2 border-b border-slate-200">
                                 <div class="flex items-center gap-2">
-                                    <div class="w-3 h-3 rounded-full"
-                                        style="background-color:${color}"></div>
+                                    <div class="w-3 h-3 rounded-full" style="background-color:${color}"></div>
                                     <span>${t}</span>
                                 </div>
-                                <span class="font-bold text-slate-700">
-                                    ${(m / 60).toFixed(1)}h
-                                </span>
+                                <span class="font-bold text-slate-700">${(m / 60).toFixed(1)}h</span>
                             </div>`;
                         }).join('')}
                     </div>
@@ -3164,38 +3191,57 @@ async function cargarObjetivos() {
                         ${Object.entries(data.por_usuario).map(([u, m]) => `
                             <div class="flex justify-between items-center text-sm py-2 border-b border-slate-200">
                                 <span>${u}</span>
-                                <span class="font-bold text-slate-700">
-                                    ${(m / 60).toFixed(1)}h
-                                </span>
+                                <span class="font-bold text-slate-700">${(m / 60).toFixed(1)}h</span>
                             </div>`).join('')}
                     </div>
                 </div>`;
-                contenedor.innerHTML = html;
-                contenedorGrafico.classList.add('hidden');
-            } catch {
-                contenedor.innerHTML = `<p class="text-sm text-rose-500 text-center py-8">
-                    Error cargando histórico mensual.</p>`;
             }
+
+            contenedor.innerHTML = html;
+            contenedorGrafico.classList.add('hidden');
+        } catch(e) {
+            console.error('Error cargarHistorico mes:', e);
+            contenedor.innerHTML = `<p class="text-sm text-rose-500 text-center py-8">
+                Error cargando histórico mensual. Revisa la consola.</p>`;
         }
     }
-
+}
     // ==================== PROGRESO ====================
+async function cargarProgreso() {
+    const usuario  = document.getElementById('filtro-usuario').value;
+    const usuario2 = document.getElementById('filtro-usuario2').value;
+    const fecha    = document.getElementById('filtro-fecha').value;
+    const contenedor = document.getElementById('progreso-resultado');
+    const graficos   = document.getElementById('graficos-contenedor');
 
-    async function cargarProgreso() {
-        const usuario  = document.getElementById('filtro-usuario').value;
-        const usuario2 = document.getElementById('filtro-usuario2').value;
-        const fecha    = document.getElementById('filtro-fecha').value;
-        if (!usuario || !fecha) {
-            toast('Selecciona usuario y fecha.', 'warning');
-            return;
-        }
-        try {
-            const resp     = await fetch(`${API}/registros/${usuario}`);
-            const todos    = await resp.json();
-            const registros = todos.filter(r => r.fecha === fecha);
-            const contenedor = document.getElementById('progreso-resultado');
-            const graficos   = document.getElementById('graficos-contenedor');
+    if (!usuario) {
+        toast('Selecciona un usuario.', 'warning');
+        return;
+    }
+    if (!fecha) {
+        toast('Selecciona una fecha.', 'warning');
+        return;
+    }
 
+    // Feedback visual inmediato
+    contenedor.innerHTML = `<p class="text-sm text-slate-400 text-center py-8">
+        <span class="inline-block animate-pulse">Cargando progreso...</span></p>`;
+    graficos.classList.add('hidden');
+
+    try {
+        const resp  = await fetch(`${API}/registros/${usuario}`);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const todos = await resp.json();
+
+        // ... el resto del código existente de cargarProgreso() continúa igual desde aquí
+        const registros = todos.filter(r => r.fecha === fecha);
+        // ... etc
+    } catch(e) {
+        console.error('Error cargarProgreso:', e);
+        contenedor.innerHTML = `<p class="text-sm text-rose-500 text-center py-8">
+            Error cargando progreso. Revisa la consola.</p>`;
+    }
+}
             if (registros.length === 0) {
                 contenedor.innerHTML = `<p class="text-sm text-slate-400 text-center py-8 italic">
                     No hay registros para esta fecha.</p>`;
