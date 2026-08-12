@@ -1,7 +1,7 @@
 # ==================== IMPORTS ====================
 
 from datetime import date, timedelta
-from typing import List, Optional
+from typing import List, Optional, Union
 from fastapi import FastAPI, HTTPException, Depends, UploadFile, File
 from fastapi.responses import StreamingResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -1050,7 +1050,6 @@ def actualizar_objetivos_subtarea_bulk(
         "actualizados": actualizados,
         "errores": errores
     }
-    } 
     try:
         for obj in objetivos:
             db_obj = db.query(ObjetivoSubtareaDB).filter(
