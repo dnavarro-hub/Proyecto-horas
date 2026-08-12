@@ -4177,8 +4177,8 @@ async function cargarUsuariosFiltros() {
             const porcLabel = document.getElementById('porcentaje-label');
             if (barraTotal) barraTotal.style.width = `${porcentaje}%`;
             if (porcLabel) porcLabel.textContent = `${porcentaje.toFixed(0)}%`;
-
-            // Gráfico tarta
+            
+           // Gráfico tarta
             const labelsP = Object.keys(agrupado);
             const dataP   = Object.values(agrupado);
             const bgP     = labelsP.map(l => getColorTarea(l));
@@ -4191,7 +4191,6 @@ async function cargarUsuariosFiltros() {
                     options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
                 });
             }
-
             // Gráfico barras subtarea
             const labelsB = registros.map(r => r.subtarea);
             const dataB   = registros.map(r => r.tiempo_minutos);
