@@ -989,18 +989,61 @@ def actualizar_objetivo_subtarea(subtarea: str, objetivo: ObjetivoSubtareaCreate
     db.commit()
     db.refresh(db_obj)
     return db_obj
-
 @app.post("/objetivos-subtarea/bulk/")
 def actualizar_objetivos_subtarea_bulk(
-    objetivos: List[ObjetivoSubtareaCreate],
+    request_data: Union[List[ObjetivoSubtareaCreate], dict],
     db: Session = Depends(get_db)
 ):
     """
-    Actualiza múltiples targets de subtarea en una sola llamada de forma eficiente.
+    Actualiza múltiples targets de subtarea. 
+    Soporta tanto una lista JSON limpia como un diccionario plano indexado (ej. desde formularios o llamadas dinámicas).
     """
     actualizados = 0
     errores = []
     
+    # Si llega como diccionario plano con sufijos tipo __0, __1, lo convertimos a lista de diccionarios
+    if isinstance(request_data, dict):
+        elementos_dict = {}
+        for k, v in request_data.items():
+            # Extraer el nombre base del campo y el índice (ej: subtarea__0 -> campo: subtarea, idx: 0)
+            partes = k.rsplit("__", 1)
+            if len(partes) == 2 and partes[1].isdigit():
+                campo, idx = partes[0], int(partes[1])
+                if idx not in elementos_dict:
+                    elementos_dict[idx] = {}
+                elementos_dict[idx][campo] = v
+        
+        # Ordenar por índice y convertir a lista de Objetivos
+        objetivos = [ObjetivoSubtareaCreate(**elementos_dict[idx]) for idx in sorted(elementos_dict.keys())]
+    else:
+        objetivos = request_data
+
+    try:
+        for obj in objetivos:
+            db_obj = db.query(ObjetivoSubtareaDB).filter(
+                ObjetivoSubtareaDB.subtarea == obj.subtarea
+            ).first()
+            
+            if not db_obj:
+                db_obj = ObjetivoSubtareaDB(
+                    subtarea=obj.subtarea,
+                    uds_hora_target=obj.uds_hora_target
+                )
+                db.add(db_obj)
+            else:
+                db_obj.uds_hora_target = obj.uds_hora_target
+                db_obj.updated_at = datetime.utcnow()
+            actualizados += 1
+            
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=f"Error en actualización masiva: {str(e)}")
+
+    return {
+        "actualizados": actualizados,
+        "errores": errores
+    } 
     try:
         for obj in objetivos:
             db_obj = db.query(ObjetivoSubtareaDB).filter(
