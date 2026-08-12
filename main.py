@@ -228,7 +228,10 @@ with SessionLocal() as session:
             descripcion="Minutos máximos por jornada laboral"
         ))
 
-        todas_subtareas = session.query(SubtareaDB).all()
+    session.commit()
+
+    # --- Objetivos por subtarea: commit individual para evitar bulk insert ---
+    todas_subtareas = session.query(SubtareaDB).all()
     for sub in todas_subtareas:
         if not session.query(ObjetivoSubtareaDB).filter(
             ObjetivoSubtareaDB.subtarea == sub.nombre
@@ -237,7 +240,7 @@ with SessionLocal() as session:
                 subtarea=sub.nombre,
                 uds_hora_target=0.0
             ))
-            session.commit()  # commit individual por cada registro
+            session.commit()
 
 # ==================== DETECCIÓN AUTOMÁTICA DE COLUMNAS ====================
 
@@ -933,6 +936,7 @@ def actualizar_objetivo_subtarea(subtarea: str, objetivo: ObjetivoSubtareaCreate
     db.commit()
     db.refresh(db_obj)
     return db_obj
+
 @app.post("/objetivos-subtarea/bulk/")
 def actualizar_objetivos_subtarea_bulk(
     request_data: Union[List[ObjetivoSubtareaCreate], dict],
@@ -941,7 +945,6 @@ def actualizar_objetivos_subtarea_bulk(
     actualizados = 0
     errores = []
 
-    # Normalizar input a lista de dicts simples
     if isinstance(request_data, dict):
         elementos_dict = {}
         for k, v in request_data.items():
@@ -967,7 +970,6 @@ def actualizar_objetivos_subtarea_bulk(
 
     try:
         for obj in objetivos_raw:
-            # Usar SQL directo para evitar el bug de SQLAlchemy con bulk params
             db.execute(
                 __import__("sqlalchemy").text(
                     "UPDATE objetivos_subtarea SET uds_hora_target = :uds, updated_at = :ts WHERE subtarea = :sub"
@@ -1610,8 +1612,8 @@ def alertas_rendimiento(
     solo_danger: Optional[bool] = False,
     db: Session = Depends(get_db)
 ):
-    hoy            = date.today()
-    hace_7         = hoy - timedelta(days=7)
+    hoy             = date.today()
+    hace_7          = hoy - timedelta(days=7)
     minutos_jornada = get_minutos_jornada(db)
     usuarios        = db.query(UsuarioDB).filter(UsuarioDB.rol == "operario").all()
     registros_hoy   = db.query(RegistroDB).filter(RegistroDB.fecha == hoy).all()
@@ -1621,7 +1623,7 @@ def alertas_rendimiento(
     ).all()
 
     grupos = {
-        "sin_actividad":     {"nivel": "warning", "usuarios": [], "count": 0},
+        "sin_actividad":      {"nivel": "warning", "usuarios": [], "count": 0},
         "jornada_incompleta": {"nivel": "warning", "usuarios": [], "count": 0},
         "baja_consistencia":  {"nivel": "danger",  "usuarios": [], "count": 0},
         "eficiencia_baja":    {"nivel": "danger",  "subtareas": [], "count": 0},
@@ -1631,27 +1633,20 @@ def alertas_rendimiento(
     usuarios_con_actividad_hoy = set(r.usuario for r in registros_hoy)
 
     for u in usuarios:
-        mins_hoy    = sum(r.tiempo_minutos for r in registros_hoy if r.usuario == u.codigo)
-        mins_semana = sum(r.tiempo_minutos for r in registros_semana if r.usuario == u.codigo)
-        dias_activo_semana = len(set(
-            str(r.fecha) for r in registros_semana if r.usuario == u.codigo
-        ))
-        pct_hoy    = round((mins_hoy / minutos_jornada) * 100, 1)
+        mins_hoy           = sum(r.tiempo_minutos for r in registros_hoy if r.usuario == u.codigo)
+        dias_activo_semana = len(set(str(r.fecha) for r in registros_semana if r.usuario == u.codigo))
+        pct_hoy            = round((mins_hoy / minutos_jornada) * 100, 1)
 
         if u.codigo not in usuarios_con_actividad_hoy:
             grupos["sin_actividad"]["usuarios"].append(u.nombre)
             grupos["sin_actividad"]["count"] += 1
 
         if mins_hoy > 0 and pct_hoy < 70:
-            grupos["jornada_incompleta"]["usuarios"].append(
-                f"{u.nombre} ({pct_hoy}%)"
-            )
+            grupos["jornada_incompleta"]["usuarios"].append(f"{u.nombre} ({pct_hoy}%)")
             grupos["jornada_incompleta"]["count"] += 1
 
         if 0 < dias_activo_semana < 3:
-            grupos["baja_consistencia"]["usuarios"].append(
-                f"{u.nombre} ({dias_activo_semana} días)"
-            )
+            grupos["baja_consistencia"]["usuarios"].append(f"{u.nombre} ({dias_activo_semana} días)")
             grupos["baja_consistencia"]["count"] += 1
 
     volumenes = db.query(VolumenDB).filter(
@@ -1671,9 +1666,7 @@ def alertas_rendimiento(
                 )
                 grupos["eficiencia_baja"]["count"] += 1
             elif abs(horas_reales - v.horas_teoricas) / v.horas_teoricas > 0.20:
-                grupos["desviacion"]["subtareas"].append(
-                    f"{v.tarea_principal} ({v.fecha})"
-                )
+                grupos["desviacion"]["subtareas"].append(f"{v.tarea_principal} ({v.fecha})")
                 grupos["desviacion"]["count"] += 1
 
     MENSAJES = {
@@ -1732,8 +1725,8 @@ def objetivo_vs_real(
         por_tarea[r.tarea_principal]["count"]   += 1
     resultado = []
     for tarea, datos in por_tarea.items():
-        obj          = objetivos.get(tarea)
-        horas_reales = round(datos["minutos"] / 60, 2)
+        obj            = objetivos.get(tarea)
+        horas_reales   = round(datos["minutos"] / 60, 2)
         horas_objetivo = round(obj.horas_jornada, 2) if obj else None
         pct = round((horas_reales / horas_objetivo) * 100, 1) if horas_objetivo else None
         resultado.append({
@@ -1764,7 +1757,7 @@ def exportar_excel(
         query = query.filter(RegistroDB.usuario == usuario)
     registros = query.order_by(RegistroDB.fecha.desc()).all()
 
-    wb          = openpyxl.Workbook()
+    wb           = openpyxl.Workbook()
     HEADER_FILL  = PatternFill("solid", fgColor="1e293b")
     HEADER_FONT  = Font(bold=True, color="FFFFFF")
     HEADER_ALIGN = Alignment(horizontal="center")
@@ -1780,7 +1773,6 @@ def exportar_excel(
             max_length = max(len(str(cell.value or "")) for cell in col)
             ws.column_dimensions[col[0].column_letter].width = min(max_length + 4, 40)
 
-    # Hoja 0: Resumen Ejecutivo
     ws0 = wb.active
     ws0.title = "Resumen Ejecutivo"
     ws0.append(["RESUMEN EJECUTIVO", ""])
@@ -1792,9 +1784,9 @@ def exportar_excel(
     ws0.append(["MÉTRICAS GLOBALES", ""])
     ws0["A6"].font = Font(bold=True, color="FFFFFF")
     ws0["A6"].fill = PatternFill("solid", fgColor="3b82f6")
-    total_mins     = sum(r.tiempo_minutos for r in registros)
+    total_mins      = sum(r.tiempo_minutos for r in registros)
     usuarios_unicos = len(set(r.usuario for r in registros))
-    dias_unicos    = len(set(str(r.fecha) for r in registros))
+    dias_unicos     = len(set(str(r.fecha) for r in registros))
     ws0.append(["Total registros",    len(registros)])
     ws0.append(["Total horas",        round(total_mins / 60, 2)])
     ws0.append(["Usuarios activos",   usuarios_unicos])
@@ -1802,7 +1794,6 @@ def exportar_excel(
     ws0.append(["Media horas/día",    round(total_mins / 60 / dias_unicos, 2) if dias_unicos else 0])
     autoajustar(ws0)
 
-    # Hoja 1: Registros Detallados
     ws1 = wb.create_sheet("Registros Detallados")
     ws1.append(["ID", "Usuario", "Fecha", "Semana", "Mes",
                 "Tarea Principal", "Subtarea", "Tiempo (min)", "Horas", "Proyecto", "Comentarios"])
@@ -1820,7 +1811,6 @@ def exportar_excel(
     ws1.freeze_panes    = "A2"
     autoajustar(ws1)
 
-    # Hoja 2: Resumen por Usuario
     ws2 = wb.create_sheet("Resumen por Usuario")
     ws2.append(["Usuario", "Total Registros", "Total Minutos",
                 "Total Horas", "Días Activos", "Media Min/Día", "% Jornada Media"])
@@ -1841,7 +1831,6 @@ def exportar_excel(
                     round(d["minutos"] / 60, 2), len(d["dias"]), media_dia, pct])
     autoajustar(ws2)
 
-    # Hoja 3: Resumen por Tarea
     ws3 = wb.create_sheet("Resumen por Tarea")
     ws3.append(["Tarea Principal", "Subtarea", "Total Registros",
                 "Total Minutos", "Total Horas", "Media Min/Registro"])
@@ -1858,7 +1847,6 @@ def exportar_excel(
         ws3.append([tp, st, d["registros"], d["minutos"], round(d["minutos"] / 60, 2), media])
     autoajustar(ws3)
 
-    # Hoja 4: Productividad por Subtarea
     ws4 = wb.create_sheet("Productividad Subtarea")
     ws4.append(["Usuario", "Fecha", "Subtarea", "Unidades",
                 "Horas Reales", "Ud/h Real", "Ud/h Target", "% Target", "Semáforo"])
@@ -1889,7 +1877,6 @@ def exportar_excel(
         ])
     autoajustar(ws4)
 
-    # Hoja 5: Historial Importaciones
     ws5 = wb.create_sheet("Historial Importaciones")
     ws5.append(["ID", "Fichero", "Usuario Carga", "Fecha Carga",
                 "Insertadas", "Actualizadas", "Errores"])
@@ -1905,15 +1892,14 @@ def exportar_excel(
         ])
     autoajustar(ws5)
 
-    # Hoja 6: Ranking Rendimiento
     ws6 = wb.create_sheet("Ranking Rendimiento")
     ws6.append(["Posición", "Usuario", "Total Horas", "Días Activos",
                 "% Jornada Periodo", "Consistencia %", "Media Min/Día"])
     estilo_cabecera(ws6)
     ranking = sorted(por_usuario.items(), key=lambda x: x[1]["minutos"], reverse=True)
     for pos, (u, d) in enumerate(ranking, 1):
-        dias     = len(d["dias"]) or 1
-        media    = round(d["minutos"] / dias, 1)
+        dias        = len(d["dias"]) or 1
+        media       = round(d["minutos"] / dias, 1)
         pct_periodo = round((d["minutos"] / (dias * minutos_jornada)) * 100, 1)
         ws6.append([
             pos, u, round(d["minutos"] / 60, 1), len(d["dias"]),
