@@ -3125,7 +3125,7 @@ async function cargarUsuariosFiltros() {
                     </div>
                 </div>`;
 
-            // Declaración limpia de agrupado FUERA de cualquier bloque condicional
+                       // Declaración limpia de agrupado ANTES de todo
             const agrupado = {};
             registros.forEach(r => {
                 agrupado[r.tarea_principal] =
@@ -3153,6 +3153,24 @@ async function cargarUsuariosFiltros() {
                                 ${minutos} min (${formatTiempo(minutos)})
                             </span>
                         </div>`;
+                });
+            }
+            const barraTotal = document.getElementById('barra-total');
+            const porcLabel  = document.getElementById('porcentaje-label');
+            if (barraTotal) barraTotal.style.width = `${porcentaje}%`;
+            if (porcLabel) porcLabel.textContent = `${porcentaje.toFixed(0)}%`;
+
+            // Gráfico tarta
+            const labelsP = Object.keys(agrupado);
+            const dataP   = Object.values(agrupado);
+            const bgP     = labelsP.map(l => getColorTarea(l));
+            if (window.graficaTarta) window.graficaTarta.destroy();
+            const canvasTarta = document.getElementById('grafico-tarta');
+            if (canvasTarta) {
+                window.graficaTarta = new Chart(canvasTarta.getContext('2d'), {
+                    type: 'pie',
+                    data: { labels: labelsP, datasets: [{ data: dataP, backgroundColor: bgP }] },
+                    options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
                 });
             }
 
