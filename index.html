@@ -2021,12 +2021,17 @@ async function cargarObjetivos() {
             cargarAlertasRendimiento();
             cargarConfiguracion();
             cargarTargetsSubtarea();
-        } else {
-            rolBadge.textContent = 'Operario';
-            rolBadge.className   = 'text-xs px-2 py-0.5 rounded-full font-medium bg-blue-100 text-blue-700';
-            document.getElementById('tab-plantillas').classList.remove('hidden');
-        }
+        } 
+        else {
+    rolBadge.textContent = 'Operario';
+    rolBadge.className   = 'text-xs px-2 py-0.5 rounded-full font-medium bg-blue-100 text-blue-700';
+    document.getElementById('tab-plantillas').classList.remove('hidden');
 
+    // AÑADIR ESTAS LÍNEAS:
+    await cargarTareasCache();
+    poblarSelectsTareas();
+    await actualizarSubtareas();
+}
         document.getElementById('estado-nombre').textContent = usuarioSesion.nombre;
         document.getElementById('estado-fecha').textContent  = new Date().toLocaleDateString('es-ES', {
             weekday: 'long', day: 'numeric', month: 'long'
