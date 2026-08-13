@@ -3305,7 +3305,17 @@ async function cargarUsuariosFiltros() {
         }
     }
     // ==================== OBJETIVOS POR TAREA ====================
-
+async function cargarTareasCache() {
+    try {
+        const resp = await fetch(`${API}/tareas/`);
+        if (resp.ok) {
+            tareasCache = await resp.json();
+            poblarSelectsTareas();
+        }
+    } catch (e) {
+        console.error('Error cargando tareas:', e);
+    }
+}
     async function cargarObjetivos() {
         try {
             const resp     = await fetch(`${API}/objetivos/`);
